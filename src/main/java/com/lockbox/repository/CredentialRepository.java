@@ -1,9 +1,9 @@
 package com.lockbox.repository;
 
-import com.lockbox.model.Password;
+import com.lockbox.model.Credential;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
 @Repository
-public interface PasswordRepository extends JpaRepository<Password, String> {
+public interface CredentialRepository extends JpaRepository<Credential, String> {
 }
