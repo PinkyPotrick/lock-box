@@ -1,7 +1,5 @@
 package com.lockbox.model;
 
-import com.lockbox.utils.EncryptionUtils;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -22,21 +20,19 @@ public class Vault extends BaseEntity {
     @Column(length = 4500)
     private String description;
 
-    // Getters and Setters with encryption/decryption
-
     public String getName() {
-        return EncryptionUtils.decrypt(name);
+        return name;
     }
 
     public void setName(String name) {
-        this.name = EncryptionUtils.encrypt(name);
+        this.name = name;
     }
 
     public String getDescription() {
-        return description == null ? null : EncryptionUtils.decrypt(description);
+        return description;
     }
 
     public void setDescription(String description) {
-        this.description = description == null ? null : EncryptionUtils.encrypt(description);
+        this.description = description;
     }
 }

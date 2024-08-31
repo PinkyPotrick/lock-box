@@ -2,8 +2,6 @@ package com.lockbox.model;
 
 import java.time.LocalDate;
 
-import com.lockbox.utils.EncryptionUtils;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -27,45 +25,65 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 1024)
     private String createdAt;
 
-    // Getters and Setters with encryption/decryption
+    @Column(nullable = false, length = 2048)
+    private String publicKey;
+
+    @Column(nullable = false, length = 2048)
+    private String privateKey;
 
     public String getUsername() {
-        return EncryptionUtils.decrypt(username);
+        return username;
     }
 
     public void setUsername(String username) {
-        this.username = EncryptionUtils.encrypt(username);
+        this.username = username;
     }
 
     public String getEmail() {
-        return EncryptionUtils.decrypt(email);
+        return email;
     }
 
     public void setEmail(String email) {
-        this.email = EncryptionUtils.encrypt(email);
+        this.email = email;
     }
 
     public String getSalt() {
-        return EncryptionUtils.decrypt(salt);
+        return salt;
     }
 
     public void setSalt(String salt) {
-        this.salt = EncryptionUtils.encrypt(salt);
+        this.salt = salt;
     }
 
     public String getVerifier() {
-        return EncryptionUtils.decrypt(verifier);
+        return verifier;
     }
 
     public void setVerifier(String verifier) {
-        this.verifier = EncryptionUtils.encrypt(verifier);
+        this.verifier = verifier;
     }
 
     public LocalDate getCreatedAt() {
-        return LocalDate.parse(EncryptionUtils.decrypt(createdAt));
+        return LocalDate.parse(createdAt);
     }
 
-    public void setCreatedAt(LocalDate createdAt) {
-        this.createdAt = EncryptionUtils.encrypt(createdAt.toString());
+    public void setCreatedAt(String createdAt) {
+        this.createdAt = createdAt.toString();
+    }
+
+    public String getPublicKey() {
+        return publicKey;
+    }
+
+    public void setPublicKey(String publicKey) {
+        this.publicKey = publicKey;
+    }
+
+    public String getPrivateKey() {
+        return privateKey;
+    }
+
+    public void setPrivateKey(String privateKey) {
+        this.privateKey = privateKey;
     }
 }

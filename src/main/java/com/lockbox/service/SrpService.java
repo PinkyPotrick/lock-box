@@ -2,8 +2,6 @@ package com.lockbox.service;
 
 import org.springframework.stereotype.Service;
 
-import com.lockbox.utils.EncryptionUtils;
-
 import java.math.BigInteger;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
@@ -43,13 +41,45 @@ public class SrpService {
 
     // Step 3: Generate server's private value `b`
     public BigInteger generatePrivateValue() {
-        return new BigInteger(256, random); // Generate a random 256-bit number
+        // return new BigInteger(256, random); // Generate a random 256-bit number
+        return new BigInteger(512, random); // Increase from 256 bits to 512 bits
     }
 
     // Step 4: Compute server's public value `B`
-    public BigInteger computeB(String verifier, BigInteger b) {
+    public BigInteger computeB(String verifier, BigInteger b) throws NoSuchAlgorithmException {
+        // BigInteger v = new BigInteger(verifier, 16);
+
+        // MessageDigest digest = MessageDigest.getInstance("SHA-256");
+        // digest.update(N.toByteArray());
+        // digest.update(g.toByteArray());
+        // BigInteger k = new BigInteger(1, digest.digest());
+
+        // BigInteger thatFirstMultiply = k.multiply(v);
+        // BigInteger thatModPow = g.modPow(b, N);
+        // BigInteger partBeforeModN = k.multiply(v).add(g.modPow(b, N));
+        // BigInteger withMod = (k.multiply(v).add(g.modPow(b, N))).mod(N);
+        // BigInteger newApproach = (k.multiply(v).mod(N).add(g.modPow(b, N))).mod(N);
+        // return (k.multiply(v).mod(N).add(g.modPow(b, N))).mod(N);
+
         BigInteger v = new BigInteger(verifier, 16);
-        return k.multiply(v).add(g.modPow(b, N)).mod(N);
+        
+        // Check sizes and values to ensure correctness
+        BigInteger gPowB = g.modPow(b, N);
+        
+        // Ensure gPowB is significantly large to avoid negative bases
+        if (gPowB.compareTo(v) <= 0) {
+            System.out.println("Warning: g^b is not larger than v. Adjusting strategy.");
+        }
+        
+        BigInteger B = (k.multiply(v).add(gPowB)).mod(N);
+        
+        // Adding a small offset or adjusting the scaling can help avoid negative base issues
+        if (B.compareTo(k.multiply(v)) <= 0) {
+            // Adding offset to ensure positive base; Not standard SRP, but necessary adjustment
+            B = B.add(N);
+        }
+        
+        return B;
     }
 
     // Step 5: Compute the scrambling parameter `u`
@@ -114,15 +144,5 @@ public class SrpService {
             hexString.append(String.format("%02x", b));
         }
         return hexString.toString();
-    }
-
-    // Encrypt data before saving to the database
-    public String encryptData(String data) {
-        return EncryptionUtils.encrypt(data);
-    }
-
-    // Decrypt data when retrieving from the database
-    public String decryptData(String encryptedData) {
-        return EncryptionUtils.decrypt(encryptedData);
     }
 }

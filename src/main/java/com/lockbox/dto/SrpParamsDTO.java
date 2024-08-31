@@ -1,18 +1,23 @@
 package com.lockbox.dto;
 
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-
 public class SrpParamsDTO {
+    private String derivedKey;
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
 
-    @NotBlank(message = "A is required")
-    @Pattern(regexp = "^[a-fA-F0-9]+$", message = "A must be a hex string")
-    private String A;
+    private EncryptedDataAesCbcDTO encryptedPublicKey;
+
+    private EncryptedDataAesCbcDTO encryptedA;
+
+    private String helperAesKey;
+
+    public String getDerivedKey() {
+        return derivedKey;
+    }
+
+    public void setDerivedKey(String derivedKey) {
+        this.derivedKey = derivedKey;
+    }
 
     public String getUsername() {
         return username;
@@ -22,11 +27,27 @@ public class SrpParamsDTO {
         this.username = username;
     }
 
-    public String getA() {
-        return A;
+    public EncryptedDataAesCbcDTO getEncryptedPublicKey() {
+        return encryptedPublicKey;
     }
 
-    public void setA(String a) {
-        A = a;
+    public void setEncryptedPublicKey(EncryptedDataAesCbcDTO encryptedPublicKey) {
+        this.encryptedPublicKey = encryptedPublicKey;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedA() {
+        return encryptedA;
+    }
+
+    public void setEncryptedA(EncryptedDataAesCbcDTO encryptedA) {
+        this.encryptedA = encryptedA;
+    }
+
+    public String getHelperAesKey() {
+        return helperAesKey;
+    }
+
+    public void setHelperAesKey(String helperAesKey) {
+        this.helperAesKey = helperAesKey;
     }
 }

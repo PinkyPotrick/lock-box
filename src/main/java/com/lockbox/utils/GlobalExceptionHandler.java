@@ -5,6 +5,10 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+
+import com.lockbox.dto.ResponseEntityDTO;
+import com.lockbox.model.CustomException;
+
 import org.springframework.validation.FieldError;
 
 import java.util.HashMap;
@@ -27,5 +31,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(Exception.class)
     public ResponseEntity<String> handleGeneralExceptions(Exception ex) {
         return new ResponseEntity<>(ex.getMessage(), HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+
+    @ExceptionHandler(CustomException.class)
+    public ResponseEntity<ResponseEntityDTO<String>> handleCustomException(CustomException ex) {
+        ResponseEntityDTO<String> response = new ResponseEntityDTO<>();
+        response.setError(ex.getMessage());
+        return ResponseEntity.status(ex.getStatus()).body(response);
     }
 }

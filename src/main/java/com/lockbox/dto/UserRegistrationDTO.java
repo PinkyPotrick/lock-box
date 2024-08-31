@@ -1,31 +1,29 @@
 package com.lockbox.dto;
 
-import jakarta.validation.constraints.Email;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.Pattern;
-import jakarta.validation.constraints.Size;
-
 public class UserRegistrationDTO {
+    private String derivedKey;
 
-    @NotBlank(message = "Username is required")
-    @Size(min = 3, max = 50, message = "Username must be between 3 and 50 characters")
     private String username;
 
-    @NotBlank(message = "Email is required")
-    @Email(message = "Email should be valid")
-    @Size(max = 100, message = "Email must not exceed 100 characters")
     private String email;
 
-    @NotBlank(message = "Salt is required")
-    @Pattern(regexp = "^[a-fA-F0-9]{32}$", message = "Salt must be a 32-character hex string")
     private String salt;
 
-    @NotBlank(message = "Verifier is required")
-    @Pattern(regexp = "^[a-fA-F0-9]+$", message = "Verifier must be a hex string")
-    private String verifier;
+    private EncryptedDataAesCbcDTO encryptedVerifier;
 
-    @NotBlank(message = "Client public key is required")
-    private String clientPublicKey;
+    private EncryptedDataAesCbcDTO encryptedPublicKey;
+
+    private EncryptedDataAesCbcDTO encryptedPrivateKey;
+
+    private String helperAesKey;
+
+    public String getDerivedKey() {
+        return derivedKey;
+    }
+
+    public void setDerivedKey(String derivedKey) {
+        this.derivedKey = derivedKey;
+    }
 
     public String getUsername() {
         return username;
@@ -51,19 +49,35 @@ public class UserRegistrationDTO {
         this.salt = salt;
     }
 
-    public String getVerifier() {
-        return verifier;
+    public EncryptedDataAesCbcDTO getEncryptedVerifier() {
+        return encryptedVerifier;
     }
 
-    public void setVerifier(String verifier) {
-        this.verifier = verifier;
+    public void setEncryptedVerifier(EncryptedDataAesCbcDTO encryptedVerifier) {
+        this.encryptedVerifier = encryptedVerifier;
     }
 
-    public String getClientPublicKey() {
-        return clientPublicKey;
+    public EncryptedDataAesCbcDTO getEncryptedPublicKey() {
+        return encryptedPublicKey;
     }
 
-    public void setClientPublicKey(String clientPublicKey) {
-        this.clientPublicKey = clientPublicKey;
+    public void setEncryptedPublicKey(EncryptedDataAesCbcDTO encryptedPublicKey) {
+        this.encryptedPublicKey = encryptedPublicKey;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedPrivateKey() {
+        return encryptedPrivateKey;
+    }
+
+    public void setEncryptedPrivateKey(EncryptedDataAesCbcDTO encryptedPrivateKey) {
+        this.encryptedPrivateKey = encryptedPrivateKey;
+    }
+
+    public String getHelperAesKey() {
+        return helperAesKey;
+    }
+
+    public void setHelperAesKey(String helperAesKey) {
+        this.helperAesKey = helperAesKey;
     }
 }

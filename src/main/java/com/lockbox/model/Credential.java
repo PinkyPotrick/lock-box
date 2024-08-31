@@ -1,7 +1,5 @@
 package com.lockbox.model;
 
-import com.lockbox.utils.EncryptionUtils;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.JoinColumn;
@@ -28,37 +26,35 @@ public class Credential extends BaseEntity {
     @Column(length = 4500)
     private String note;
 
-    // Getters and Setters with encryption/decryption
-
     public String getWebsite() {
-        return EncryptionUtils.decrypt(website);
+        return website;
     }
 
     public void setWebsite(String website) {
-        this.website = EncryptionUtils.encrypt(website);
+        this.website = website;
     }
 
     public String getUsername() {
-        return EncryptionUtils.decrypt(username);
+        return username;
     }
 
     public void setUsername(String username) {
-        this.username = EncryptionUtils.encrypt(username);
+        this.username = username;
     }
 
     public String getPassword() {
-        return EncryptionUtils.decrypt(password);
+        return password;
     }
 
     public void setPassword(String password) {
-        this.password = EncryptionUtils.encrypt(password);
+        this.password = password;
     }
 
     public String getNote() {
-        return note == null ? null : EncryptionUtils.decrypt(note);
+        return note;
     }
 
     public void setNote(String note) {
-        this.note = note == null ? null : EncryptionUtils.encrypt(note);
+        this.note = note;
     }
 }

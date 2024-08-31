@@ -6,63 +6,275 @@ import jakarta.annotation.PostConstruct;
 
 import javax.crypto.Cipher;
 
-import java.nio.charset.StandardCharsets;
+import java.io.File;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
 import java.security.PrivateKey;
 import java.security.PublicKey;
+import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
 @Service
 public class RSAKeyPairService {
 
+    // Define the directory and file paths
+    private static final String CONFIG_DIR = "src/main/java/com/lockbox/config";
+    private static final String PRIVATE_KEY_FILE = CONFIG_DIR + "/server-private-key.pem";
+    private static final String PUBLIC_KEY_FILE = CONFIG_DIR + "/server-public-key.pem";
+    
     private KeyPair keyPair;
 
     @PostConstruct
     public void init() {
         try {
-            KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
-            keyPairGenerator.initialize(2048);
-            this.keyPair = keyPairGenerator.generateKeyPair();
+            // Ensure the config directory exists
+            Files.createDirectories(Paths.get(CONFIG_DIR));
+
+            if (new File(PRIVATE_KEY_FILE).exists() && new File(PUBLIC_KEY_FILE).exists()) {
+                // Load the existing key pair
+                this.keyPair = loadKeyPair();
+            } else {
+                // Generate a new key pair and save it
+                KeyPairGenerator keyPairGenerator = KeyPairGenerator.getInstance("RSA");
+                keyPairGenerator.initialize(2048);
+                this.keyPair = keyPairGenerator.generateKeyPair();
+                saveKeyPair(this.keyPair);
+            }
         } catch (Exception e) {
             throw new RuntimeException("Error initializing RSA key pair", e);
         }
     }
 
-    public String getPublicKey() {
-        return Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded());
+    public PublicKey getPublicKey() {
+        return keyPair.getPublic();
     }
 
     public PrivateKey getPrivateKey() {
         return keyPair.getPrivate();
     }
 
-    public String decrypt(String encryptedData) {
+    public String getPublicKeyInPEM(PublicKey publicKey) {
         try {
-            Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
-            cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
-            byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
-            byte[] decryptedBytes = cipher.doFinal(decodedBytes);
+            String publicKeyEncoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+
+            StringBuilder pemFormattedKey = new StringBuilder();
+            pemFormattedKey.append("-----BEGIN PUBLIC KEY-----\n");
+            pemFormattedKey.append(publicKeyEncoded.replaceAll("(.{64})", "$1\n"));
+            pemFormattedKey.append("\n-----END PUBLIC KEY-----");
+
+            return pemFormattedKey.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting public key to PEM format", e);
+        }
+    }
+
+    public String decryptWithServerPrivateKey(String encryptedData) {
+        try {
+            Cipher cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.DECRYPT_MODE, keyPair.getPrivate());
+            byte[] decryptedBytes = cipher.doFinal(Base64.getDecoder().decode(encryptedData));
             return new String(decryptedBytes);
+            
+            // return Base64.getEncoder().encodeToString(decryptedBytes);  // Return as Base64 string for consistency
         } catch (Exception e) {
             throw new RuntimeException("Error decrypting data", e);
         }
     }
 
+    public String encryptWithPublicKey(String data, String publicKeyPem) {
+        try {
+            // Remove PEM headers and footers, and strip out all non-base64 characters
+            String publicKeyBase64 = publicKeyPem
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("[^A-Za-z0-9+/=]", "");  // Keep only valid Base64 characters
+
+            // Decode the Base64 encoded public key
+            byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyBase64);
+
+            // Generate the PublicKey object from the byte array
+            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+            X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
+            PublicKey publicKey = keyFactory.generatePublic(keySpec);
+
+            // Initialize the cipher for encryption with the public key
+            Cipher cipher = Cipher.getInstance("RSA");
+            cipher.init(Cipher.ENCRYPT_MODE, publicKey);
+
+            // Encrypt the data
+            byte[] encryptedBytes = cipher.doFinal(data.getBytes());
+
+            // Encode the encrypted data in Base64 and return it
+            return Base64.getEncoder().encodeToString(encryptedBytes);
+        } catch (Exception e) {
+            throw new RuntimeException("Error encrypting data", e);
+        }
+    }
+
+    private KeyPair loadKeyPair() throws Exception {
+        // Load public key
+        String publicKeyPem = new String(Files.readAllBytes(Paths.get(PUBLIC_KEY_FILE)));
+        PublicKey publicKey = loadPublicKey(publicKeyPem);
+
+        // Load private key
+        String privateKeyPem = new String(Files.readAllBytes(Paths.get(PRIVATE_KEY_FILE)));
+        PrivateKey privateKey = loadPrivateKey(privateKeyPem);
+
+        return new KeyPair(publicKey, privateKey);
+    }
+
+    private PublicKey loadPublicKey(String publicKeyPem) throws Exception {
+        // Remove PEM headers and footers, and strip out whitespace
+        String publicKeyBase64 = publicKeyPem
+                .replace("-----BEGIN PUBLIC KEY-----", "")
+                .replace("-----END PUBLIC KEY-----", "")
+                .replaceAll("\\s", "");
+
+        // Decode and create PublicKey
+        byte[] publicKeyBytes = Base64.getDecoder().decode(publicKeyBase64);
+        X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePublic(keySpec);
+    }
+
+    private PrivateKey loadPrivateKey(String privateKeyPem) throws Exception {
+        // Remove PEM headers and footers, and strip out whitespace
+        String privateKeyBase64 = privateKeyPem
+                .replace("-----BEGIN PRIVATE KEY-----", "")
+                .replace("-----END PRIVATE KEY-----", "")
+                .replaceAll("\\s", "");
+
+        // Decode and create PrivateKey
+        byte[] privateKeyBytes = Base64.getDecoder().decode(privateKeyBase64);
+        PKCS8EncodedKeySpec keySpec = new PKCS8EncodedKeySpec(privateKeyBytes);
+        KeyFactory keyFactory = KeyFactory.getInstance("RSA");
+        return keyFactory.generatePrivate(keySpec);
+    }
+
+    private void saveKeyPair(KeyPair keyPair) throws IOException {
+        // Save the public key in PEM format
+        X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(keyPair.getPublic().getEncoded());
+        String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n" +
+                              Base64.getMimeEncoder().encodeToString(publicKeySpec.getEncoded()) +
+                              "\n-----END PUBLIC KEY-----";
+        Files.write(Paths.get(PUBLIC_KEY_FILE), publicKeyPem.getBytes());
+
+        // Save the private key in PEM format
+        PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(keyPair.getPrivate().getEncoded());
+        String privateKeyPem = "-----BEGIN PRIVATE KEY-----\n" +
+                               Base64.getMimeEncoder().encodeToString(privateKeySpec.getEncoded()) +
+                               "\n-----END PRIVATE KEY-----";
+        Files.write(Paths.get(PRIVATE_KEY_FILE), privateKeyPem.getBytes());
+    }
+
+    // ------------------------------------------------ CLEAN CODE ABOVE -------------------------------------------------
+
+    /*
+    public String getPublicKeyInPEM() {
+        try {
+            PublicKey publicKey = getPublicKey();
+            System.out.println(Base64.getEncoder().encodeToString(keyPair.getPublic().getEncoded())); // TODO delete this
+            String publicKeyEncoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+
+            StringBuilder pemFormattedKey = new StringBuilder();
+            pemFormattedKey.append("-----BEGIN PUBLIC KEY-----\n");
+            pemFormattedKey.append(publicKeyEncoded.replaceAll("(.{64})", "$1\n"));
+            pemFormattedKey.append("\n-----END PUBLIC KEY-----");
+
+            return pemFormattedKey.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting public key to PEM format", e);
+        }
+    }
+
+    public String getPrivateKeyInPEM() {
+        try {
+            PrivateKey publicKey = getPrivateKey();
+            System.out.println(Base64.getEncoder().encodeToString(keyPair.getPrivate().getEncoded())); // TODO delete this
+            String publicKeyEncoded = Base64.getEncoder().encodeToString(publicKey.getEncoded());
+
+            StringBuilder pemFormattedKey = new StringBuilder();
+            pemFormattedKey.append("-----BEGIN PRIVATE KEY-----\n");
+            pemFormattedKey.append(publicKeyEncoded.replaceAll("(.{64})", "$1\n"));
+            pemFormattedKey.append("\n-----END PRIVATE KEY-----");
+
+            return pemFormattedKey.toString();
+        } catch (Exception e) {
+            throw new RuntimeException("Error converting private key to PEM format", e);
+        }
+    }
+
+    public PrivateKey getPrivateKey() {
+        return keyPair.getPrivate();
+    }
+
+    public String decryptWithServerPrivateKey(String encryptedData) {
+        try {
+            Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            cipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+            byte[] decodedBytes = Base64.getDecoder().decode(encryptedData);
+            byte[] decryptedBytes = cipher.doFinal(decodedBytes);
+            return new String(decryptedBytes, StandardCharsets.UTF_8);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException("Decryption failed due to padding error. Data might be corrupted or improperly encrypted.", e);
+        } catch (Exception e) {
+            throw new RuntimeException("Error decrypting data", e);
+        }
+    }    
+
+    public String encryptWithServerPrivateKey(String data) {
+        try {
+            Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            cipher.init(Cipher.ENCRYPT_MODE, getPrivateKey());
+            byte[] encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(encryptedBytes);
+        } catch (Exception e) {
+            throw new RuntimeException("Error encrypting data", e);
+        }
+    }
+    
     public String encryptWithClientPublicKey(String data, String clientPublicKeyPem) {
         try {
             byte[] publicKeyBytes = Base64.getDecoder().decode(clientPublicKeyPem);
             X509EncodedKeySpec keySpec = new X509EncodedKeySpec(publicKeyBytes);
             PublicKey publicKey = KeyFactory.getInstance("RSA").generatePublic(keySpec);
-
+    
             Cipher cipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
             cipher.init(Cipher.ENCRYPT_MODE, publicKey);
             byte[] encryptedData = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
             return Base64.getEncoder().encodeToString(encryptedData);
+        } catch (BadPaddingException e) {
+            throw new RuntimeException("Encryption failed due to padding error. Data might be corrupted or improperly encrypted.", e);
         } catch (Exception e) {
             throw new RuntimeException("Error encrypting data with client's public key", e);
         }
     }
+    
+    public void testEncryptionDecryption() {
+        try {
+            String testString = "test";
+            
+            // Encrypt with the public key
+            Cipher encryptCipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            encryptCipher.init(Cipher.ENCRYPT_MODE, keyPair.getPublic());
+            byte[] encryptedBytes = encryptCipher.doFinal(testString.getBytes(StandardCharsets.UTF_8));
+            String encryptedString = Base64.getEncoder().encodeToString(encryptedBytes);
+            
+            // Decrypt with the private key
+            Cipher decryptCipher = Cipher.getInstance("RSA/ECB/OAEPWithSHA-256AndMGF1Padding");
+            decryptCipher.init(Cipher.DECRYPT_MODE, getPrivateKey());
+            byte[] decryptedBytes = decryptCipher.doFinal(Base64.getDecoder().decode(encryptedString));
+            String decryptedString = new String(decryptedBytes, StandardCharsets.UTF_8);
+            
+            System.out.println("Decrypted String: " + decryptedString);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+    */
 }
