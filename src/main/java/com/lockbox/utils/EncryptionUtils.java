@@ -82,19 +82,19 @@ public class EncryptionUtils {
     }
 
     // Method to decrypt the encrypted username using the derived key
-    public static String decryptUsername(String encryptedUsername, String derivedKey) {
+    public static String decryptUsername(String derivedUsername, String derivedKey) {
         try {
             // Decode the Base64 encoded derived key
             byte[] decodedKey = Base64.getDecoder().decode(derivedKey);
             SecretKeySpec secretKey = new SecretKeySpec(decodedKey, "AES");
 
             // Decode the Base64 encoded encrypted username
-            byte[] decodedEncryptedUsername = Base64.getDecoder().decode(encryptedUsername);
+            byte[] decodedDerivedUsername = Base64.getDecoder().decode(derivedUsername);
 
             // AES encryption with ECB mode (deterministic)
             Cipher cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
             cipher.init(Cipher.DECRYPT_MODE, secretKey);
-            byte[] decryptedBytes = cipher.doFinal(decodedEncryptedUsername);
+            byte[] decryptedBytes = cipher.doFinal(decodedDerivedUsername);
 
             return new String(decryptedBytes);
 

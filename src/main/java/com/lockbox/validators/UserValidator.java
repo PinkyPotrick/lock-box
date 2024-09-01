@@ -30,7 +30,7 @@ public class UserValidator {
         validateEmail(email);
         validateSalt(salt);
 
-        EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedVerifier();
+        EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedClientVerifier();
         if (encryptedVerifier != null) {
             String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(), encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
             validateVerifier(fullyDecryptedVerifier);
@@ -39,7 +39,7 @@ public class UserValidator {
         // TODO also needs to validate how strong the password is, even though the frontend should take care of this as well !!!
     }
 
-    private void validateUsername(String username, String encryptedUsername) throws Exception {
+    private void validateUsername(String username, String derivedUsername) throws Exception {
         if (username == null || username.trim().isEmpty()) {
             throw new IllegalArgumentException("Username cannot be empty.");
         }
@@ -48,7 +48,7 @@ public class UserValidator {
             throw new IllegalArgumentException("Invalid username format.");
         }
 
-        if (userRepository.findByUsername(encryptedUsername) != null) {
+        if (userRepository.findByUsername(derivedUsername) != null) {
             throw new Exception("Username already exists");
         }
     }

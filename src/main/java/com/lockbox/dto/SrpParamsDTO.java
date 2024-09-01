@@ -5,9 +5,11 @@ public class SrpParamsDTO {
 
     private String username;
 
-    private EncryptedDataAesCbcDTO encryptedPublicKey;
+    private EncryptedDataAesCbcDTO encryptedClientPublicKey;
 
-    private EncryptedDataAesCbcDTO encryptedA;
+    private EncryptedDataAesCbcDTO encryptedClientPublicValueA;
+
+    private EncryptedDataAesCbcDTO encryptedClientPrivateValueA;
 
     private String helperAesKey;
 
@@ -27,20 +29,20 @@ public class SrpParamsDTO {
         this.username = username;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedPublicKey() {
-        return encryptedPublicKey;
+    public EncryptedDataAesCbcDTO getEncryptedClientPublicKey() {
+        return encryptedClientPublicKey;
     }
 
-    public void setEncryptedPublicKey(EncryptedDataAesCbcDTO encryptedPublicKey) {
-        this.encryptedPublicKey = encryptedPublicKey;
+    public void setEncryptedClientPublicKey(EncryptedDataAesCbcDTO encryptedClientPublicKey) {
+        this.encryptedClientPublicKey = encryptedClientPublicKey;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedA() {
-        return encryptedA;
+    public EncryptedDataAesCbcDTO getEncryptedClientPublicValueA() {
+        return encryptedClientPublicValueA;
     }
 
-    public void setEncryptedA(EncryptedDataAesCbcDTO encryptedA) {
-        this.encryptedA = encryptedA;
+    public void setEncryptedClientPublicValueA(EncryptedDataAesCbcDTO encryptedClientPublicValueA) {
+        this.encryptedClientPublicValueA = encryptedClientPublicValueA;
     }
 
     public String getHelperAesKey() {
@@ -49,5 +51,13 @@ public class SrpParamsDTO {
 
     public void setHelperAesKey(String helperAesKey) {
         this.helperAesKey = helperAesKey;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedClientPrivateValueA() {
+        return encryptedClientPrivateValueA;
+    }
+
+    public void setEncryptedClientPrivateValueA(EncryptedDataAesCbcDTO encryptedClientPrivateValueA) {
+        this.encryptedClientPrivateValueA = encryptedClientPrivateValueA;
     }
 }

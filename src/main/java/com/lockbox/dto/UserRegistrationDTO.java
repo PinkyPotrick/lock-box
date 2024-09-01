@@ -9,11 +9,11 @@ public class UserRegistrationDTO {
 
     private String salt;
 
-    private EncryptedDataAesCbcDTO encryptedVerifier;
+    private EncryptedDataAesCbcDTO encryptedClientVerifier;
 
-    private EncryptedDataAesCbcDTO encryptedPublicKey;
+    private EncryptedDataAesCbcDTO encryptedClientPublicKey;
 
-    private EncryptedDataAesCbcDTO encryptedPrivateKey;
+    private EncryptedDataAesCbcDTO encryptedClientPrivateKey;
 
     private String helperAesKey;
 
@@ -49,28 +49,28 @@ public class UserRegistrationDTO {
         this.salt = salt;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedVerifier() {
-        return encryptedVerifier;
+    public EncryptedDataAesCbcDTO getEncryptedClientVerifier() {
+        return encryptedClientVerifier;
     }
 
-    public void setEncryptedVerifier(EncryptedDataAesCbcDTO encryptedVerifier) {
-        this.encryptedVerifier = encryptedVerifier;
+    public void setEncryptedClientVerifier(EncryptedDataAesCbcDTO encryptedClientVerifier) {
+        this.encryptedClientVerifier = encryptedClientVerifier;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedPublicKey() {
-        return encryptedPublicKey;
+    public EncryptedDataAesCbcDTO getEncryptedClientPublicKey() {
+        return encryptedClientPublicKey;
     }
 
-    public void setEncryptedPublicKey(EncryptedDataAesCbcDTO encryptedPublicKey) {
-        this.encryptedPublicKey = encryptedPublicKey;
+    public void setEncryptedClientPublicKey(EncryptedDataAesCbcDTO encryptedClientPublicKey) {
+        this.encryptedClientPublicKey = encryptedClientPublicKey;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedPrivateKey() {
-        return encryptedPrivateKey;
+    public EncryptedDataAesCbcDTO getEncryptedClientPrivateKey() {
+        return encryptedClientPrivateKey;
     }
 
-    public void setEncryptedPrivateKey(EncryptedDataAesCbcDTO encryptedPrivateKey) {
-        this.encryptedPrivateKey = encryptedPrivateKey;
+    public void setEncryptedClientPrivateKey(EncryptedDataAesCbcDTO encryptedClientPrivateKey) {
+        this.encryptedClientPrivateKey = encryptedClientPrivateKey;
     }
 
     public String getHelperAesKey() {

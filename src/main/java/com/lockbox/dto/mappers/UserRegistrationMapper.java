@@ -19,21 +19,21 @@ public class UserRegistrationMapper {
 
         // Data needs to be encrypted because of the big length
         EncryptedDataAesCbcMapper encryptedDataAESCBCMapper = new EncryptedDataAesCbcMapper();
-        String fullyDecryptedVerifier = user.getVerifier();
-        String fullyDecryptedClientPublicKey = user.getPublicKey();
-        String fullyDecryptedClientPrivateKey = user.getPrivateKey();
+        String fullyDecryptedVerifier = user.getVerifier(); // TODO might need to decrypt it (Locally)
+        String fullyDecryptedClientPublicKey = user.getPublicKey(); // TODO might need to decrypt it (Locally)
+        String fullyDecryptedClientPrivateKey = user.getPrivateKey(); // TODO might need to decrypt it (Locally)
 
         if (fullyDecryptedVerifier != null) {
             EncryptedDataAesCbcDTO encryptedVerifier = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedVerifier));
-            userRegistrationDTO.setEncryptedVerifier(encryptedVerifier);
+            userRegistrationDTO.setEncryptedClientVerifier(encryptedVerifier);
         }
         if (fullyDecryptedClientPublicKey != null) {
             EncryptedDataAesCbcDTO encryptedPublicKey = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedClientPublicKey));
-            userRegistrationDTO.setEncryptedPublicKey(encryptedPublicKey);
+            userRegistrationDTO.setEncryptedClientPublicKey(encryptedPublicKey);
         }
         if (fullyDecryptedClientPrivateKey != null) {
             EncryptedDataAesCbcDTO encryptedPrivateKey = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedClientPrivateKey));
-            userRegistrationDTO.setEncryptedPrivateKey(encryptedPrivateKey);
+            userRegistrationDTO.setEncryptedClientPrivateKey(encryptedPrivateKey);
         }
 
         return userRegistrationDTO;
@@ -50,21 +50,21 @@ public class UserRegistrationMapper {
         user.setSalt(userRegistrationDTO.getSalt());
 
         // Data needs to be decrypted because of the big length
-        EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedVerifier();
-        EncryptedDataAesCbcDTO encryptedPublicKey = userRegistrationDTO.getEncryptedPublicKey();
-        EncryptedDataAesCbcDTO encryptedPrivateKey = userRegistrationDTO.getEncryptedPrivateKey();
+        EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedClientVerifier();
+        EncryptedDataAesCbcDTO encryptedPublicKey = userRegistrationDTO.getEncryptedClientPublicKey();
+        EncryptedDataAesCbcDTO encryptedPrivateKey = userRegistrationDTO.getEncryptedClientPrivateKey();
 
         if (encryptedVerifier != null) {
             String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(), encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
-            user.setVerifier(fullyDecryptedVerifier);
+            user.setVerifier(fullyDecryptedVerifier); // TODO might need to encrypt it (Locally)
         }
         if (encryptedPublicKey != null) {
             String fullyDecryptedClientPublicKey = EncryptionUtils.decryptWithAESCBC(encryptedPublicKey.getEncryptedDataBase64(), encryptedPublicKey.getIvBase64(), encryptedPublicKey.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
-            user.setPublicKey(fullyDecryptedClientPublicKey);
+            user.setPublicKey(fullyDecryptedClientPublicKey); // TODO might need to encrypt it (Locally)
         }
         if (encryptedPrivateKey != null) {
             String fullyDecryptedClientPrivateKey = EncryptionUtils.decryptWithAESCBC(encryptedPrivateKey.getEncryptedDataBase64(), encryptedPrivateKey.getIvBase64(), encryptedPrivateKey.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
-            user.setPrivateKey(fullyDecryptedClientPrivateKey);
+            user.setPrivateKey(fullyDecryptedClientPrivateKey); // TODO might need to encrypt it (Locally)
         }
         
         return user;

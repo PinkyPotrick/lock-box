@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
         user.setCreatedAt(rsaKeyPairService.encryptWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user.getPublicKey()));
         user.setUsername(rsaKeyPairService.decryptWithServerPrivateKey(userRegistrationDTO.getUsername())); // The username has 2 encryptions, only the first encryption is used in the database
 
-        // TODO THE FOLLOWING ATTRIBUTES SHOULD ALSO BE ENCRYPTED IN THE DATABASE (NEED 3 ADDITIONAL TABLES)
+        // TODO THE FOLLOWING ATTRIBUTES SHOULD ALSO BE ENCRYPTED IN THE DATABASE (NEED 3 ADDITIONAL TABLES) - at the end of all !!!
         // user.setVerifier(rsaKeyPairService.encryptWithPublicKey(user.getVerifier(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
         // user.setPrivateKey(rsaKeyPairService.encryptWithPublicKey(user.getPrivateKey(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
         // user.setPublicKey(rsaKeyPairService.encryptWithPublicKey(user.getPublicKey(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
