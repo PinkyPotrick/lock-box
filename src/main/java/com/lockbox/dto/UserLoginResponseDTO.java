@@ -1,18 +1,18 @@
 package com.lockbox.dto;
 
 public class UserLoginResponseDTO {
-    private String encryptedServerProofM;
+    private String encryptedServerProofM2;
 
     private EncryptedDataAesCbcDTO encryptedSessionToken;
 
     private String helperAuthenticateAesKey;
 
-    public String getEncryptedServerProofM() {
-        return encryptedServerProofM;
+    public String getEncryptedServerProofM2() {
+        return encryptedServerProofM2;
     }
 
-    public void setEncryptedServerProofM(String encryptedServerProofM) {
-        this.encryptedServerProofM = encryptedServerProofM;
+    public void setEncryptedServerProofM2(String encryptedServerProofM2) {
+        this.encryptedServerProofM2 = encryptedServerProofM2;
     }
 
     public EncryptedDataAesCbcDTO getEncryptedSessionToken() {

@@ -9,6 +9,7 @@ import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+// This is the test that executes Spring screen at "mvn clean install"
 @SpringBootTest
 @AutoConfigureMockMvc
 public class PublicKeyControllerTest {

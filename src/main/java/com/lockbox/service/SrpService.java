@@ -65,6 +65,37 @@ public class SrpService {
     }
 
     /**
+     * Converts a BigInteger value to a fixed-length byte array.
+     * 
+     * @param value - The BigInteger value to convert.
+     * @param length - The desired length of the byte array.
+     * @return A byte array of the specified length, padded with leading zeros if necessary.
+     */
+    public byte[] toFixedLengthByteArray(BigInteger value, int length) {
+        byte[] bytes = value.toByteArray();
+        if (bytes.length == length) {
+            return bytes;
+        }
+        byte[] padded = new byte[length];
+        System.arraycopy(bytes, Math.max(0, bytes.length - length), padded, Math.max(0, length - bytes.length), Math.min(length, bytes.length));
+        return padded;
+    }
+
+    /**
+     * Converts a byte array to its hexadecimal string representation.
+     * 
+     * @param bytes - The byte array to convert.
+     * @return The hexadecimal string representation of the byte array.
+     */
+    public static String toHexString(byte[] bytes) {
+        StringBuilder sb = new StringBuilder();
+        for (byte b : bytes) {
+            sb.append(String.format("%02x", b));
+        }
+        return sb.toString();
+    }
+
+    /**
      * Generates a random private value (b) using 32 bytes of randomness.
      *
      * @return A random BigInteger value.
@@ -174,218 +205,84 @@ public class SrpService {
         return bytesToHex(K_bytes);
     }
 
-    public String toHex(byte[] bytes) {
-        StringBuilder hexString = new StringBuilder();
-        for (byte b : bytes) {
-            String hex = Integer.toHexString(0xff & b);
-            if (hex.length() == 1) {
-                hexString.append('0');
-            }
-            hexString.append(hex);
-        }
-        return hexString.toString();
-    }
-    
-    private static String toBinaryString(byte[] data) {
-        StringBuilder binaryString = new StringBuilder();
-        for (byte b : data) {
-            binaryString.append(String.format("%8s", Integer.toBinaryString(b & 0xFF)).replace(' ', '0'));
-        }
-        return binaryString.toString();
-    }
-
     /**
-     * Computes the server's first proof M = H(H(N) XOR H(g) | H(U) | s | A | B | K).
+     * Computes the server's first proof M1 = H(H(N) XOR H(g) | H(U) | s | A | B | K).
      * 
      * @param username - The user's name (U).
      * @param salt - The salt value (s) used in SRP.
      * @param A - The client's public value A.
      * @param B - The server's public value B.
      * @param K - The session key K derived from the shared secret.
-     * @return The client's proof M as a hexadecimal string.
+     * @return The client's proof M as a hex string.
      * @throws NoSuchAlgorithmException if the SHA-256 algorithm is not available.
      */
     public String computeM1(String username, String salt, BigInteger A, BigInteger B, String K) throws NoSuchAlgorithmException {
-        // Convert the username to bytes and then to binary
-        byte[] usernameBytes = username.getBytes(StandardCharsets.UTF_8);
-        String usernameBinary = toBinaryString(usernameBytes);
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
 
-        // Convert the salt from hex to bytes and then to binary
-        byte[] saltBytes = hexStringToByteArray(salt);
-        String saltBinary = toBinaryString(saltBytes);
+        // Convert BigInteger to byte arrays with leading zero if necessary
+        byte[] aBytes = toFixedLengthByteArray(A, 32); // 32 bytes <=> 256 bits
+        byte[] bBytes = toFixedLengthByteArray(B, 32); // 32 bytes <=> 256 bits
+        byte[] N_bytes = toFixedLengthByteArray(N, 32); // 32 bytes <=> 256 bits
+        byte[] g_bytes = toFixedLengthByteArray(g, 32); // 32 bytes <=> 256 bits
 
-        String A_binary = toBinaryString(A.toByteArray());
-        String B_binary = toBinaryString(B.toByteArray());
-        // Convert the session key K from hex to bytes and then to binary
-        byte[] K_bytes = hexStringToByteArray(K);
-        String K_binary = toBinaryString(K_bytes);
+        // Hash N and g
+        byte[] H_N = sha256.digest(N_bytes);
+        byte[] H_g = sha256.digest(g_bytes);
 
-        System.out.println("Username (binary): " + usernameBinary);
-        System.out.println("Salt (binary): " + saltBinary);
-        System.out.println("A (binary): " + A_binary);
-        System.out.println("B (binary): " + B_binary);
-        System.out.println("K (binary): " + K_binary);
-
-
-        byte[] A_bytes = A.toByteArray();
-        // byte[] B_bytes = B.toByteArray();
-        // byte[] K_bytes = new BigInteger(K, 16).toByteArray();
-
-        String B_hex = B.toString(16);
-        if (B_hex.length() % 2 != 0) {
-        B_hex = "0" + B_hex;  // Ensure even-length hex string
-        }
-        byte[] B_bytes = new BigInteger(B_hex, 16).toByteArray();
-        if (B_bytes[0] == 0) {
-            // Strip leading zero byte if present
-            B_bytes = Arrays.copyOfRange(B_bytes, 1, B_bytes.length);
-        }
-
-        System.out.println("A (bytes, hex): " + toHex(A_bytes));
-        System.out.println("B (bytes, hex): " + toHex(B_bytes));
-        // System.out.println("K (bytes, hex): " + toHex(K_bytes));
-
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
-
-        // Compute H(N), H(g) and H(U)
-        digest.update(N.toByteArray());
-        byte[] H_N = digest.digest();
-
-        digest.update(g.toByteArray());
-        byte[] H_g = digest.digest();
-
-        digest.update(username.getBytes());
-        byte[] H_U = digest.digest();
-
+        // XOR H_N and H_g
         byte[] H_N_XOR_H_g = new byte[H_N.length];
         for (int i = 0; i < H_N.length; i++) {
             H_N_XOR_H_g[i] = (byte) (H_N[i] ^ H_g[i]);
         }
 
-        // byte[] K_bytes = new BigInteger(K, 16).toByteArray();
-        if (K_bytes[0] == 0) {
-            K_bytes = Arrays.copyOfRange(K_bytes, 1, K_bytes.length);
+        sha256.reset();
+        sha256.update(H_N_XOR_H_g);
+        sha256.update(username.getBytes(StandardCharsets.UTF_8));
+        sha256.update(salt.getBytes(StandardCharsets.UTF_8));
+        sha256.update(aBytes);
+        sha256.update(bBytes);
+        sha256.update(K.getBytes(StandardCharsets.UTF_8));
+
+        byte[] digest = sha256.digest();
+        StringBuilder hexString = new StringBuilder(2 * digest.length);
+        for (byte b : digest) {
+            String hex = Integer.toHexString(0xff & b);
+            if(hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
         }
-        System.out.println("K_bytes (hex): " + toHex(K_bytes));
-        
-        // Log intermediate digest states
-        System.out.println("Initial Digest State: " + toHex(digest.digest()));
-        digest.update(H_N_XOR_H_g);
-        System.out.println("After H_N_XOR_H_g: " + toHex(digest.digest()));
-        digest.update(H_U);
-        System.out.println("After H_U: " + toHex(digest.digest()));
-        digest.update(hexStringToByteArray(salt));
-        System.out.println("After Salt: " + toHex(digest.digest()));
-        digest.update(A.toByteArray());
-        System.out.println("After A: " + toHex(digest.digest()));
-        digest.update(B.toByteArray());
-        System.out.println("After B: " + toHex(digest.digest()));
-        digest.update(K_bytes);
-        System.out.println("After K: " + toHex(digest.digest()));
-
-        String M1 = new BigInteger(1, digest.digest()).toString(16);
-        System.out.println("M1: " + M1);
-
-        return M1;
-
-        // // Log intermediate digest states
-        // System.out.println("Initial Digest State: " + toHex(digest.digest()));
-        // digest.update(H_N_XOR_H_g);
-        // System.out.println("After H_N_XOR_H_g: " + toHex(digest.digest()));
-        // digest.update(H_U);
-        // System.out.println("After H_U: " + toHex(digest.digest()));
-        // digest.update(salt.getBytes());
-        // System.out.println("After Salt: " + toHex(digest.digest()));
-        // digest.update(A.toByteArray());
-        // System.out.println("After A: " + toHex(digest.digest()));
-        // digest.update(B.toByteArray());
-        // System.out.println("After B: " + toHex(digest.digest()));
-        // digest.update(new BigInteger(K, 16).toByteArray());
-        // System.out.println("After K: " + toHex(digest.digest()));
-
-        // String M1 = new BigInteger(1, digest.digest()).toString(16);
-        // System.out.println("M1: " + M1);
-
-        // return M1;
+        return hexString.toString();
     }
 
     /**
-     * Computes the server's proof H(A | M | K).
+     * Computes the server's second proof M2 = H(A | M1 | K).
      * 
-     * @param A The client's public value A.
-     * @param M The client's proof M.
-     * @param K The session key K derived from the shared secret.
-     * @return  The server's proof as a hexadecimal string.
+     * @param A - The client's public value A.
+     * @param M1 - The server's first proof M1.
+     * @param K - The session key K derived from the shared secret.
+     * @return The final SHA-256 digest as a hex string.
      * @throws NoSuchAlgorithmException if the SHA-256 algorithm is not available.
      */
-    public String computeM2(BigInteger A, String M, String K) throws NoSuchAlgorithmException {
-        MessageDigest digest = MessageDigest.getInstance("SHA-256");
+    public String computeM2(BigInteger A, String M1, String K) throws NoSuchAlgorithmException {
+        MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
 
-        // Convert K from a hexadecimal string to a byte array
-        byte[] K_bytes = new BigInteger(K, 16).toByteArray();
+        // Convert BigInteger A to byte array with leading zero if necessary
+        byte[] aBytes = toFixedLengthByteArray(A, 32); // 32 bytes <=> 256 bits
 
-        // Compute H(A | M | K)
-        digest.update(A.toByteArray());
-        digest.update(new BigInteger(M, 16).toByteArray());
-        digest.update(K_bytes);
+        sha256.update(aBytes);
+        sha256.update(M1.getBytes(StandardCharsets.UTF_8));
+        sha256.update(K.getBytes(StandardCharsets.UTF_8));
 
-        return new BigInteger(1, digest.digest()).toString(16);
-    }
-
-    ///////// ---------------------------------- ABOVE ONLY CLEAN -------------------------------------
-
-    public BigInteger computeX(String salt, String username, String password) throws NoSuchAlgorithmException {
-        // Create a SHA-1 message digest instance
-        MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
-
-        // Step 1: Compute inner hash = SHA1(I | ":" | P)
-        String userPassConcat = username + ":" + password;
-        byte[] innerHash = sha1.digest(userPassConcat.getBytes(StandardCharsets.UTF_8));
-
-        // Convert innerHash to a hexadecimal string
-        String innerHashHex = bytesToHex(innerHash);
-
-        // Step 2: Compute x = SHA1(s | innerHash)
-        sha1.reset();
-        sha1.update(hexStringToByteArray(salt));  // Convert salt from hex to bytes and update digest
-        sha1.update(hexStringToByteArray(innerHashHex));  // Convert innerHashHex from hex to bytes and update digest
-        byte[] xHash = sha1.digest();
-
-        // Convert xHash (the result) to a BigInteger
-        return new BigInteger(1, xHash);
-    }
-
-    public BigInteger computeS_FE(BigInteger B, BigInteger x, BigInteger a, BigInteger u) {
-        System.out.println("[computeS] B:" + B);
-        // Compute g^x % N
-        BigInteger gx = g.modPow(x, N);
-        System.out.println("[computeS] gx:" + gx);
-
-        // Compute B - g^x
-        BigInteger B_minus_gx = B.subtract(gx);
-        System.out.println("[computeS] B_minus_gx:" + B_minus_gx);
-
-        // Ensure B_minus_gx is non-negative by adding N if necessary
-        // if (B_minus_gx.compareTo(BigInteger.ZERO) < 0) {
-        //     System.out.println("[computeS] B_minus_gx < 0: We have to add N");
-        //     B_minus_gx = B_minus_gx.add(N);
-        //     System.out.println("[computeS] B_minus_gx += N:" + B_minus_gx);
-        // }
-
-        // Compute (B - g^x) % N
-        B_minus_gx = B_minus_gx.mod(N);
-        System.out.println("[computeS] B_minus_gx = B_minus_gx % N:" + B_minus_gx);
-        System.out.println("[computeS] B_minus_gx % N:" + B_minus_gx);
-
-        // Compute the exponent (a + u * x)
-        BigInteger exp = a.add(u.multiply(x));
-        System.out.println("[computeS] u * x:" + u.multiply(x));
-        System.out.println("[computeS] a + u * x:" + exp);
-
-        // Compute S = (B - g^x) ^ (a + u * x) % N
-        BigInteger S = B_minus_gx.modPow(exp, N);
-        System.out.println("[computeS] modExp(B_minus_gx, exp, N):" + S);
-
-        return S;
+        byte[] digest = sha256.digest();
+        StringBuilder hexString = new StringBuilder(2 * digest.length);
+        for (byte b : digest) {
+            String hex = Integer.toHexString(0xff & b);
+            if(hex.length() == 1) {
+                hexString.append('0');
+            }
+            hexString.append(hex);
+        }
+        return hexString.toString();
     }
 }
