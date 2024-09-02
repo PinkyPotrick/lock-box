@@ -52,48 +52,6 @@ public class AuthController {
     @Autowired
     private UserRepository userRepository;  // TODO delete later
 
-    // Constants
-    public static final BigInteger mock_N = new BigInteger("1362643368171802605024730761771234071407005688199");
-    public static final BigInteger mock_g = BigInteger.valueOf(2);
-    public static final BigInteger mock_k = BigInteger.valueOf(3);
-
-    // Given values
-    public static final String mock_salt = "dbf73c4b3a18d262f86ce2259e64893b";
-    public static final String mock_username = "test_username";
-    public static final String mock_password = "test_password";
-
-    public static final BigInteger mock_clientPrivateValueA = new BigInteger("8435613349994418257736492029394296021173455516599265126132503833786622454039");
-    public static final BigInteger mock_serverPrivateValueB = new BigInteger("32228892571253549088287946698901798891413593136237036128449505629902599122101");
-
-    public static final BigInteger mock_clientPublicValueA = new BigInteger("145208284779178624062233615519279346584501786824");
-    public static final BigInteger mock_serverPublicValueB = new BigInteger("1300313375753955150616718083134655363956891157257");
-
-    public static final BigInteger mock_verifier = new BigInteger("392330426642824233509059275377989045813993495628");
-
-    // Step 1: Compute x
-    public static final String mock_innerHash = "5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
-    public static final String mock_preHashString = "dbf73c4b3a18d262f86ce2259e64893b5baa61e4c9b93f3f0682250b6cf8331b7ee68fd8";
-    public static final BigInteger mock_x = new BigInteger("1192290737504213401989520663940998431895223738686"); // d229f07c3c499c91b26de21785e7fb645cc7a8be
-
-    // Step 2: Compute u
-    public static final String mock_B_hash = "654d8f712b6c92f8e5c0e6f2e34832f8b5f7b0ed";
-    public static final String mock_first32Bits = "654d8f71";
-    public static final BigInteger mock_u = new BigInteger("1699887217"); // 0x654d8f71
-
-    // Step 3: Compute S_client
-    public static final BigInteger mock_g_pow_x = new BigInteger("1022376531405771566846048991712628721743772738126");
-    public static final BigInteger mock_B_minus_gx = new BigInteger("277936844348183583770669091422026642213118419131");
-    public static final BigInteger mock_a_plus_u_mul_x = new BigInteger("8435613349994418258077072424175659351262813110793040551856119997684336950447");
-    public static final BigInteger mock_S_client = new BigInteger("264876338359299281871720527392045651316132453910");
-
-    // Step 4: Compute S_server
-    public static final BigInteger mock_v_pow_u = new BigInteger("788713277953129728034946382546898763498115974645");
-    public static final BigInteger mock_A_mul_v_pow_u = new BigInteger("995196690839379388276264518859547438382693796100");
-    public static final BigInteger mock_S_server = new BigInteger("264876338359299281871720527392045651316132453910");
-
-    // Final Session Key (should be the same for both client and server)
-    public static final String mock_sessionKeyK = "ee37a0ff2c2bb1a34c3e79c39a58a77a5c0e0e38088dfcac82f55248d63593bef1f0002d80414a21";
-
     @GetMapping("/public-key")
     public ResponseEntityDTO<String> getPublicKey() throws Exception {
         try {
@@ -161,9 +119,9 @@ public class AuthController {
             String clientPublicKey = EncryptionUtils.decryptWithAESCBC(encryptedClientPublicKey.getEncryptedDataBase64(), encryptedClientPublicKey.getIvBase64(), encryptedClientPublicKey.getHmacBase64(), srpParams.getHelperAesKey());
 
             System.out.println("[LOGIN] For debugging purposes:\n");
-            System.out.println("username:" + username.toString());
-            System.out.println("clientPublicValueA (A):" + clientPublicValueA.toString());
-            System.out.println("clientPrivateValueA (A):" + clientPrivateValueA.toString());
+            System.out.println("username: " + username.toString());
+            System.out.println("clientPublicValueA (A): " + clientPublicValueA.toString());
+            System.out.println("clientPrivateValueA (a): " + clientPrivateValueA.toString());
 
             // Retrieve user information
             User user = userRepository.findByUsername(derivedUsername);
@@ -179,11 +137,16 @@ public class AuthController {
             BigInteger serverPrivateValueB = srpService.generateRandomPrivateValue();
             BigInteger serverPublicValueB = srpService.computeB(userVerifier, serverPrivateValueB);
 
-            System.out.println("userVerifierBigInteger (v) (radix16):" + userVerifier.toString());
-            System.out.println("userVerifierAsIsStoredInDB (v):" + user.getVerifier());
-            System.out.println("salt (s):" + salt.toString());
-            System.out.println("serverPublicValueB (B):" + serverPublicValueB.toString());
-            System.out.println("serverPrivateValueB (b):" + serverPrivateValueB.toString());
+            System.out.println("userVerifierBigInteger (v) (radix16): " + userVerifier.toString());
+            System.out.println("userVerifierAsIsStoredInDB (v): " + user.getVerifier());
+            System.out.println("salt (s): " + salt.toString());
+            System.out.println("serverPublicValueB (B): " + serverPublicValueB.toString());
+            System.out.println("serverPrivateValueB (b): " + serverPrivateValueB.toString());
+            
+            byte[] A_bytes = clientPublicValueA.toByteArray();
+            byte[] B_bytes = serverPublicValueB.toByteArray();
+            System.out.println("[in fetch srp req] A (bytes, hex): " + srpService.toHex(A_bytes));
+            System.out.println("[in fetch srp req] B (bytes, hex): " + srpService.toHex(B_bytes));
 
             // Store values in session
             httpSession.setAttribute("clientPublicValueA", clientPublicValueA);
@@ -210,8 +173,8 @@ public class AuthController {
         }
     }
 
-    @PostMapping("/srp-authenticate222")
-    public ResponseEntityDTO<UserLoginResponseDTO> authenticate222(@RequestBody UserLoginDTO userLogin) {
+    @PostMapping("/srp-authenticate")
+    public ResponseEntityDTO<UserLoginResponseDTO> authenticate(@RequestBody UserLoginDTO userLogin) {
         try {
             // Decrypt the received data
             String encryptedClientProofM = userLogin.getEncryptedClientProofM();
@@ -226,7 +189,7 @@ public class AuthController {
             String clientPublicKey = (String) httpSession.getAttribute("clientPublicKey");
             
             // Abort if A % N == 0
-            System.out.println("Constant N:" + srpService.getN().toString());
+            System.out.println("Constant N: " + srpService.getN().toString());
             if (clientPublicValueA.mod(srpService.getN()).equals(BigInteger.ZERO)) {
                 throw new RuntimeException("Authentication failed: Invalid client value A.");
             }
@@ -245,45 +208,49 @@ public class AuthController {
             BigInteger scramblingParameterU = srpService.computeU(serverPublicValueB);
             BigInteger sharedSecretS = srpService.computeS(clientPublicValueA, userVerifier, scramblingParameterU, serverPrivateValueB);
             String sessionKeyK = srpService.computeK(sharedSecretS);
+            byte[] A_bytes = clientPublicValueA.toByteArray();
+            byte[] B_bytes = serverPublicValueB.toByteArray();
+            System.out.println("[before computeM1 func] A (bytes, hex): " + srpService.toHex(A_bytes));
+            System.out.println("[before computeM1 func] B (bytes, hex): " + srpService.toHex(B_bytes));
             String serverProofM1 = srpService.computeM1(derivedUsername, salt, clientPublicValueA, serverPublicValueB, sessionKeyK);
             String serverProofM2 = srpService.computeM2(clientPublicValueA, clientProofM, sessionKeyK);
 
-            System.out.println("serverPublicValueB (B):" + serverPublicValueB.toString());
-            System.out.println("clientPublicValueA (A):" + clientPublicValueA.toString());
-            System.out.println("clientPrivateValueA (A):" + clientPrivateValueA.toString());
-            System.out.println("userVerifier (v) (radix16):" + userVerifier.toString());
-            System.out.println("userVerifierAsIsStoredInDB (v):" + user.getVerifier());
-            System.out.println("scramblingParameterU (u):" + scramblingParameterU.toString());
-            System.out.println("serverPrivateValueB (b):" + serverPrivateValueB.toString());
-            System.out.println("derivedUsername (U):" + derivedUsername.toString());
-            System.out.println("salt (s):" + salt.toString());
-            System.out.println("sharedSecretS (S):" + sharedSecretS.toString());
-            System.out.println("sessionKeyK (K):" + sessionKeyK.toString());
-            System.out.println("serverProofM1 (M1):" + serverProofM1.toString());
-            System.out.println("serverProofM2 (M2):" + serverProofM2.toString());
-            System.out.println("clientProofM (expectedM1):" + clientProofM.toString());
+            System.out.println("serverPublicValueB (B): " + serverPublicValueB.toString());
+            System.out.println("clientPublicValueA (A): " + clientPublicValueA.toString());
+            System.out.println("clientPrivateValueA (A): " + clientPrivateValueA.toString());
+            System.out.println("userVerifier (v) (radix16): " + userVerifier.toString());
+            System.out.println("userVerifierAsIsStoredInDB (v): " + user.getVerifier());
+            System.out.println("scramblingParameterU (u): " + scramblingParameterU.toString());
+            System.out.println("serverPrivateValueB (b): " + serverPrivateValueB.toString());
+            System.out.println("derivedUsername (U): " + derivedUsername.toString());
+            System.out.println("salt (s): " + salt.toString());
+            System.out.println("sharedSecretS (S): " + sharedSecretS.toString());
+            System.out.println("sessionKeyK (K): " + sessionKeyK.toString());
+            System.out.println("serverProofM1 (M1): " + serverProofM1.toString());
+            System.out.println("serverProofM2 (M2): " + serverProofM2.toString());
+            System.out.println("clientProofM (expectedM1): " + clientProofM.toString());
 
             System.out.println("We are going to try the frontend computation on the backend side to check if the computations are done in the same way as the frontend does them.");
             System.out.println("---------------------------START FRONTEND COMPUTATIONS ON BACKEND-------------------------");
             
-            BigInteger privateValueX_FE = srpService.computeX(salt, derivedUsername, "12345678");
-            BigInteger scramblingParameterU_FE = srpService.computeU(serverPublicValueB);
-            BigInteger sharedSecretS_FE = srpService.computeS_FE(serverPublicValueB, privateValueX_FE, clientPrivateValueA, scramblingParameterU_FE);
-            String sessionKeyK_FE = srpService.computeK(sharedSecretS_FE);
-            String clientProofM1_FE = srpService.computeM1(derivedUsername, salt, clientPublicValueA, serverPublicValueB, sessionKeyK_FE);
-            String clientProofM2_FE = srpService.computeM2(clientPublicValueA, clientProofM1_FE, sessionKeyK_FE);
+            // BigInteger privateValueX_FE = srpService.computeX(salt, derivedUsername, "12345678");
+            // BigInteger scramblingParameterU_FE = srpService.computeU(serverPublicValueB);
+            // BigInteger sharedSecretS_FE = srpService.computeS_FE(serverPublicValueB, privateValueX_FE, clientPrivateValueA, scramblingParameterU_FE);
+            // String sessionKeyK_FE = srpService.computeK(sharedSecretS_FE);
+            // String clientProofM1_FE = srpService.computeM1(derivedUsername, salt, clientPublicValueA, serverPublicValueB, sessionKeyK_FE);
+            // String clientProofM2_FE = srpService.computeM2(clientPublicValueA, clientProofM1_FE, sessionKeyK_FE);
 
-            System.out.println("privateValueX_FE (x_FE):" + privateValueX_FE.toString());
-            System.out.println("scramblingParameterU_FE (u_FE):" + scramblingParameterU_FE.toString());
-            System.out.println("sharedSecretS_FE (S_FE):" + sharedSecretS_FE.toString());
-            System.out.println("sessionKeyK_FE (K_FE):" + sessionKeyK_FE.toString());
-            System.out.println("clientProofM1_FE (M1_FE):" + clientProofM1_FE.toString());
-            System.out.println("clientProofM2_FE (M2_FE):" + clientProofM2_FE.toString());
+            // System.out.println("privateValueX_FE (x_FE): " + privateValueX_FE.toString());
+            // System.out.println("scramblingParameterU_FE (u_FE): " + scramblingParameterU_FE.toString());
+            // System.out.println("sharedSecretS_FE (S_FE): " + sharedSecretS_FE.toString());
+            // System.out.println("sessionKeyK_FE (K_FE): " + sessionKeyK_FE.toString());
+            // System.out.println("clientProofM1_FE (M1_FE): " + clientProofM1_FE.toString());
+            // System.out.println("clientProofM2_FE (M2_FE): " + clientProofM2_FE.toString());
 
             System.out.println("----------------------------END FRONTEND COMPUTATIONS ON BACKEND--------------------------");
 
             // Compare the client's M1 with the server's M1
-            if (!serverProofM1.equals(clientProofM)) {
+            if (!serverProofM1.equals(clientProofM) || true) {
                 throw new RuntimeException("Proof verification failed");
             }
 
@@ -328,144 +295,6 @@ public class AuthController {
             userLoginResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
             userLoginResponse.setHelperAuthenticateAesKey(encryptedSessionToken.getAesKeyBase64());
             userLoginResponse.setEncryptedServerProofM(encryptedServerProofM);
-
-            ResponseEntityBuilder<UserLoginResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
-            return responseEntityBuilder.setData(userLoginResponse).build();
-        } catch (Exception e) {
-            ExceptionBuilder.create()
-                    .setMessage("Authentication failed: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @PostMapping("/srp-authenticate")
-    public ResponseEntityDTO<UserLoginResponseDTO> authenticate(@RequestBody UserLoginDTO userLogin) {
-        try {
-            BigInteger clientPrivateValueA = mock_clientPrivateValueA;
-            BigInteger clientPublicValueA = mock_clientPublicValueA;
-            BigInteger serverPublicValueB = mock_serverPublicValueB;
-            BigInteger serverPrivateValueB = mock_serverPrivateValueB;
-            String derivedUsername = mock_username;
-            String clientPublicKey = (String) httpSession.getAttribute("clientPublicKey");
-            
-            // Abort if A % N == 0
-            System.out.println("Constant N:" + srpService.getN().toString());
-            if (clientPublicValueA.mod(srpService.getN()).equals(BigInteger.ZERO)) {
-                throw new RuntimeException("Authentication failed: Invalid client value A.");
-            }
-
-            // Retrieve user information
-            // User user = userRepository.findByUsername(derivedUsername);
-            // if (user == null || clientPublicValueA == null || serverPublicValueB == null || serverPrivateValueB == null) {
-            //     throw new RuntimeException("Session expired or invalid");
-            // }
-            BigInteger userVerifier = mock_verifier;
-
-            // The salt needs to be decrypted first
-            String salt = mock_salt;
-
-            // Compute SRP variables
-            System.out.println("\n\nclientPrivateValueA (B):" + clientPrivateValueA.toString());
-            System.out.println("clientPublicValueA (B):" + clientPublicValueA.toString());
-            System.out.println("serverPublicValueB (B):" + serverPublicValueB.toString());
-            System.out.println("serverPrivateValueB (B):" + serverPrivateValueB.toString());
-            BigInteger scramblingParameterU = srpService.computeU(serverPublicValueB);
-            System.out.println("\n\nscramblingParameterU:" + scramblingParameterU.toString());
-            System.out.println("scramblingParameterU (mock expected):" + mock_u);
-            BigInteger sharedSecretServerS = srpService.computeS(clientPublicValueA, userVerifier, scramblingParameterU, serverPrivateValueB);
-            System.out.println("\n\nsharedSecretServerS (server):" + sharedSecretServerS.toString());
-            System.out.println("sharedSecretServerS (server mock expected):" + mock_S_server);
-            BigInteger sharedSecretClientS = srpService.computeS_FE(clientPublicValueA, userVerifier, scramblingParameterU, serverPrivateValueB);
-            System.out.println("\n\nsharedSecretClientS (server):" + sharedSecretClientS.toString());
-            System.out.println("sharedSecretClientS (server mock expected):" + mock_S_server);
-            String sessionKeyK = srpService.computeK(sharedSecretServerS);
-            System.out.println("\n\nserverSessionKeyK:" + sessionKeyK.toString());
-            System.out.println("serverSessionKeyK (mock expected):" + mock_sessionKeyK);
-            String serverProofM1 = srpService.computeM1(derivedUsername, salt, clientPublicValueA, serverPublicValueB, sessionKeyK);
-
-            // String serverProofM2 = srpService.computeM2(clientPublicValueA, clientProofM, sessionKeyK);
-
-            // System.out.println("\n\nserverPublicValueB (B):" + serverPublicValueB.toString());
-            // System.out.println("clientPublicValueA (A):" + clientPublicValueA.toString());
-            // System.out.println("clientPrivateValueA (A):" + clientPrivateValueA.toString());
-            // System.out.println("userVerifier (v) (radix16):" + userVerifier.toString());
-            // System.out.println("userVerifierAsIsStoredInDB (v):" + user.getVerifier());
-            // System.out.println("scramblingParameterU (u):" + scramblingParameterU.toString());
-            // System.out.println("serverPrivateValueB (b):" + serverPrivateValueB.toString());
-            // System.out.println("derivedUsername (U):" + derivedUsername.toString());
-            // System.out.println("salt (s):" + salt.toString());
-            // System.out.println("sharedSecretS (S):" + sharedSecretS.toString());
-            // System.out.println("sessionKeyK (K):" + sessionKeyK.toString());
-            // System.out.println("serverProofM1 (M1):" + serverProofM1.toString());
-            // System.out.println("serverProofM2 (M2):" + serverProofM2.toString());
-            // System.out.println("clientProofM (expectedM1):" + clientProofM.toString());
-
-            System.out.println("\n\nWe are going to try the frontend computation on the backend side to check if the computations are done in the same way as the frontend does them.");
-            System.out.println("---------------------------START FRONTEND COMPUTATIONS ON BACKEND-------------------------");
-            
-            BigInteger privateValueX_FE = srpService.computeX(salt, derivedUsername, "12345678");
-            BigInteger scramblingParameterU_FE = srpService.computeU(serverPublicValueB);
-            BigInteger sharedSecretS_FE = srpService.computeS_FE(serverPublicValueB, privateValueX_FE, clientPrivateValueA, scramblingParameterU_FE);
-            String sessionKeyK_FE = srpService.computeK(sharedSecretS_FE);
-            String clientProofM1_FE = srpService.computeM1(derivedUsername, salt, clientPublicValueA, serverPublicValueB, sessionKeyK_FE);
-            String clientProofM2_FE = srpService.computeM2(clientPublicValueA, clientProofM1_FE, sessionKeyK_FE);
-
-            System.out.println("privateValueX_FE (x_FE):" + privateValueX_FE.toString());
-            System.out.println("scramblingParameterU_FE (u_FE):" + scramblingParameterU_FE.toString());
-            System.out.println("sharedSecretS_FE (S_FE):" + sharedSecretS_FE.toString());
-            System.out.println("sessionKeyK_FE (K_FE):" + sessionKeyK_FE.toString());
-            System.out.println("clientProofM1_FE (M1_FE):" + clientProofM1_FE.toString());
-            System.out.println("clientProofM2_FE (M2_FE):" + clientProofM2_FE.toString());
-
-            System.out.println("----------------------------END FRONTEND COMPUTATIONS ON BACKEND--------------------------\n\n");
-
-            // Compare the client's M1 with the server's M1
-            if (!serverProofM1.equals("clientProofM")) {
-                throw new RuntimeException("Proof verification failed");
-            }
-
-            // String serverProofM2 = srpService.computeM2(clientPublicValueA, clientProofM, sessionKeyK);
-
-            // // Compute S, K, and M2
-            // BigInteger u = srpService.computeU(A, B);
-            // // BigInteger v = new BigInteger(rsaKeyPairService.decryptWithServerPrivateKey(user.getVerifier()), 16);
-            // BigInteger v = new BigInteger(user.getVerifier(), 16);
-            // BigInteger S = srpService.computeS(A, v, u, B);
-            // byte[] K = srpService.computeK(S);
-
-            // Verify M1
-            // String expectedM1 = srpService.computeM1(A, B, S, K);
-            // if (!expectedM1.equals(M1)) {
-            //     throw new RuntimeException("Client verification failed");
-            // }
-
-            // Generate M2
-            // String M2 = srpService.computeM2(A, M1, S, K);
-
-            // EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-            // EncryptedDataAesCbc encryptedSessionToken = EncryptionUtils.encryptWithAESCBC(sessionToken);
-
-            // Return M2 and the encrypted session token
-            // Map<String, Object> response = new HashMap<>();
-            // response.put("encryptedM2", rsaKeyPairService.encryptWithPublicKey(M2, clientPublicKey));
-            // response.put("encryptedM2", M2);
-            // response.put("encryptedSessionToken", encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
-            // response.put("helperAesKey", encryptedSessionToken.getAesKeyBase64());
-
-            // Generate a session token
-            // String sessionToken = tokenService.generateToken(user);
-
-            // Clear session attributes after successful authentication
-            httpSession.invalidate();
-
-            EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-            UserLoginResponseDTO userLoginResponse = new UserLoginResponseDTO();
-            // EncryptedDataAesCbc encryptedSessionToken = EncryptionUtils.encryptWithAESCBC(sessionToken);
-            // String encryptedServerProofM = rsaKeyPairService.encryptWithPublicKey(encryptedClientProofM, clientPublicKey);
-            // userLoginResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
-            // userLoginResponse.setHelperAuthenticateAesKey(encryptedSessionToken.getAesKeyBase64());
-            // userLoginResponse.setEncryptedServerProofM(encryptedServerProofM);
 
             ResponseEntityBuilder<UserLoginResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
             return responseEntityBuilder.setData(userLoginResponse).build();
