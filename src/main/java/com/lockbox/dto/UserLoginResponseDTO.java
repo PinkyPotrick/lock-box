@@ -3,6 +3,10 @@ package com.lockbox.dto;
 public class UserLoginResponseDTO {
     private String encryptedServerProofM2;
 
+    private EncryptedDataAesCbcDTO encryptedUserPublicKey;
+
+    private EncryptedDataAesCbcDTO encryptedUserPrivateKey;
+
     private EncryptedDataAesCbcDTO encryptedSessionToken;
 
     private String helperAuthenticateAesKey;
@@ -13,6 +17,22 @@ public class UserLoginResponseDTO {
 
     public void setEncryptedServerProofM2(String encryptedServerProofM2) {
         this.encryptedServerProofM2 = encryptedServerProofM2;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedUserPublicKey() {
+        return encryptedUserPublicKey;
+    }
+
+    public void setEncryptedUserPublicKey(EncryptedDataAesCbcDTO encryptedUserPublicKey) {
+        this.encryptedUserPublicKey = encryptedUserPublicKey;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedUserPrivateKey() {
+        return encryptedUserPrivateKey;
+    }
+
+    public void setEncryptedUserPrivateKey(EncryptedDataAesCbcDTO encryptedUserPrivateKey) {
+        this.encryptedUserPrivateKey = encryptedUserPrivateKey;
     }
 
     public EncryptedDataAesCbcDTO getEncryptedSessionToken() {

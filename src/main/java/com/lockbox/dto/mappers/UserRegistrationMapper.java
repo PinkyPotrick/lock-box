@@ -1,5 +1,8 @@
 package com.lockbox.dto.mappers;
 
+import javax.crypto.KeyGenerator;
+import javax.crypto.SecretKey;
+
 import com.lockbox.dto.EncryptedDataAesCbcDTO;
 import com.lockbox.dto.UserRegistrationDTO;
 import com.lockbox.model.User;
@@ -18,21 +21,24 @@ public class UserRegistrationMapper {
         userRegistrationDTO.setSalt(user.getSalt());
 
         // Data needs to be encrypted because of the big length
+        KeyGenerator keyGen = KeyGenerator.getInstance("AES");
+        keyGen.init(256); // AES-256
+        SecretKey aesKey = keyGen.generateKey();
         EncryptedDataAesCbcMapper encryptedDataAESCBCMapper = new EncryptedDataAesCbcMapper();
         String fullyDecryptedVerifier = user.getVerifier(); // TODO might need to decrypt it (Locally)
         String fullyDecryptedClientPublicKey = user.getPublicKey(); // TODO might need to decrypt it (Locally)
         String fullyDecryptedClientPrivateKey = user.getPrivateKey(); // TODO might need to decrypt it (Locally)
 
         if (fullyDecryptedVerifier != null) {
-            EncryptedDataAesCbcDTO encryptedVerifier = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedVerifier));
+            EncryptedDataAesCbcDTO encryptedVerifier = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedVerifier, aesKey));
             userRegistrationDTO.setEncryptedClientVerifier(encryptedVerifier);
         }
         if (fullyDecryptedClientPublicKey != null) {
-            EncryptedDataAesCbcDTO encryptedPublicKey = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedClientPublicKey));
+            EncryptedDataAesCbcDTO encryptedPublicKey = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedClientPublicKey, aesKey));
             userRegistrationDTO.setEncryptedClientPublicKey(encryptedPublicKey);
         }
         if (fullyDecryptedClientPrivateKey != null) {
-            EncryptedDataAesCbcDTO encryptedPrivateKey = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedClientPrivateKey));
+            EncryptedDataAesCbcDTO encryptedPrivateKey = encryptedDataAESCBCMapper.toDto(EncryptionUtils.encryptWithAESCBC(fullyDecryptedClientPrivateKey, aesKey));
             userRegistrationDTO.setEncryptedClientPrivateKey(encryptedPrivateKey);
         }
 
