@@ -1,5 +1,8 @@
 package com.lockbox.dto;
 
+/**
+ * The encrypted SRP parameters sent to frontend.
+ */
 public class SrpParamsResponseDTO {
     private EncryptedDataAesCbcDTO encryptedServerPublicValueB;
 

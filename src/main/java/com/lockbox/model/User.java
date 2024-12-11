@@ -1,7 +1,5 @@
 package com.lockbox.model;
 
-import java.time.LocalDate;
-
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
@@ -63,8 +61,8 @@ public class User extends BaseEntity {
         this.verifier = verifier;
     }
 
-    public LocalDate getCreatedAt() {
-        return LocalDate.parse(createdAt);
+    public String getCreatedAt() {
+        return createdAt;
     }
 
     public void setCreatedAt(String createdAt) {

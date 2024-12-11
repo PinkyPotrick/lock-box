@@ -1,25 +1,20 @@
 package com.lockbox.dto;
 
-/**
- * The encrypted user login data sent to frontend.
- */
-public class UserLoginResponseDTO {
-    private String encryptedServerProofM2;
+public class UserProfileResponseDTO {
+    private UserProfileDTO encryptedUserProfileData;
 
     private EncryptedDataAesCbcDTO encryptedUserPublicKey;
 
     private EncryptedDataAesCbcDTO encryptedUserPrivateKey;
 
-    private EncryptedDataAesCbcDTO encryptedSessionToken;
-
     private String helperAuthenticateAesKey;
 
-    public String getEncryptedServerProofM2() {
-        return encryptedServerProofM2;
+    public UserProfileDTO getEncryptedUserProfileData() {
+        return encryptedUserProfileData;
     }
 
-    public void setEncryptedServerProofM2(String encryptedServerProofM2) {
-        this.encryptedServerProofM2 = encryptedServerProofM2;
+    public void setEncryptedUserProfileData(UserProfileDTO encryptedUserProfileData) {
+        this.encryptedUserProfileData = encryptedUserProfileData;
     }
 
     public EncryptedDataAesCbcDTO getEncryptedUserPublicKey() {
@@ -36,14 +31,6 @@ public class UserLoginResponseDTO {
 
     public void setEncryptedUserPrivateKey(EncryptedDataAesCbcDTO encryptedUserPrivateKey) {
         this.encryptedUserPrivateKey = encryptedUserPrivateKey;
-    }
-
-    public EncryptedDataAesCbcDTO getEncryptedSessionToken() {
-        return encryptedSessionToken;
-    }
-
-    public void setEncryptedSessionToken(EncryptedDataAesCbcDTO encryptedSessionToken) {
-        this.encryptedSessionToken = encryptedSessionToken;
     }
 
     public String getHelperAuthenticateAesKey() {

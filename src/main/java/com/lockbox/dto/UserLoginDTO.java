@@ -1,13 +1,16 @@
 package com.lockbox.dto;
 
+/**
+ * The decrypted user login data handled on backend.
+ */
 public class UserLoginDTO {
-    private String encryptedClientProofM1;
+    private String eclientProofM1;
 
-    public String getEncryptedClientProofM1() {
-        return encryptedClientProofM1;
+    public String getEclientProofM1() {
+        return eclientProofM1;
     }
 
-    public void setEncryptedClientProofM1(String encryptedClientProofM1) {
-        this.encryptedClientProofM1 = encryptedClientProofM1;
+    public void setEclientProofM1(String eclientProofM1) {
+        this.eclientProofM1 = eclientProofM1;
     }
 }

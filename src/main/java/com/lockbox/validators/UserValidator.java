@@ -13,7 +13,7 @@ import com.lockbox.utils.EncryptionUtils;
 
 @Component
 public class UserValidator {
-    
+
     @Autowired
     private RSAKeyPairService rsaKeyPairService;
 
@@ -21,22 +21,26 @@ public class UserValidator {
     private UserRepository userRepository;
 
     public void validate(UserRegistrationDTO userRegistrationDTO) throws Exception {
-        String derivedKey = rsaKeyPairService.decryptWithServerPrivateKey(userRegistrationDTO.getDerivedKey());
-        String firstDecryptionUsername = rsaKeyPairService.decryptWithServerPrivateKey(userRegistrationDTO.getUsername());
+        String derivedKey = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedKey());
+        String firstDecryptionUsername = rsaKeyPairService
+                .decryptRSAWithServerPrivateKey(userRegistrationDTO.getUsername());
         String username = EncryptionUtils.decryptUsername(firstDecryptionUsername, derivedKey);
-        String email = rsaKeyPairService.decryptWithServerPrivateKey(userRegistrationDTO.getEmail());
-        String salt = rsaKeyPairService.decryptWithServerPrivateKey(userRegistrationDTO.getSalt());
+        String email = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getEmail());
+        String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getSalt());
         validateUsername(username, userRegistrationDTO.getUsername());
         validateEmail(email);
         validateSalt(salt);
 
         EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedClientVerifier();
         if (encryptedVerifier != null) {
-            String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(), encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
+            String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(
+                    encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(),
+                    encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
             validateVerifier(fullyDecryptedVerifier);
         }
 
-        // TODO also needs to validate how strong the password is, even though the frontend should take care of this as well !!!
+        // TODO also needs to validate how strong the password is, even though the frontend should take care of this as
+        // well !!!
     }
 
     private void validateUsername(String username, String derivedUsername) throws Exception {

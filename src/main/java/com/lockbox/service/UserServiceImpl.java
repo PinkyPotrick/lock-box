@@ -1,5 +1,8 @@
 package com.lockbox.service;
 
+import com.lockbox.dto.UserProfileResponseDTO;
+import com.lockbox.dto.UserProfileUpdateRequestDTO;
+import com.lockbox.dto.UserProfileUpdateResponseDTO;
 import com.lockbox.dto.UserRegistrationDTO;
 import com.lockbox.dto.mappers.UserRegistrationMapper;
 import com.lockbox.model.User;
@@ -39,14 +42,21 @@ public class UserServiceImpl implements UserService {
         return userRepository.findByUsername(username);
     }
 
+    @Override
+    public UserProfileResponseDTO findUserProfileByUserId(String id) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'findUserProfileByUserId'");
+    }
+
+    @Override
     public User createUser(UserRegistrationDTO userRegistrationDTO) throws Exception {
         userValidator.validate(userRegistrationDTO);
 
         UserRegistrationMapper userRegistrationMapper = new UserRegistrationMapper();
         User user = userRegistrationMapper.fromDto(userRegistrationDTO);
         user.setId(UUID.randomUUID().toString());
-        user.setCreatedAt(rsaKeyPairService.encryptWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user.getPublicKey()));
-        user.setUsername(rsaKeyPairService.decryptWithServerPrivateKey(userRegistrationDTO.getUsername())); // The username has 2 encryptions, only the first encryption is used in the database
+        user.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user.getPublicKey()));
+        user.setUsername(rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getUsername())); // The username has 2 encryptions, only the first encryption is used in the database
 
         // TODO THE FOLLOWING ATTRIBUTES SHOULD ALSO BE ENCRYPTED IN THE DATABASE (NEED 3 ADDITIONAL TABLES) - at the end of all !!!
         // user.setVerifier(rsaKeyPairService.encryptWithPublicKey(user.getVerifier(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
@@ -56,15 +66,22 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
 
-    public User updateUser(String id, User userDetails) {
-        User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
-        user.setUsername(userDetails.getUsername());
-        user.setEmail(userDetails.getEmail());
-        user.setSalt(userDetails.getSalt());
-        user.setVerifier(userDetails.getVerifier());
-        return userRepository.save(user);
+    @Override
+    public UserProfileUpdateResponseDTO updateUserProfile(String id, UserProfileUpdateRequestDTO userDetails) {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'updateUserProfile'");
     }
 
+    // public User updateUser(String id, User userDetails) {
+    //     User user = userRepository.findById(id).orElseThrow(() -> new RuntimeException("User not found"));
+    //     user.setUsername(userDetails.getUsername());
+    //     user.setEmail(userDetails.getEmail());
+    //     user.setSalt(userDetails.getSalt());
+    //     user.setVerifier(userDetails.getVerifier());
+    //     return userRepository.save(user);
+    // }
+
+    @Override
     public void deleteUser(String id) {
         userRepository.deleteById(id);
     }

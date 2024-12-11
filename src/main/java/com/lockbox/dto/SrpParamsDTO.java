@@ -1,53 +1,38 @@
 package com.lockbox.dto;
 
+import java.math.BigInteger;
+
+/**
+ * The decrypted SRP parameters handled on backend.
+ */
 public class SrpParamsDTO {
-    private String derivedKey;
+    private String derivedUsername;
 
-    private String username;
+    private String clientPublicKey;
 
-    private EncryptedDataAesCbcDTO encryptedClientPublicKey;
+    private BigInteger clientPublicValueA;
 
-    private EncryptedDataAesCbcDTO encryptedClientPublicValueA;
-
-    private String helperAesKey;
-
-    public String getDerivedKey() {
-        return derivedKey;
+    public String getDerivedUsername() {
+        return derivedUsername;
     }
 
-    public void setDerivedKey(String derivedKey) {
-        this.derivedKey = derivedKey;
+    public void setDerivedUsername(String derivedUsername) {
+        this.derivedUsername = derivedUsername;
     }
 
-    public String getUsername() {
-        return username;
+    public String getClientPublicKey() {
+        return clientPublicKey;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setClientPublicKey(String clientPublicKey) {
+        this.clientPublicKey = clientPublicKey;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedClientPublicKey() {
-        return encryptedClientPublicKey;
+    public BigInteger getClientPublicValueA() {
+        return clientPublicValueA;
     }
 
-    public void setEncryptedClientPublicKey(EncryptedDataAesCbcDTO encryptedClientPublicKey) {
-        this.encryptedClientPublicKey = encryptedClientPublicKey;
-    }
-
-    public EncryptedDataAesCbcDTO getEncryptedClientPublicValueA() {
-        return encryptedClientPublicValueA;
-    }
-
-    public void setEncryptedClientPublicValueA(EncryptedDataAesCbcDTO encryptedClientPublicValueA) {
-        this.encryptedClientPublicValueA = encryptedClientPublicValueA;
-    }
-
-    public String getHelperAesKey() {
-        return helperAesKey;
-    }
-
-    public void setHelperAesKey(String helperAesKey) {
-        this.helperAesKey = helperAesKey;
+    public void setClientPublicValueA(BigInteger clientPublicValueA) {
+        this.clientPublicValueA = clientPublicValueA;
     }
 }
