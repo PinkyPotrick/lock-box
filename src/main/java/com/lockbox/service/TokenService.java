@@ -11,5 +11,4 @@ public interface TokenService {
     String getUsernameFromToken(String token);
 
     String getUserIdFromToken(String token);
-
 }

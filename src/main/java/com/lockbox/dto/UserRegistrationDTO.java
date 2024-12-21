@@ -1,36 +1,26 @@
 package com.lockbox.dto;
 
 public class UserRegistrationDTO {
-    private String derivedKey;
-
-    private String username;
+    private String derivedUsername;
 
     private String email;
 
     private String salt;
 
-    private EncryptedDataAesCbcDTO encryptedClientVerifier;
+    private String clientVerifier;
 
-    private EncryptedDataAesCbcDTO encryptedClientPublicKey;
+    private String clientPublicKey;
 
-    private EncryptedDataAesCbcDTO encryptedClientPrivateKey;
+    private String clientPrivateKey;
 
-    private String helperAesKey;
+    private String derivedKey;
 
-    public String getDerivedKey() {
-        return derivedKey;
+    public String getDerivedUsername() {
+        return derivedUsername;
     }
 
-    public void setDerivedKey(String derivedKey) {
-        this.derivedKey = derivedKey;
-    }
-
-    public String getUsername() {
-        return username;
-    }
-
-    public void setUsername(String username) {
-        this.username = username;
+    public void setDerivedUsername(String derviedUsername) {
+        this.derivedUsername = derviedUsername;
     }
 
     public String getEmail() {
@@ -49,35 +39,35 @@ public class UserRegistrationDTO {
         this.salt = salt;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedClientVerifier() {
-        return encryptedClientVerifier;
+    public String getClientVerifier() {
+        return clientVerifier;
     }
 
-    public void setEncryptedClientVerifier(EncryptedDataAesCbcDTO encryptedClientVerifier) {
-        this.encryptedClientVerifier = encryptedClientVerifier;
+    public void setClientVerifier(String clientVerifier) {
+        this.clientVerifier = clientVerifier;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedClientPublicKey() {
-        return encryptedClientPublicKey;
+    public String getClientPublicKey() {
+        return clientPublicKey;
     }
 
-    public void setEncryptedClientPublicKey(EncryptedDataAesCbcDTO encryptedClientPublicKey) {
-        this.encryptedClientPublicKey = encryptedClientPublicKey;
+    public void setClientPublicKey(String clientPublicKey) {
+        this.clientPublicKey = clientPublicKey;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedClientPrivateKey() {
-        return encryptedClientPrivateKey;
+    public String getClientPrivateKey() {
+        return clientPrivateKey;
     }
 
-    public void setEncryptedClientPrivateKey(EncryptedDataAesCbcDTO encryptedClientPrivateKey) {
-        this.encryptedClientPrivateKey = encryptedClientPrivateKey;
+    public void setClientPrivateKey(String clientPrivateKey) {
+        this.clientPrivateKey = clientPrivateKey;
     }
 
-    public String getHelperAesKey() {
-        return helperAesKey;
+    public String getDerivedKey() {
+        return derivedKey;
     }
 
-    public void setHelperAesKey(String helperAesKey) {
-        this.helperAesKey = helperAesKey;
+    public void setDerivedKey(String derivedKey) {
+        this.derivedKey = derivedKey;
     }
 }

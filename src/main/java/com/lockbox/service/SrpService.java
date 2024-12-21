@@ -1,15 +1,15 @@
 package com.lockbox.service;
 
-import com.lockbox.dto.RegisterResponseDTO;
+import com.lockbox.dto.UserRegistrationResponseDTO;
 import com.lockbox.dto.SrpParamsRequestDTO;
 import com.lockbox.dto.SrpParamsResponseDTO;
 import com.lockbox.dto.UserLoginRequestDTO;
 import com.lockbox.dto.UserLoginResponseDTO;
-import com.lockbox.dto.UserRegistrationDTO;
+import com.lockbox.dto.UserRegistrationRequestDTO;
 
 public interface SrpService {
 
-    RegisterResponseDTO registerUser(UserRegistrationDTO userRegistration) throws Exception;
+    UserRegistrationResponseDTO registerUser(UserRegistrationRequestDTO userRegistration) throws Exception;
 
     SrpParamsResponseDTO initiateSrpHandshake(SrpParamsRequestDTO srpParams) throws Exception;
 

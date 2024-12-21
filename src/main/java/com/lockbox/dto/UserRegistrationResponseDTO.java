@@ -1,19 +1,9 @@
 package com.lockbox.dto;
 
-public class RegisterResponseDTO {
-    private UserProfileDTO encryptedUserProfileData;
-    
+public class UserRegistrationResponseDTO {
     private EncryptedDataAesCbcDTO encryptedSessionToken;
     
     private String helperAesKey;
-
-    public UserProfileDTO getEncryptedUserProfileData() {
-        return encryptedUserProfileData;
-    }
-
-    public void setEncryptedUserProfileData(UserProfileDTO encryptedUserProfileData) {
-        this.encryptedUserProfileData = encryptedUserProfileData;
-    }
 
     public EncryptedDataAesCbcDTO getEncryptedSessionToken() {
         return encryptedSessionToken;

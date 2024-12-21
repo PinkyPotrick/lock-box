@@ -28,6 +28,9 @@ public class UserServiceImpl implements UserService {
     private UserValidator userValidator;
 
     @Autowired
+    private UserServerEncryptionService userServerEncryptionService;
+
+    @Autowired
     private RSAKeyPairService rsaKeyPairService;
 
     public List<User> findAllUsers() {
@@ -52,18 +55,25 @@ public class UserServiceImpl implements UserService {
     public User createUser(UserRegistrationDTO userRegistrationDTO) throws Exception {
         userValidator.validate(userRegistrationDTO);
 
-        UserRegistrationMapper userRegistrationMapper = new UserRegistrationMapper();
-        User user = userRegistrationMapper.fromDto(userRegistrationDTO);
-        user.setId(UUID.randomUUID().toString());
-        user.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user.getPublicKey()));
-        user.setUsername(rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getUsername())); // The username has 2 encryptions, only the first encryption is used in the database
+        UserRegistrationMapper userRegistrationMapper2 = new UserRegistrationMapper();
+        User user2 = userRegistrationMapper2.fromDto(userRegistrationDTO);
+        user2.setId(UUID.randomUUID().toString());
+        user2.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user2.getPublicKey()));
+        user2.setUsername(rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedUsername())); // The username has 2 encryptions, only the first encryption is used in the database
 
         // TODO THE FOLLOWING ATTRIBUTES SHOULD ALSO BE ENCRYPTED IN THE DATABASE (NEED 3 ADDITIONAL TABLES) - at the end of all !!!
         // user.setVerifier(rsaKeyPairService.encryptWithPublicKey(user.getVerifier(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
         // user.setPrivateKey(rsaKeyPairService.encryptWithPublicKey(user.getPrivateKey(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
         // user.setPublicKey(rsaKeyPairService.encryptWithPublicKey(user.getPublicKey(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
 
-        return userRepository.save(user);
+        // return userRepository.save(user2);
+
+        // NEW CURRENT IMPLEMENTATION
+        userValidator.validate(userRegistrationDTO);
+        UserRegistrationMapper userRegistrationMapper = new UserRegistrationMapper();
+        User decryptedUser = userRegistrationMapper.fromDto(userRegistrationDTO);
+        User encryptedUser = userServerEncryptionService.encryptServerData(decryptedUser); // TODO Handle the encryption and decryption here !!!
+        return userRepository.save(encryptedUser);
     }
 
     @Override

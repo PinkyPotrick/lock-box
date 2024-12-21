@@ -33,8 +33,8 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
         String json;
 
         // Handle raw DTO types
-        if (dto instanceof String) {
-            json = (String) dto;
+        if (dto instanceof String string) {
+            json = string;
         } else {
             json = objectMapper.writeValueAsString(dto);
         }
@@ -62,8 +62,8 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
         String json;
 
         // Handle raw DTO types
-        if (dto instanceof String) {
-            json = (String) dto;
+        if (dto instanceof String string) {
+            json = string;
         } else {
             json = objectMapper.writeValueAsString(dto);
         }
@@ -120,8 +120,8 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
         String json;
 
         // Handle raw DTO types
-        if (dto instanceof String) {
-            json = (String) dto;
+        if (dto instanceof String string) {
+            json = string;
         } else {
             json = objectMapper.writeValueAsString(dto);
         }

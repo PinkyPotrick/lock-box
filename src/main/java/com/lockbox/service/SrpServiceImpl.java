@@ -3,7 +3,7 @@ package com.lockbox.service;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import com.lockbox.dto.RegisterResponseDTO;
+import com.lockbox.dto.UserRegistrationResponseDTO;
 import com.lockbox.dto.SrpParamsDTO;
 import com.lockbox.dto.SrpParamsRequestDTO;
 import com.lockbox.dto.SrpParamsResponseDTO;
@@ -11,20 +11,15 @@ import com.lockbox.dto.UserLoginDTO;
 import com.lockbox.dto.UserLoginRequestDTO;
 import com.lockbox.dto.UserLoginResponseDTO;
 import com.lockbox.dto.UserRegistrationDTO;
-import com.lockbox.dto.mappers.EncryptedDataAesCbcMapper;
-import com.lockbox.model.EncryptedDataAesCbc;
+import com.lockbox.dto.UserRegistrationRequestDTO;
 import com.lockbox.model.User;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.utils.AppConstants;
-import com.lockbox.utils.EncryptionUtils;
 import com.lockbox.utils.SrpUtils;
 
 import jakarta.servlet.http.HttpSession;
 
 import java.math.BigInteger;
-
-import javax.crypto.KeyGenerator;
-import javax.crypto.SecretKey;
 
 @Service
 public class SrpServiceImpl implements SrpService {
@@ -39,7 +34,10 @@ public class SrpServiceImpl implements SrpService {
     private RSAKeyPairService rsaKeyPairService;
 
     @Autowired
-    private GenericEncryptionServiceImpl genericEncryptionService;
+    private GenericEncryptionService genericEncryptionService;
+
+    @Autowired
+    private SrpEncryptionService srpEncryptionService;
 
     @Autowired
     private UserRepository userRepository;
@@ -55,26 +53,38 @@ public class SrpServiceImpl implements SrpService {
      * @throws Exception
      */
     @Override
-    public RegisterResponseDTO registerUser(UserRegistrationDTO userRegistration) throws Exception {
+    public UserRegistrationResponseDTO registerUser(UserRegistrationRequestDTO encryptedUserRegistration)
+            throws Exception {
+        // Create the registered user and generate a session token
+        /*
+         * User user2 = userService.createUser(encryptedUserRegistration); String sessionToken2 =
+         * tokenService.generateToken(user2);
+         * 
+         * // Create the response with the encrypted session token of the client KeyGenerator keyGen =
+         * KeyGenerator.getInstance(AppConstants.AES_CYPHER); keyGen.init(AppConstants.AES_256); SecretKey aesKey =
+         * keyGen.generateKey(); EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
+         * // UserProfileMapper userProfileMapper = new UserProfileMapper(); UserRegistrationResponseDTO
+         * registerResponse = new UserRegistrationResponseDTO(); // UserProfileDTO userProfileDTO = new
+         * UserProfileDTO(); EncryptedDataAesCbc encryptedSessionToken =
+         * EncryptionUtils.encryptWithAESCBC(sessionToken2, aesKey);
+         * registerResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
+         * registerResponse.setHelperAesKey(encryptedSessionToken.getAesKeyBase64()); return registerResponse;
+         */
+
+        // # ----------------------------------------------------------------------------- #
+
         // Decrypt the received data
+        UserRegistrationDTO userRegistrationDTO = srpEncryptionService
+                .decryptUserRegistrationRequestDTO(encryptedUserRegistration);
 
         // Create the registered user and generate a session token
-        User user = userService.createUser(userRegistration);
+        User user = userService.createUser(userRegistrationDTO);
         String sessionToken = tokenService.generateToken(user);
 
-        // Create the response with the encrypted session token of the client
-        KeyGenerator keyGen = KeyGenerator.getInstance(AppConstants.AES_CYPHER);
-        keyGen.init(AppConstants.AES_256);
-        SecretKey aesKey = keyGen.generateKey();
-        EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-        // UserProfileMapper userProfileMapper = new UserProfileMapper();
-        RegisterResponseDTO registerResponse = new RegisterResponseDTO();
-        // UserProfileDTO userProfileDTO = new UserProfileDTO();
-        EncryptedDataAesCbc encryptedSessionToken = EncryptionUtils.encryptWithAESCBC(sessionToken, aesKey);
-        registerResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
-        registerResponse.setHelperAesKey(encryptedSessionToken.getAesKeyBase64());
-
-        return registerResponse;
+        // Create the response with the encrypted data
+        UserRegistrationResponseDTO userRegistrationResponse = srpEncryptionService
+                .encryptUserRegistrationResponseDTO(sessionToken);
+        return userRegistrationResponse;
     }
 
     /**
@@ -94,7 +104,7 @@ public class SrpServiceImpl implements SrpService {
     @Override
     public SrpParamsResponseDTO initiateSrpHandshake(SrpParamsRequestDTO encryprtedSrpParams) throws Exception {
         // Decrypt the received encrypted DTO data
-        SrpParamsDTO srpParamsDTO = decryptSrpParamsRequestDTO(encryprtedSrpParams);
+        SrpParamsDTO srpParamsDTO = srpEncryptionService.decryptSrpParamsRequestDTO(encryprtedSrpParams);
 
         // Retrieve user information
         User user = userRepository.findByUsername(srpParamsDTO.getDerivedUsername());
@@ -121,7 +131,8 @@ public class SrpServiceImpl implements SrpService {
                 srpParamsDTO.getClientPublicKey());
 
         // Create the response with the encrypted data
-        SrpParamsResponseDTO srpParamsResponse = encryptSrpParamsResponseDTO(serverPublicValueB, salt);
+        SrpParamsResponseDTO srpParamsResponse = srpEncryptionService.encryptSrpParamsResponseDTO(serverPublicValueB,
+                salt);
         return srpParamsResponse;
     }
 
@@ -143,7 +154,7 @@ public class SrpServiceImpl implements SrpService {
     public UserLoginResponseDTO verifyClientProofAndAuthenticate(UserLoginRequestDTO encryptedUserLogin)
             throws Exception {
         // Decrypt the received data
-        UserLoginDTO userLoginDTO = decryptUserLoginRequestDTO(encryptedUserLogin);
+        UserLoginDTO userLoginDTO = srpEncryptionService.decryptUserLoginRequestDTO(encryptedUserLogin);
 
         // Retrieve session data and user information
         BigInteger clientPublicValueA = (BigInteger) httpSession
@@ -193,112 +204,8 @@ public class SrpServiceImpl implements SrpService {
         httpSession.invalidate();
 
         // Create the response with the encrypted data
-        UserLoginResponseDTO userLoginResponse = encryptUserLoginResponseDTO(user.getPublicKey(), user.getPrivateKey(),
-                sessionToken, serverProofM2, clientPublicKey);
-        return userLoginResponse;
-    }
-
-    /**
-     * Decrypts the SRP parameters received from the client on frontend.
-     * 
-     * @param encryprtedSrpParams - The encrypted SRP parameters received from the client, including the client's public
-     *                            value (A) and username.
-     * @return A {@link SrpParamsDTO} containing the decrypted SRP parameters.
-     * @throws Exception
-     */
-    private SrpParamsDTO decryptSrpParamsRequestDTO(SrpParamsRequestDTO encryprtedSrpParams) throws Exception {
-        String derivedUsername = genericEncryptionService
-                .decryptDTOWithRSA(encryprtedSrpParams.getEncryptedDerivedUsername(), String.class);
-        String clientPublicKey = genericEncryptionService.decryptDTOWithAESCBC(
-                encryprtedSrpParams.getEncryptedClientPublicKey(), String.class, encryprtedSrpParams.getHelperAesKey());
-        BigInteger clientPublicValueA = genericEncryptionService.decryptDTOWithAESCBC(
-                encryprtedSrpParams.getEncryptedClientPublicValueA(), BigInteger.class,
-                encryprtedSrpParams.getHelperAesKey());
-
-        SrpParamsDTO srpParamsDTO = new SrpParamsDTO();
-        srpParamsDTO.setDerivedUsername(derivedUsername);
-        srpParamsDTO.setClientPublicKey(clientPublicKey);
-        srpParamsDTO.setClientPublicValueA(clientPublicValueA);
-
-        return srpParamsDTO;
-    }
-
-    /**
-     * Encrypts the SRP parameters to be sent to the client on frontend.
-     * 
-     * @param serverPublicValueB - the public value (B) of the server.
-     * @param salt               - the unique salt of the user.
-     * @return A {@link SrpParamsResponseDTO} containing the encrypted server's public value (B) and the salt, to be
-     *         sent back to the client.
-     * @throws Exception
-     */
-    private SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt)
-            throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance(AppConstants.AES_CYPHER);
-        keyGen.init(AppConstants.AES_256);
-        SecretKey aesKey = keyGen.generateKey();
-        EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-        SrpParamsResponseDTO srpParamsResponse = new SrpParamsResponseDTO();
-        EncryptedDataAesCbc encryptedServerPublicValueB = genericEncryptionService
-                .encryptDTOWithAESCBC(serverPublicValueB.toString(16), EncryptedDataAesCbc.class, aesKey);
-        srpParamsResponse.setEncryptedServerPublicValueB(encryptedDataAesCbcMapper.toDto(encryptedServerPublicValueB));
-        srpParamsResponse.setHelperSrpParamsAesKey(encryptedServerPublicValueB.getAesKeyBase64());
-        srpParamsResponse.setSalt(salt);
-
-        return srpParamsResponse;
-    }
-
-    /**
-     * Decrypts the user login data received from the client on frontend.
-     * 
-     * @param encryptedUserLogin - The encrypted login data received from the client, typically including the client's
-     *                           public value (A), proof (M1), and username.
-     * @return A {@link UserLoginDTO} containing the decrypted login data.
-     * @throws Exception
-     */
-    private UserLoginDTO decryptUserLoginRequestDTO(UserLoginRequestDTO encryptedUserLogin) throws Exception {
-        String clientProofM = genericEncryptionService.decryptDTOWithRSA(encryptedUserLogin.getEncryptedClientProofM1(),
-                String.class);
-
-        UserLoginDTO userLoginDTO = new UserLoginDTO();
-        userLoginDTO.setEclientProofM1(clientProofM);
-
-        return userLoginDTO;
-    }
-
-    /**
-     * Encrypts the user login data to be sent to the client on frontend.
-     * 
-     * @param userPublicKey   - the public key of the user.
-     * @param userPrivateKey  - the private key of the user.
-     * @param sessionToken    - the currently generated active session token of the authenticated user.
-     * @param serverProofM2   - the calculated server proof (M2).
-     * @param clientPublicKey - the public key of the client.
-     * @return A {@link UserLoginResponseDTO} containing the encrypted server's proof (M2) and the session token, to be
-     *         sent back to the client.
-     * @throws Exception
-     */
-    private UserLoginResponseDTO encryptUserLoginResponseDTO(String userPublicKey, String userPrivateKey,
-            String sessionToken, String serverProofM2, String clientPublicKey) throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance(AppConstants.AES_CYPHER);
-        keyGen.init(AppConstants.AES_256);
-        SecretKey aesKey = keyGen.generateKey();
-        EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-        UserLoginResponseDTO userLoginResponse = new UserLoginResponseDTO();
-        EncryptedDataAesCbc encryptedClientPublicKey = genericEncryptionService.encryptDTOWithAESCBC(userPublicKey,
-                EncryptedDataAesCbc.class, aesKey);
-        EncryptedDataAesCbc encryptedClientPrivateKey = genericEncryptionService.encryptDTOWithAESCBC(userPrivateKey,
-                EncryptedDataAesCbc.class, aesKey);
-        EncryptedDataAesCbc encryptedSessionToken = genericEncryptionService.encryptDTOWithAESCBC(sessionToken,
-                EncryptedDataAesCbc.class, aesKey);
-        String encryptedServerProofM2 = genericEncryptionService.encryptDTOWithRSA(serverProofM2, String.class,
-                clientPublicKey);
-        userLoginResponse.setEncryptedUserPublicKey(encryptedDataAesCbcMapper.toDto(encryptedClientPublicKey));
-        userLoginResponse.setEncryptedUserPrivateKey(encryptedDataAesCbcMapper.toDto(encryptedClientPrivateKey));
-        userLoginResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
-        userLoginResponse.setEncryptedServerProofM2(encryptedServerProofM2);
-        userLoginResponse.setHelperAuthenticateAesKey(encryptedSessionToken.getAesKeyBase64());
-
+        UserLoginResponseDTO userLoginResponse = srpEncryptionService.encryptUserLoginResponseDTO(user.getPublicKey(),
+                user.getPrivateKey(), sessionToken, serverProofM2, clientPublicKey);
         return userLoginResponse;
     }
 }

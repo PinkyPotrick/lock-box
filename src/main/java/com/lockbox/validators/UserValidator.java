@@ -5,42 +5,45 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.lockbox.dto.EncryptedDataAesCbcDTO;
 import com.lockbox.dto.UserRegistrationDTO;
 import com.lockbox.repository.UserRepository;
-import com.lockbox.service.RSAKeyPairService;
 import com.lockbox.utils.EncryptionUtils;
 
 @Component
 public class UserValidator {
 
     @Autowired
-    private RSAKeyPairService rsaKeyPairService;
-
-    @Autowired
     private UserRepository userRepository;
 
     public void validate(UserRegistrationDTO userRegistrationDTO) throws Exception {
-        String derivedKey = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedKey());
-        String firstDecryptionUsername = rsaKeyPairService
-                .decryptRSAWithServerPrivateKey(userRegistrationDTO.getUsername());
-        String username = EncryptionUtils.decryptUsername(firstDecryptionUsername, derivedKey);
-        String email = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getEmail());
-        String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getSalt());
-        validateUsername(username, userRegistrationDTO.getUsername());
-        validateEmail(email);
-        validateSalt(salt);
+        // String derivedKey = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedKey());
+        // String firstDecryptionUsername = rsaKeyPairService
+        // .decryptRSAWithServerPrivateKey(userRegistrationDTO.getEncryptedDerivedUsername());
+        // String username = EncryptionUtils.decryptUsername(firstDecryptionUsername, derivedKey);
+        // String email = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDecryptedEmail());
+        // String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getEncryptedSalt());
+        // validateUsername(username, userRegistrationDTO.getEncryptedDerivedUsername());
+        // validateEmail(email);
+        // validateSalt(salt);
 
-        EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedClientVerifier();
-        if (encryptedVerifier != null) {
-            String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(
-                    encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(),
-                    encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
-            validateVerifier(fullyDecryptedVerifier);
-        }
+        // EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedClientVerifier();
+        // if (encryptedVerifier != null) {
+        // String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(
+        // encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(),
+        // encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
+        // validateVerifier(fullyDecryptedVerifier);
+        // }
 
         // TODO also needs to validate how strong the password is, even though the frontend should take care of this as
-        // well !!!
+        // well !!! ->> NOT POSSIBLE WITH SRP
+
+        // NEW IMPLEMENTATION
+        String derivedUsername = userRegistrationDTO.getDerivedUsername();
+        String username = EncryptionUtils.decryptUsername(derivedUsername, userRegistrationDTO.getDerivedKey());
+        validateUsername(username, derivedUsername);
+        validateEmail(userRegistrationDTO.getEmail());
+        validateSalt(userRegistrationDTO.getSalt());
+        validateVerifier(userRegistrationDTO.getClientVerifier());
     }
 
     private void validateUsername(String username, String derivedUsername) throws Exception {

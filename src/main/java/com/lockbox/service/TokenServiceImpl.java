@@ -18,13 +18,10 @@ public class TokenServiceImpl implements TokenService {
     // Generate JWT token for a user
     @Override
     public String generateToken(User user) {
-        return Jwts.builder()
-                .setSubject(user.getUsername())
-                .claim("userId", user.getId()) // Include userId in the token
-                .setIssuedAt(new Date())
-                .setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
-                .signWith(SECRET_KEY)
-                .compact();
+        return Jwts.builder().setSubject(user.getUsername()).claim("userId", user.getId()) // Include userId in the
+                                                                                           // token
+                .setIssuedAt(new Date()).setExpiration(new Date(System.currentTimeMillis() + EXPIRATION_TIME))
+                .signWith(SECRET_KEY).compact();
     }
 
     // Validate the JWT token
@@ -57,10 +54,6 @@ public class TokenServiceImpl implements TokenService {
 
     // Extract claims from the JWT token
     private Claims getClaims(String token) {
-        return Jwts.parserBuilder()
-                .setSigningKey(SECRET_KEY)
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        return Jwts.parserBuilder().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody();
     }
 }

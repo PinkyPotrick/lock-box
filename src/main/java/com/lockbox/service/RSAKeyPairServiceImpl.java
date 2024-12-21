@@ -11,7 +11,7 @@ import javax.crypto.Cipher;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
-import java.nio.file.Paths;
+import java.nio.file.Path;
 import java.security.KeyFactory;
 import java.security.KeyPair;
 import java.security.KeyPairGenerator;
@@ -36,7 +36,7 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
     public void init() {
         try {
             // Ensure the config directory exists
-            Files.createDirectories(Paths.get(CONFIG_DIR));
+            Files.createDirectories(Path.of(CONFIG_DIR));
 
             if (new File(PRIVATE_KEY_FILE).exists() && new File(PUBLIC_KEY_FILE).exists()) {
                 // Load the existing key pair
@@ -126,11 +126,11 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
 
     private KeyPair loadKeyPair() throws Exception {
         // Load public key
-        String publicKeyPem = new String(Files.readAllBytes(Paths.get(PUBLIC_KEY_FILE)));
+        String publicKeyPem = new String(Files.readAllBytes(Path.of(PUBLIC_KEY_FILE)));
         PublicKey publicKey = loadPublicKey(publicKeyPem);
 
         // Load private key
-        String privateKeyPem = new String(Files.readAllBytes(Paths.get(PRIVATE_KEY_FILE)));
+        String privateKeyPem = new String(Files.readAllBytes(Path.of(PRIVATE_KEY_FILE)));
         PrivateKey privateKey = loadPrivateKey(privateKeyPem);
 
         return new KeyPair(publicKey, privateKey);
@@ -170,13 +170,13 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
         String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n" +
                               Base64.getMimeEncoder().encodeToString(publicKeySpec.getEncoded()) +
                               "\n-----END PUBLIC KEY-----";
-        Files.write(Paths.get(PUBLIC_KEY_FILE), publicKeyPem.getBytes());
+        Files.write(Path.of(PUBLIC_KEY_FILE), publicKeyPem.getBytes());
 
         // Save the private key in PEM format
         PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(keyPair.getPrivate().getEncoded());
         String privateKeyPem = "-----BEGIN PRIVATE KEY-----\n" +
                                Base64.getMimeEncoder().encodeToString(privateKeySpec.getEncoded()) +
                                "\n-----END PRIVATE KEY-----";
-        Files.write(Paths.get(PRIVATE_KEY_FILE), privateKeyPem.getBytes());
+        Files.write(Path.of(PRIVATE_KEY_FILE), privateKeyPem.getBytes());
     }
 }

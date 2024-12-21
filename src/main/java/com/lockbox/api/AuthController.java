@@ -1,14 +1,14 @@
 package com.lockbox.api;
 
-import com.lockbox.dto.UserRegistrationDTO;
+import com.lockbox.dto.UserRegistrationRequestDTO;
 import com.lockbox.dto.ResponseEntityDTO;
 import com.lockbox.dto.UserLoginRequestDTO;
 import com.lockbox.dto.UserLoginResponseDTO;
 import com.lockbox.dto.SrpParamsRequestDTO;
 import com.lockbox.dto.SrpParamsResponseDTO;
-import com.lockbox.dto.RegisterResponseDTO;
+import com.lockbox.dto.UserRegistrationResponseDTO;
 import com.lockbox.service.RSAKeyPairService;
-import com.lockbox.service.SrpServiceImpl;
+import com.lockbox.service.SrpService;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.ExceptionBuilder;
 
@@ -27,7 +27,7 @@ public class AuthController {
     private RSAKeyPairService rsaKeyPairService;
 
     @Autowired
-    private SrpServiceImpl srpService;
+    private SrpService srpService;
 
     @GetMapping("/public-key")
     public ResponseEntityDTO<String> getPublicKey() throws Exception {
@@ -44,10 +44,10 @@ public class AuthController {
 
     @Transactional
     @PostMapping("/register")
-    public ResponseEntityDTO<RegisterResponseDTO> registerUser(@RequestBody UserRegistrationDTO userRegistration) {
+    public ResponseEntityDTO<UserRegistrationResponseDTO> registerUser(@RequestBody UserRegistrationRequestDTO userRegistration) {
         try {
-            RegisterResponseDTO registerResponse = srpService.registerUser(userRegistration);
-            ResponseEntityBuilder<RegisterResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
+            UserRegistrationResponseDTO registerResponse = srpService.registerUser(userRegistration);
+            ResponseEntityBuilder<UserRegistrationResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
             return responseEntityBuilder.setData(registerResponse).build();
         } catch (Exception e) {
             ExceptionBuilder.create().setMessage("Registering failed: " + e.getMessage())
