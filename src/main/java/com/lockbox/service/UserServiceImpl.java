@@ -12,11 +12,8 @@ import com.lockbox.validators.UserValidator;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.List;
 import java.util.Optional;
-import java.util.UUID;
 
 @Service
 public class UserServiceImpl implements UserService {
@@ -29,9 +26,6 @@ public class UserServiceImpl implements UserService {
 
     @Autowired
     private UserServerEncryptionService userServerEncryptionService;
-
-    @Autowired
-    private RSAKeyPairService rsaKeyPairService;
 
     public List<User> findAllUsers() {
         return userRepository.findAll();
@@ -53,13 +47,13 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User createUser(UserRegistrationDTO userRegistrationDTO) throws Exception {
-        userValidator.validate(userRegistrationDTO);
+        // userValidator.validate(userRegistrationDTO);
 
-        UserRegistrationMapper userRegistrationMapper2 = new UserRegistrationMapper();
-        User user2 = userRegistrationMapper2.fromDto(userRegistrationDTO);
-        user2.setId(UUID.randomUUID().toString());
-        user2.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user2.getPublicKey()));
-        user2.setUsername(rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedUsername())); // The username has 2 encryptions, only the first encryption is used in the database
+        // UserRegistrationMapper userRegistrationMapper2 = new UserRegistrationMapper();
+        // User user2 = userRegistrationMapper2.fromDto(userRegistrationDTO);
+        // user2.setId(UUID.randomUUID().toString());
+        // user2.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user2.getPublicKey()));
+        // user2.setUsername(rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedUsername())); // The username has 2 encryptions, only the first encryption is used in the database
 
         // TODO THE FOLLOWING ATTRIBUTES SHOULD ALSO BE ENCRYPTED IN THE DATABASE (NEED 3 ADDITIONAL TABLES) - at the end of all !!!
         // user.setVerifier(rsaKeyPairService.encryptWithPublicKey(user.getVerifier(), user.getPublicKey())); // TODO REMEMBER THAT YOU ARE ENCRYPTING AND DECRYPTING THIS DATA AT SOME POINT
@@ -72,7 +66,7 @@ public class UserServiceImpl implements UserService {
         userValidator.validate(userRegistrationDTO);
         UserRegistrationMapper userRegistrationMapper = new UserRegistrationMapper();
         User decryptedUser = userRegistrationMapper.fromDto(userRegistrationDTO);
-        User encryptedUser = userServerEncryptionService.encryptServerData(decryptedUser); // TODO Handle the encryption and decryption here !!!
+        User encryptedUser = userServerEncryptionService.encryptServerData(decryptedUser);
         return userRepository.save(encryptedUser);
     }
 

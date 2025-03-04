@@ -19,6 +19,9 @@ public class AppConstants {
      public static final int AES_256 = 256;
      public static final String RSA_CYPHER = "RSA";
      public static final int RSA_2048 = 2048;
+     public static final String AES_CBC_CIPHER_ALGORITHM = "AES/CBC/PKCS5Padding";
+     public static final String AES_ECB_CIPHER_ALGORITHM = "AES/ECB/PKCS5Padding";
+     public static final String RSA_ECB_CIPHER_ALGORITHM = "RSA/ECB/PKCS1Padding";
 
      // HTTP session constants
      public static class HttpSessionAttributes {

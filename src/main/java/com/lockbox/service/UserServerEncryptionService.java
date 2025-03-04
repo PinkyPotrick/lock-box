@@ -1,78 +1,103 @@
 package com.lockbox.service;
 
+import javax.crypto.SecretKey;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.lockbox.model.User;
+import com.lockbox.utils.EncryptionUtils;
 
 @Component
 public class UserServerEncryptionService {
 
-    @Autowired
-    private GenericEncryptionService genericEncryptionService;
+	@Autowired
+	private GenericEncryptionService genericEncryptionService;
 
-    // public User decryptClientData(final UserRegistrationRequestDTO userRegistration) throws Exception {
-    // String derivedKey = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getDerivedKey());
-    // String firstDecryptionUsername = rsaKeyPairService
-    // .decryptRSAWithServerPrivateKey(userRegistration.getEncryptedDerivedUsername());
-    // String username = EncryptionUtils.decryptUsername(firstDecryptionUsername, derivedKey);
-    // String email = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getEncryptedEmail());
-    // String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getEncryptedSalt());
+	@Autowired
+	private RSAKeyPairService rsaKeyPairService;
 
-    // EncryptedDataAesCbcDTO encryptedVerifier = userRegistration.getEncryptedClientVerifier();
-    // if (encryptedVerifier != null) {
-    // String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(
-    // encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(),
-    // encryptedVerifier.getHmacBase64(), userRegistration.getHelperAesKey());
-    // }
+	// public User decryptClientData(final UserRegistrationRequestDTO userRegistration) throws Exception {
+	// String derivedKey = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getDerivedKey());
+	// String firstDecryptionUsername = rsaKeyPairService
+	// .decryptRSAWithServerPrivateKey(userRegistration.getEncryptedDerivedUsername());
+	// String username = EncryptionUtils.decryptUsername(firstDecryptionUsername, derivedKey);
+	// String email = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getEncryptedEmail());
+	// String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getEncryptedSalt());
 
-    // UserRegistrationMapper userRegistrationMapper = new UserRegistrationMapper();
-    // User user = userRegistrationMapper.fromDto(userRegistration);
+	// EncryptedDataAesCbcDTO encryptedVerifier = userRegistration.getEncryptedClientVerifier();
+	// if (encryptedVerifier != null) {
+	// String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(
+	// encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(),
+	// encryptedVerifier.getHmacBase64(), userRegistration.getHelperAesKey());
+	// }
 
-    // user.setId(UUID.randomUUID().toString());
-    // user.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(
-    // LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user.getPublicKey()));
-    // user.setUsername(
-    // rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getEncryptedDerivedUsername()));
+	// UserRegistrationMapper userRegistrationMapper = new UserRegistrationMapper();
+	// User user = userRegistrationMapper.fromDto(userRegistration);
 
-    // return user;
-    // }
+	// user.setId(UUID.randomUUID().toString());
+	// user.setCreatedAt(rsaKeyPairService.encryptRSAWithPublicKey(
+	// LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE), user.getPublicKey()));
+	// user.setUsername(
+	// rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistration.getEncryptedDerivedUsername()));
 
-    // public User encryptClientData(final UserRegistrationRequestDTO userRegistration) throws Exception {
-    // return null;
-    // }
+	// return user;
+	// }
 
-    public User encryptServerData(User user) throws Exception {
-        String publicKey = user.getPublicKey();
-        User encryptedUser = new User();
+	// public User encryptClientData(final UserRegistrationRequestDTO userRegistration) throws Exception {
+	// return null;
+	// }
 
-        encryptedUser
-                .setUsername(genericEncryptionService.encryptDTOWithRSA(user.getUsername(), String.class, publicKey));
-        encryptedUser.setEmail(genericEncryptionService.encryptDTOWithRSA(user.getEmail(), String.class, publicKey));
-        encryptedUser.setSalt(genericEncryptionService.encryptDTOWithRSA(user.getSalt(), String.class, publicKey));
-        encryptedUser
-                .setVerifier(genericEncryptionService.encryptDTOWithRSA(user.getVerifier(), String.class, publicKey));
-        encryptedUser
-                .setPublicKey(genericEncryptionService.encryptDTOWithRSA(user.getPublicKey(), String.class, publicKey));
-        encryptedUser.setPrivateKey(
-                genericEncryptionService.encryptDTOWithRSA(user.getPrivateKey(), String.class, publicKey));
-        encryptedUser
-                .setCreatedAt(genericEncryptionService.encryptDTOWithRSA(user.getCreatedAt(), String.class, publicKey));
+	public void testingEncryptionDecryption(User user) throws Exception {
+		User encryptedUser = encryptServerData(user);
+		User decryptedUser = decryptServerData(encryptedUser);
+		System.out.println(decryptedUser);
+	}
 
-        return encryptedUser;
-    }
+	public User encryptServerData(User user) throws Exception {
+		User encryptedUser = new User();
+		String serverPublicKeyPem = rsaKeyPairService.getPublicKeyInPEM(rsaKeyPairService.getPublicKey());
+		SecretKey aesKey = EncryptionUtils.generateAESKey();
 
-    public User decryptServerData(User user) throws Exception {
-        User decryptedUser = new User();
+		// Encrypt user's data with the user's public key
+		String userPublicKeyPem = user.getPublicKey();
+		encryptedUser.setUsername(user.getUsername());
+		encryptedUser
+				.setEmail(genericEncryptionService.encryptDTOWithRSA(user.getEmail(), String.class, userPublicKeyPem));
+		encryptedUser
+				.setSalt(genericEncryptionService.encryptDTOWithRSA(user.getSalt(), String.class, userPublicKeyPem));
+		encryptedUser.setVerifier(
+				genericEncryptionService.encryptDTOWithRSA(user.getVerifier(), String.class, userPublicKeyPem));
+		encryptedUser.setCreatedAt(
+				genericEncryptionService.encryptDTOWithRSA(user.getCreatedAt(), String.class, userPublicKeyPem));
+		encryptedUser.setPublicKey(genericEncryptionService.encryptStringWithAESCBC(user.getPublicKey(), aesKey));
+		encryptedUser.setPrivateKey(genericEncryptionService.encryptStringWithAESCBC(user.getPrivateKey(), aesKey));
+		encryptedUser.setAesKey(
+				rsaKeyPairService.encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
 
-        decryptedUser.setUsername(genericEncryptionService.decryptDTOWithRSA(user.getUsername(), String.class));
-        decryptedUser.setEmail(genericEncryptionService.decryptDTOWithRSA(user.getEmail(), String.class));
-        decryptedUser.setSalt(genericEncryptionService.decryptDTOWithRSA(user.getSalt(), String.class));
-        decryptedUser.setVerifier(genericEncryptionService.decryptDTOWithRSA(user.getVerifier(), String.class));
-        decryptedUser.setPublicKey(genericEncryptionService.decryptDTOWithRSA(user.getPublicKey(), String.class));
-        decryptedUser.setPrivateKey(genericEncryptionService.decryptDTOWithRSA(user.getPrivateKey(), String.class));
-        decryptedUser.setCreatedAt(genericEncryptionService.decryptDTOWithRSA(user.getCreatedAt(), String.class));
+		return encryptedUser;
+	}
 
-        return decryptedUser;
-    }
+	public User decryptServerData(User user) throws Exception {
+		User decryptedUser = new User();
+		String aesKeyString = rsaKeyPairService.decryptRSAWithServerPrivateKey(user.getAesKey());
+		SecretKey aesKey = EncryptionUtils.getAESKeyFromString(aesKeyString);
+		String decryptedUserPrivateKey = genericEncryptionService.decryptStringWithAESCBC(user.getPrivateKey(), aesKey);
+
+		// Decrypt user's data with the user's private key
+		decryptedUser.setUsername(user.getUsername());
+		decryptedUser
+				.setEmail(genericEncryptionService.decryptDTOWithRSA(user.getEmail(), String.class, decryptedUserPrivateKey));
+		decryptedUser
+				.setSalt(genericEncryptionService.decryptDTOWithRSA(user.getSalt(), String.class, decryptedUserPrivateKey));
+		decryptedUser.setVerifier(
+				genericEncryptionService.decryptDTOWithRSA(user.getVerifier(), String.class, decryptedUserPrivateKey));
+		decryptedUser.setCreatedAt(
+				genericEncryptionService.decryptDTOWithRSA(user.getCreatedAt(), String.class, decryptedUserPrivateKey));
+		decryptedUser.setPublicKey(genericEncryptionService.decryptStringWithAESCBC(user.getPublicKey(), aesKey));
+		decryptedUser.setPrivateKey(genericEncryptionService.decryptStringWithAESCBC(user.getPrivateKey(), aesKey));
+		decryptedUser.setAesKey(aesKeyString);
+
+		return decryptedUser;
+	}
 }

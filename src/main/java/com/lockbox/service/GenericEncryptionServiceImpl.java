@@ -21,16 +21,46 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
     private RSAKeyPairService rsaKeyPairService;
 
     /**
-     * Decrypts a DTO using RSA and the server's private key into a target class type.
+     * Decrypts a string using AES-CBC with a provided secret key.
      *
-     * @param dto       - The encrypted DTO to decrypt
-     * @param classType - The type of the DTO to be returned after decryption
-     * @return The decrypted data mapped to the target class type
+     * @param string    - The encrypted string to decrypt
+     * @param secretKey - The secret key used for decryption
+     * @return The decrypted string
      * @throws Exception if the decryption process fails
      */
     @Override
-    public <T, R> R decryptDTOWithRSA(T dto, Class<R> targetType) throws Exception {
-        String json;
+    public String decryptStringWithAESCBC(String string, SecretKey secretKey) throws Exception {
+        return EncryptionUtils.decryptStringWithAESCBC(string, secretKey);
+    }
+
+    /**
+     * Encrypts a string using AES-CBC with a provided secret key.
+     *
+     * @param string    - The string to encrypt
+     * @param secretKey - The secret key used for encryption
+     * @return The encrypted string
+     * @throws Exception if the encryption process fails
+     */
+    @Override
+    public String encryptStringWithAESCBC(String string, SecretKey secretKey) throws Exception {
+        return EncryptionUtils.encryptStringWithAESCBC(string, secretKey);
+    }
+
+    /**
+     * Decrypts a given DTO using RSA encryption and converts it to the specified target type.
+     *
+     * @param <T>           - The type of the input DTO.
+     * @param <R>           - The type of the output object.
+     * @param dto           - The DTO to be decrypted. It can be a raw JSON string or an object.
+     * @param targetType    - The class type of the target object to which the decrypted JSON should be converted.
+     * @param privateKeyPem - The private key in PEM format used for decryption. If null, the server's private key will
+     *                      be used.
+     * @return The decrypted object of the specified target type.
+     * @throws Exception If an error occurs during decryption or JSON processing.
+     */
+    @Override
+    public <T, R> R decryptDTOWithRSA(T dto, Class<R> targetType, String privateKeyPem) throws Exception {
+        String json, decryptedJson;
 
         // Handle raw DTO types
         if (dto instanceof String string) {
@@ -39,7 +69,12 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
             json = objectMapper.writeValueAsString(dto);
         }
 
-        String decryptedJson = rsaKeyPairService.decryptRSAWithServerPrivateKey(json);
+        // If the private key is null, use the server's private key for decryption
+        if (privateKeyPem == null) {
+            decryptedJson = rsaKeyPairService.decryptRSAWithServerPrivateKey(json);
+        } else {
+            decryptedJson = rsaKeyPairService.decryptRSAWithPrivateKey(json, privateKeyPem);
+        }
 
         if (targetType.equals(String.class)) {
             return targetType.cast(decryptedJson);
@@ -49,17 +84,37 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
     }
 
     /**
-     * Encrypts a DTO using RSA and a provided public key into a target class type.
+     * Decrypts a given DTO using RSA encryption and converts it to the specified target type. This method uses the
+     * server's private key for decryption.
      *
-     * @param dto          - The DTO to encrypt
-     * @param classType    - The type of the DTO to be returned after encryption
-     * @param publicKeyPem - The public key in PEM format used for encryption
-     * @return The encrypted data mapped to the target class type
-     * @throws Exception if the encryption process fails
+     * @param <T>        - The type of the input DTO.
+     * @param <R>        - The type of the output object.
+     * @param dto        - The DTO to be decrypted. It can be a raw JSON string or an object.
+     * @param targetType - The class type of the target object to which the decrypted JSON should be converted.
+     * @return The decrypted object of the specified target type.
+     * @throws Exception If an error occurs during decryption or JSON processing.
+     * @see #decryptDTOWithRSA(Object, Class, String)
+     */
+    @Override
+    public <T, R> R decryptDTOWithRSA(T dto, Class<R> targetType) throws Exception {
+        return decryptDTOWithRSA(dto, targetType, null);
+    }
+
+    /**
+     * Encrypts a given DTO using RSA encryption and converts it to the specified target type.
+     *
+     * @param <T>          - The type of the input DTO.
+     * @param <R>          - The type of the output object.
+     * @param dto          - The DTO to be encrypted. It can be a raw JSON string or an object.
+     * @param targetType   - The class type of the target object to which the encrypted JSON should be converted.
+     * @param publicKeyPem - The public key in PEM format used for encryption. If null, the server's public key will be
+     *                     used.
+     * @return The encrypted object of the specified target type.
+     * @throws Exception If an error occurs during encryption or JSON processing.
      */
     @Override
     public <T, R> R encryptDTOWithRSA(T dto, Class<R> targetType, String publicKeyPem) throws Exception {
-        String json;
+        String json, encryptedJson;
 
         // Handle raw DTO types
         if (dto instanceof String string) {
@@ -68,13 +123,35 @@ public class GenericEncryptionServiceImpl implements GenericEncryptionService {
             json = objectMapper.writeValueAsString(dto);
         }
 
-        String encryptedJson = rsaKeyPairService.encryptRSAWithPublicKey(json, publicKeyPem);
+        // If the private key is null, use the server's public key for decryption
+        if (publicKeyPem == null) {
+            encryptedJson = rsaKeyPairService.encryptRSAWithServerPublicKey(json);
+        } else {
+            encryptedJson = rsaKeyPairService.encryptRSAWithPublicKey(json, publicKeyPem);
+        }
 
         if (targetType.equals(String.class)) {
             return targetType.cast(encryptedJson);
         }
 
         return objectMapper.readValue(encryptedJson, targetType);
+    }
+
+    /**
+     * Encrypts a given DTO using RSA encryption and converts it to the specified target type. This method uses the
+     * server's public key for encryption.
+     *
+     * @param <T>        - The type of the input DTO.
+     * @param <R>        - The type of the output object.
+     * @param dto        - The DTO to be encrypted. It can be a raw JSON string or an object.
+     * @param targetType - The class type of the target object to which the encrypted JSON should be converted.
+     * @return The encrypted object of the specified target type.
+     * @throws Exception If an error occurs during encryption or JSON processing.
+     * @see #encryptDTOWithRSA(Object, Class, String)
+     */
+    @Override
+    public <T, R> R encryptDTOWithRSA(T dto, Class<R> targetType) throws Exception {
+        return encryptDTOWithRSA(dto, targetType, null);
     }
 
     /**

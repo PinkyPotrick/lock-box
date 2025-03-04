@@ -12,6 +12,8 @@ public class SrpParamsDTO {
 
     private BigInteger clientPublicValueA;
 
+    private String derivedKey;
+
     public String getDerivedUsername() {
         return derivedUsername;
     }
@@ -34,5 +36,13 @@ public class SrpParamsDTO {
 
     public void setClientPublicValueA(BigInteger clientPublicValueA) {
         this.clientPublicValueA = clientPublicValueA;
+    }
+
+    public String getDerivedKey() {
+        return derivedKey;
+    }
+
+    public void setDerivedKey(String derivedKey) {
+        this.derivedKey = derivedKey;
     }
 }

@@ -14,20 +14,23 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 1024)
     private String email;
 
-    @Column(nullable = false, length = 1024)
+    @Column(nullable = false, length = 344)
     private String salt;
 
-    @Column(nullable = false, length = 1024)
+    @Column(nullable = false, length = 344)
     private String verifier;
 
     @Column(nullable = false, length = 1024)
     private String createdAt;
 
-    @Column(nullable = false, length = 2048)
+    @Column(nullable = false, length = 640)
     private String publicKey;
 
-    @Column(nullable = false, length = 2048)
+    @Column(nullable = false, length = 2304)
     private String privateKey;
+
+    @Column(nullable = false, length = 344)
+    private String aesKey;
 
     public String getUsername() {
         return username;
@@ -83,5 +86,13 @@ public class User extends BaseEntity {
 
     public void setPrivateKey(String privateKey) {
         this.privateKey = privateKey;
+    }
+
+    public String getAesKey() {
+        return aesKey;
+    }
+
+    public void setAesKey(String aesKey) {
+        this.aesKey = aesKey;
     }
 }

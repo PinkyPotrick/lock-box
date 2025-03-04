@@ -34,10 +34,10 @@ public class SrpServiceImpl implements SrpService {
     private RSAKeyPairService rsaKeyPairService;
 
     @Autowired
-    private GenericEncryptionService genericEncryptionService;
+    private SrpEncryptionService srpEncryptionService;
 
     @Autowired
-    private SrpEncryptionService srpEncryptionService;
+    private UserServerEncryptionService userServerEncryptionService;
 
     @Autowired
     private UserRepository userRepository;
@@ -107,14 +107,12 @@ public class SrpServiceImpl implements SrpService {
         SrpParamsDTO srpParamsDTO = srpEncryptionService.decryptSrpParamsRequestDTO(encryprtedSrpParams);
 
         // Retrieve user information
-        User user = userRepository.findByUsername(srpParamsDTO.getDerivedUsername());
-        if (user == null) {
+        User encryptedUser = userRepository.findByUsername(srpParamsDTO.getDerivedUsername());
+        if (encryptedUser == null) {
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_CREDENTIALS);
         }
-        BigInteger userVerifier = new BigInteger(user.getVerifier(), 16);
-
-        // Decrypt the encrypted salt from the DB
-        String salt = genericEncryptionService.decryptDTOWithRSA(user.getSalt(), String.class);
+        User decryptedUser = userServerEncryptionService.decryptServerData(encryptedUser);
+        BigInteger userVerifier = new BigInteger(decryptedUser.getVerifier(), 16);
 
         // Compute SRP variables
         BigInteger serverPrivateValueB = SrpUtils.generateRandomPrivateValue();
@@ -132,7 +130,7 @@ public class SrpServiceImpl implements SrpService {
 
         // Create the response with the encrypted data
         SrpParamsResponseDTO srpParamsResponse = srpEncryptionService.encryptSrpParamsResponseDTO(serverPublicValueB,
-                salt);
+                decryptedUser.getSalt());
         return srpParamsResponse;
     }
 
@@ -173,21 +171,20 @@ public class SrpServiceImpl implements SrpService {
         }
 
         // Retrieve user information
-        User user = userRepository.findByUsername(derivedUsername);
-        if (user == null || clientPublicValueA == null || serverPublicValueB == null || serverPrivateValueB == null) {
+        User encryptedUser = userRepository.findByUsername(derivedUsername);
+        if (encryptedUser == null || clientPublicValueA == null || serverPublicValueB == null
+                || serverPrivateValueB == null) {
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_SESSION);
         }
-        BigInteger userVerifier = new BigInteger(user.getVerifier(), 16);
-
-        // The salt needs to be decrypted first
-        String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(user.getSalt());
+        User decryptedUser = userServerEncryptionService.decryptServerData(encryptedUser);
+        BigInteger userVerifier = new BigInteger(decryptedUser.getVerifier(), 16);
 
         // Compute SRP variables
         BigInteger scramblingParameterU = SrpUtils.computeU(serverPublicValueB);
         BigInteger sharedSecretS = SrpUtils.computeS(clientPublicValueA, userVerifier, scramblingParameterU,
                 serverPrivateValueB);
         String sessionKeyK = SrpUtils.computeK(sharedSecretS);
-        String serverProofM1 = SrpUtils.computeM1(derivedUsername, salt, clientPublicValueA, serverPublicValueB,
+        String serverProofM1 = SrpUtils.computeM1(derivedUsername, decryptedUser.getSalt(), clientPublicValueA, serverPublicValueB,
                 sessionKeyK);
 
         // Compare the client's M1 with the server's M1, if the values are equal then
@@ -198,14 +195,15 @@ public class SrpServiceImpl implements SrpService {
 
         // Compute server proof and generate session token
         String serverProofM2 = SrpUtils.computeM2(clientPublicValueA, serverProofM1, sessionKeyK);
-        String sessionToken = tokenService.generateToken(user);
+        String sessionToken = tokenService.generateToken(decryptedUser);
 
         // Clear session attributes after successful authentication
         httpSession.invalidate();
 
         // Create the response with the encrypted data
-        UserLoginResponseDTO userLoginResponse = srpEncryptionService.encryptUserLoginResponseDTO(user.getPublicKey(),
-                user.getPrivateKey(), sessionToken, serverProofM2, clientPublicKey);
+        UserLoginResponseDTO userLoginResponse = srpEncryptionService.encryptUserLoginResponseDTO(
+                decryptedUser.getPublicKey(), decryptedUser.getPrivateKey(), sessionToken, serverProofM2,
+                clientPublicKey);
         return userLoginResponse;
     }
 }

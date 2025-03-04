@@ -2,7 +2,6 @@ package com.lockbox.service;
 
 import java.math.BigInteger;
 
-import javax.crypto.KeyGenerator;
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,7 +18,6 @@ import com.lockbox.dto.UserRegistrationRequestDTO;
 import com.lockbox.dto.UserRegistrationResponseDTO;
 import com.lockbox.dto.mappers.EncryptedDataAesCbcMapper;
 import com.lockbox.model.EncryptedDataAesCbc;
-import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.EncryptionUtils;
 
 @Service
@@ -32,8 +30,8 @@ public class SrpEncryptionServiceImpl implements SrpEncryptionService {
      * Decrypts the user registration data received from the client on frontend.
      * 
      * @param encryptedUserRegistration - The encrypted user registration data received from the client, including the
-     *                                   derived key, username, email, salt, client's verifier, public key and private
-     *                                   key.
+     *                                  derived key, username, email, salt, client's verifier, public key and private
+     *                                  key.
      * @return A {@link UserRegistrationDTO} containing the decrypted user registration data.
      * @throws Exception
      */
@@ -45,8 +43,8 @@ public class SrpEncryptionServiceImpl implements SrpEncryptionService {
                 .decryptDTOWithRSA(encryptedUserRegistration.getEncryptedDerivedUsername(), String.class);
         String email = genericEncryptionService.decryptDTOWithRSA(encryptedUserRegistration.getEncryptedEmail(),
                 String.class);
-        String salt = genericEncryptionService
-                .decryptDTOWithRSA(encryptedUserRegistration.getEncryptedClientPublicKey(), String.class);
+        String salt = genericEncryptionService.decryptDTOWithRSA(encryptedUserRegistration.getEncryptedSalt(),
+                String.class);
         String clientVerifier = genericEncryptionService.decryptDTOWithAESCBC(
                 encryptedUserRegistration.getEncryptedClientVerifier(), String.class,
                 encryptedUserRegistration.getHelperAesKey());
@@ -81,9 +79,7 @@ public class SrpEncryptionServiceImpl implements SrpEncryptionService {
      */
     @Override
     public UserRegistrationResponseDTO encryptUserRegistrationResponseDTO(String sessionToken) throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance(AppConstants.AES_CYPHER);
-        keyGen.init(AppConstants.AES_256);
-        SecretKey aesKey = keyGen.generateKey();
+        SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         UserRegistrationResponseDTO userRegistrationResponse = new UserRegistrationResponseDTO();
         EncryptedDataAesCbc encryptedSessionToken = EncryptionUtils.encryptWithAESCBC(sessionToken, aesKey);
@@ -110,11 +106,14 @@ public class SrpEncryptionServiceImpl implements SrpEncryptionService {
         BigInteger clientPublicValueA = genericEncryptionService.decryptDTOWithAESCBC(
                 encryprtedSrpParams.getEncryptedClientPublicValueA(), BigInteger.class,
                 encryprtedSrpParams.getHelperAesKey());
+        String derivedKey = genericEncryptionService.decryptDTOWithRSA(encryprtedSrpParams.getDerivedKey(),
+                String.class);
 
         SrpParamsDTO srpParamsDTO = new SrpParamsDTO();
         srpParamsDTO.setDerivedUsername(derivedUsername);
         srpParamsDTO.setClientPublicKey(clientPublicKey);
         srpParamsDTO.setClientPublicValueA(clientPublicValueA);
+        srpParamsDTO.setDerivedKey(derivedKey);
 
         return srpParamsDTO;
     }
@@ -131,9 +130,7 @@ public class SrpEncryptionServiceImpl implements SrpEncryptionService {
     @Override
     public SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt)
             throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance(AppConstants.AES_CYPHER);
-        keyGen.init(AppConstants.AES_256);
-        SecretKey aesKey = keyGen.generateKey();
+        SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         SrpParamsResponseDTO srpParamsResponse = new SrpParamsResponseDTO();
         EncryptedDataAesCbc encryptedServerPublicValueB = genericEncryptionService
@@ -179,9 +176,7 @@ public class SrpEncryptionServiceImpl implements SrpEncryptionService {
     @Override
     public UserLoginResponseDTO encryptUserLoginResponseDTO(String userPublicKey, String userPrivateKey,
             String sessionToken, String serverProofM2, String clientPublicKey) throws Exception {
-        KeyGenerator keyGen = KeyGenerator.getInstance(AppConstants.AES_CYPHER);
-        keyGen.init(AppConstants.AES_256);
-        SecretKey aesKey = keyGen.generateKey();
+        SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         UserLoginResponseDTO userLoginResponse = new UserLoginResponseDTO();
         EncryptedDataAesCbc encryptedClientPublicKey = genericEncryptionService.encryptDTOWithAESCBC(userPublicKey,

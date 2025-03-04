@@ -13,8 +13,11 @@ public interface RSAKeyPairService {
 
     String getPublicKeyInPEM(PublicKey publicKey);
 
+    String encryptRSAWithServerPublicKey(String decryptedData);
+
     String decryptRSAWithServerPrivateKey(String encryptedData);
 
-    String encryptRSAWithPublicKey(String data, String publicKeyPem);
+    String encryptRSAWithPublicKey(String decryptedData, String publicKeyPem);
 
+    String decryptRSAWithPrivateKey(String encryptedData, String privateKeyPem);
 }
