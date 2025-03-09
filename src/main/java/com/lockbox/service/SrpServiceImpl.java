@@ -31,9 +31,6 @@ public class SrpServiceImpl implements SrpService {
     private UserService userService;
 
     @Autowired
-    private RSAKeyPairService rsaKeyPairService;
-
-    @Autowired
     private SrpEncryptionService srpEncryptionService;
 
     @Autowired
@@ -46,33 +43,20 @@ public class SrpServiceImpl implements SrpService {
     private HttpSession httpSession;
 
     /**
-     * TODO write javadoc for the 'registerUser' function
-     * 
-     * @param userRegistration
-     * @return
-     * @throws Exception
+     * Registers a new user by decrypting the received registration data, creating the user, and generating a session
+     * token.
+     *
+     * This method handles the user registration process by first decrypting the received encrypted registration data.
+     * It then creates a new user in the system and generates a session token for the newly registered user. Finally, it
+     * returns a response containing the encrypted session token.
+     *
+     * @param encryptedUserRegistration - The encrypted user registration data received from the client.
+     * @return A {@link UserRegistrationResponseDTO} containing the encrypted session token.
+     * @throws Exception If an error occurs during decryption, user creation, or token generation.
      */
     @Override
     public UserRegistrationResponseDTO registerUser(UserRegistrationRequestDTO encryptedUserRegistration)
             throws Exception {
-        // Create the registered user and generate a session token
-        /*
-         * User user2 = userService.createUser(encryptedUserRegistration); String sessionToken2 =
-         * tokenService.generateToken(user2);
-         * 
-         * // Create the response with the encrypted session token of the client KeyGenerator keyGen =
-         * KeyGenerator.getInstance(AppConstants.AES_CYPHER); keyGen.init(AppConstants.AES_256); SecretKey aesKey =
-         * keyGen.generateKey(); EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-         * // UserProfileMapper userProfileMapper = new UserProfileMapper(); UserRegistrationResponseDTO
-         * registerResponse = new UserRegistrationResponseDTO(); // UserProfileDTO userProfileDTO = new
-         * UserProfileDTO(); EncryptedDataAesCbc encryptedSessionToken =
-         * EncryptionUtils.encryptWithAESCBC(sessionToken2, aesKey);
-         * registerResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
-         * registerResponse.setHelperAesKey(encryptedSessionToken.getAesKeyBase64()); return registerResponse;
-         */
-
-        // # ----------------------------------------------------------------------------- #
-
         // Decrypt the received data
         UserRegistrationDTO userRegistrationDTO = srpEncryptionService
                 .decryptUserRegistrationRequestDTO(encryptedUserRegistration);
@@ -99,14 +83,14 @@ public class SrpServiceImpl implements SrpService {
      *                            and username.
      * @return A {@link SrpParamsResponseDTO} containing the server's public value (B) and the salt, to be sent back to
      *         the client.
-     * @throws Exception
+     * @throws Exception If an error occurs during decryption, user retrieval, or SRP computation.
      */
     @Override
     public SrpParamsResponseDTO initiateSrpHandshake(SrpParamsRequestDTO encryprtedSrpParams) throws Exception {
         // Decrypt the received encrypted DTO data
         SrpParamsDTO srpParamsDTO = srpEncryptionService.decryptSrpParamsRequestDTO(encryprtedSrpParams);
 
-        // Retrieve user information
+        // Retrieve the user information and decrypt the user data
         User encryptedUser = userRepository.findByUsername(srpParamsDTO.getDerivedUsername());
         if (encryptedUser == null) {
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_CREDENTIALS);
@@ -115,8 +99,9 @@ public class SrpServiceImpl implements SrpService {
         BigInteger userVerifier = new BigInteger(decryptedUser.getVerifier(), 16);
 
         // Compute SRP variables
-        BigInteger serverPrivateValueB = SrpUtils.generateRandomPrivateValue();
-        BigInteger serverPublicValueB = SrpUtils.computeB(userVerifier, serverPrivateValueB);
+        SrpUtils srpUtils = new SrpUtils();
+        BigInteger serverPrivateValueB = srpUtils.generateRandomPrivateValue();
+        BigInteger serverPublicValueB = srpUtils.computeB(userVerifier, serverPrivateValueB);
 
         // Store temporary user values in session
         httpSession.setAttribute(AppConstants.HttpSessionAttributes.CLIENT_PUBLIC_VALUE_A,
@@ -146,7 +131,7 @@ public class SrpServiceImpl implements SrpService {
      *                           value (A), proof (M1), and username.
      * @return A {@link UserLoginResponseDTO} containing the server's proof (M2) and the session token, to be sent back
      *         to the client.
-     * @throws Exception
+     * @throws Exception If an error occurs during decryption, session retrieval, user retrieval, or SRP verification.
      */
     @Override
     public UserLoginResponseDTO verifyClientProofAndAuthenticate(UserLoginRequestDTO encryptedUserLogin)
@@ -170,7 +155,7 @@ public class SrpServiceImpl implements SrpService {
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_CLIENT_VALUE_A);
         }
 
-        // Retrieve user information
+        // Retrieve the user information and decrypt the user data
         User encryptedUser = userRepository.findByUsername(derivedUsername);
         if (encryptedUser == null || clientPublicValueA == null || serverPublicValueB == null
                 || serverPrivateValueB == null) {
@@ -180,12 +165,13 @@ public class SrpServiceImpl implements SrpService {
         BigInteger userVerifier = new BigInteger(decryptedUser.getVerifier(), 16);
 
         // Compute SRP variables
-        BigInteger scramblingParameterU = SrpUtils.computeU(serverPublicValueB);
-        BigInteger sharedSecretS = SrpUtils.computeS(clientPublicValueA, userVerifier, scramblingParameterU,
+        SrpUtils srpUtils = new SrpUtils();
+        BigInteger scramblingParameterU = srpUtils.computeU(serverPublicValueB);
+        BigInteger sharedSecretS = srpUtils.computeS(clientPublicValueA, userVerifier, scramblingParameterU,
                 serverPrivateValueB);
-        String sessionKeyK = SrpUtils.computeK(sharedSecretS);
-        String serverProofM1 = SrpUtils.computeM1(derivedUsername, decryptedUser.getSalt(), clientPublicValueA, serverPublicValueB,
-                sessionKeyK);
+        String sessionKeyK = srpUtils.computeK(sharedSecretS);
+        String serverProofM1 = srpUtils.computeM1(derivedUsername, decryptedUser.getSalt(), clientPublicValueA,
+                serverPublicValueB, sessionKeyK);
 
         // Compare the client's M1 with the server's M1, if the values are equal then
         // both the client and server share the same secret
@@ -194,7 +180,7 @@ public class SrpServiceImpl implements SrpService {
         }
 
         // Compute server proof and generate session token
-        String serverProofM2 = SrpUtils.computeM2(clientPublicValueA, serverProofM1, sessionKeyK);
+        String serverProofM2 = srpUtils.computeM2(clientPublicValueA, serverProofM1, sessionKeyK);
         String sessionToken = tokenService.generateToken(decryptedUser);
 
         // Clear session attributes after successful authentication

@@ -178,7 +178,7 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
         }
     }
 
-    private KeyPair loadKeyPair() throws Exception {
+    protected KeyPair loadKeyPair() throws Exception {
         // Load public key
         String publicKeyPem = new String(Files.readAllBytes(Path.of(PUBLIC_KEY_FILE)));
         PublicKey publicKey = loadPublicKey(publicKeyPem);
@@ -218,7 +218,7 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
         return keyFactory.generatePrivate(keySpec);
     }
 
-    private void saveKeyPair(KeyPair keyPair) throws IOException {
+    protected void saveKeyPair(KeyPair keyPair) throws IOException {
         // Save the public key in PEM format
         X509EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(keyPair.getPublic().getEncoded());
         String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n" + //

@@ -16,28 +16,6 @@ public class UserValidator {
     private UserRepository userRepository;
 
     public void validate(UserRegistrationDTO userRegistrationDTO) throws Exception {
-        // String derivedKey = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDerivedKey());
-        // String firstDecryptionUsername = rsaKeyPairService
-        // .decryptRSAWithServerPrivateKey(userRegistrationDTO.getEncryptedDerivedUsername());
-        // String username = EncryptionUtils.decryptUsername(firstDecryptionUsername, derivedKey);
-        // String email = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getDecryptedEmail());
-        // String salt = rsaKeyPairService.decryptRSAWithServerPrivateKey(userRegistrationDTO.getEncryptedSalt());
-        // validateUsername(username, userRegistrationDTO.getEncryptedDerivedUsername());
-        // validateEmail(email);
-        // validateSalt(salt);
-
-        // EncryptedDataAesCbcDTO encryptedVerifier = userRegistrationDTO.getEncryptedClientVerifier();
-        // if (encryptedVerifier != null) {
-        // String fullyDecryptedVerifier = EncryptionUtils.decryptWithAESCBC(
-        // encryptedVerifier.getEncryptedDataBase64(), encryptedVerifier.getIvBase64(),
-        // encryptedVerifier.getHmacBase64(), userRegistrationDTO.getHelperAesKey());
-        // validateVerifier(fullyDecryptedVerifier);
-        // }
-
-        // TODO also needs to validate how strong the password is, even though the frontend should take care of this as
-        // well !!! ->> NOT POSSIBLE WITH SRP
-
-        // NEW IMPLEMENTATION
         String derivedUsername = userRegistrationDTO.getDerivedUsername();
         String username = EncryptionUtils.decryptUsername(derivedUsername, userRegistrationDTO.getDerivedKey());
         validateUsername(username, derivedUsername);

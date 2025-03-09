@@ -18,7 +18,7 @@ public class SrpUtils {
      *
      * @return A random BigInteger value.
      */
-    public static BigInteger generateRandomPrivateValue() {
+    public BigInteger generateRandomPrivateValue() {
         byte[] randomBytes = new byte[32]; // 32 bytes = 256 bits
         random.nextBytes(randomBytes);
         return new BigInteger(1, randomBytes); // Convert to BigInteger, treating bytes as positive
@@ -31,7 +31,7 @@ public class SrpUtils {
      * @param b - The server's private value.
      * @return The server's public value B.
      */
-    public static BigInteger computeB(BigInteger v, BigInteger b) {
+    public BigInteger computeB(BigInteger v, BigInteger b) {
         BigInteger gb = g.modPow(b, N); // Compute g^b % N
         return v.add(gb).mod(N); // Compute (v + g^b) % N
     }
@@ -46,8 +46,12 @@ public class SrpUtils {
      * @return The computed scrambling parameter u as a BigInteger.
      * @throws NoSuchAlgorithmException If SHA-1 algorithm is not available.
      */
-    public static BigInteger computeU(BigInteger B) throws NoSuchAlgorithmException {
-        String B_hex = B.toString(16); // Convert B to a hex string
+    public BigInteger computeU(BigInteger B) throws NoSuchAlgorithmException {
+        String B_hex = B.toString(16);
+        // Ensure even-length hex
+        if (B_hex.length() % 2 != 0) {
+            B_hex = "0" + B_hex;
+        }
 
         // Compute the SHA-1 hash of B
         MessageDigest sha1 = MessageDigest.getInstance("SHA-1");
@@ -71,7 +75,7 @@ public class SrpUtils {
      * @param b - The server's private value (b) as a BigInteger.
      * @return The computed shared session key S as a BigInteger.
      */
-    public static BigInteger computeS(BigInteger A, BigInteger v, BigInteger u, BigInteger b) {
+    public BigInteger computeS(BigInteger A, BigInteger v, BigInteger u, BigInteger b) {
         BigInteger vu = v.modPow(u, N); // Compute v^u % N
         BigInteger Avu = A.multiply(vu).mod(N); // Compute A * v^u % N
         return Avu.modPow(b, N); // Compute (A * v^u)^b % N
@@ -87,7 +91,7 @@ public class SrpUtils {
      * @return The session key K as a hexadecimal string.
      * @throws NoSuchAlgorithmException If SHA-1 algorithm is not available.
      */
-    public static String computeK(BigInteger S) throws NoSuchAlgorithmException {
+    public String computeK(BigInteger S) throws NoSuchAlgorithmException {
         // Convert S to a byte array and remove leading zeros
         byte[] T = S.toByteArray();
         T = DataTypesUtils.removeLeadingZeros(T);
@@ -133,7 +137,7 @@ public class SrpUtils {
      * @return The client's proof M as a hex string.
      * @throws NoSuchAlgorithmException if the SHA-256 algorithm is not available.
      */
-    public static String computeM1(String username, String salt, BigInteger A, BigInteger B, String K)
+    public String computeM1(String username, String salt, BigInteger A, BigInteger B, String K)
             throws NoSuchAlgorithmException {
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
 
@@ -182,7 +186,7 @@ public class SrpUtils {
      * @return The final SHA-256 digest as a hex string.
      * @throws NoSuchAlgorithmException if the SHA-256 algorithm is not available.
      */
-    public static String computeM2(BigInteger A, String M1, String K) throws NoSuchAlgorithmException {
+    public String computeM2(BigInteger A, String M1, String K) throws NoSuchAlgorithmException {
         MessageDigest sha256 = MessageDigest.getInstance("SHA-256");
 
         // Convert BigInteger A to byte array with leading zero if necessary
