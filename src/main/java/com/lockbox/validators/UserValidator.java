@@ -34,7 +34,7 @@ public class UserValidator {
         }
 
         if (userRepository.findByUsername(derivedUsername) != null) {
-            throw new Exception("Username already exists");
+            throw new Exception("Username already exists"); // TODO THIS IS A SECURITY CONCERN !!!
         }
     }
 

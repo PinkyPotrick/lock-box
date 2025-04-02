@@ -8,24 +8,43 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
 
+/**
+ * Spring MVC configuration for CORS settings, static resources, and other web-related concerns.
+ * 
+ * Security notes: 
+ * 1. Static resources are restricted to /static/** paths only 
+ * 2. CORS is configured to allow only specific trusted origins 
+ * 3. In production, update allowed origins to actual domain names
+ */
 @Configuration
 @EnableWebMvc
 public class WebConfig implements WebMvcConfigurer {
 
-	@Override
-	public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
-		registry.addResourceHandler("/api/**")
-				.addResourceLocations("/public/")
-				.resourceChain(true)
-				.addResolver(new VersionResourceResolver().addContentVersionStrategy("/**"));
-	}
+    @Override
+    public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {
+        // Only serve static resources from /static/** path to prevent exposing API endpoints
+        // as static resources, which could lead to security issues
+        registry.addResourceHandler("/static/**") //
+                .addResourceLocations("/public/") //
+                .resourceChain(true) //
+                .addResolver(new VersionResourceResolver().addContentVersionStrategy("/**"));
+    }
 
     @Override
     public void addCorsMappings(@NonNull CorsRegistry registry) {
-        registry.addMapping("/api/**") // Adjust the path pattern as needed
-                .allowedOrigins("http://localhost:5173") // Replace with your frontend's URL
-                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                .allowedHeaders("*")
-                .allowCredentials(true);
+        // Configure CORS to allow frontend access from specific origins:
+        // - http://localhost:5173 - Direct Vite dev server
+        // - http://localhost:8081 - Nginx proxy with real IP
+        // - http://localhost:8082 - Nginx proxy with User A's IP (10.0.0.10)
+        // - http://localhost:8083 - Nginx proxy with Attacker's IP (10.0.0.99)
+        //
+        // Security note: In production, restrict this to actual domain names.
+        // Allowing wildcard origins (*) would introduce security vulnerabilities.
+        registry.addMapping("/api/**") //
+                .allowedOrigins("http://localhost:5173", "http://localhost:8081", "http://localhost:8082",
+                        "http://localhost:8083") //
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS") //
+                .allowedHeaders("*") // In production, consider restricting to needed headers
+                .allowCredentials(true); // Allows cookies, required for session-based auth
     }
 }

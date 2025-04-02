@@ -1,5 +1,7 @@
 package com.lockbox.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -23,6 +25,8 @@ import java.math.BigInteger;
 
 @Service
 public class SrpServiceImpl implements SrpService {
+
+    private static final Logger logger = LoggerFactory.getLogger(SrpServiceImpl.class);
 
     @Autowired
     private TokenService tokenService;
@@ -60,6 +64,7 @@ public class SrpServiceImpl implements SrpService {
         // Decrypt the received data
         UserRegistrationDTO userRegistrationDTO = srpEncryptionService
                 .decryptUserRegistrationRequestDTO(encryptedUserRegistration);
+        logger.info("Registering new user: {}", userRegistrationDTO.getDerivedUsername());
 
         // Create the registered user and generate a session token
         User user = userService.createUser(userRegistrationDTO);
@@ -68,6 +73,8 @@ public class SrpServiceImpl implements SrpService {
         // Create the response with the encrypted data
         UserRegistrationResponseDTO userRegistrationResponse = srpEncryptionService
                 .encryptUserRegistrationResponseDTO(sessionToken);
+
+        logger.info("User registered successfully: {}", userRegistrationDTO.getDerivedUsername());
         return userRegistrationResponse;
     }
 
@@ -89,10 +96,12 @@ public class SrpServiceImpl implements SrpService {
     public SrpParamsResponseDTO initiateSrpHandshake(SrpParamsRequestDTO encryprtedSrpParams) throws Exception {
         // Decrypt the received encrypted DTO data
         SrpParamsDTO srpParamsDTO = srpEncryptionService.decryptSrpParamsRequestDTO(encryprtedSrpParams);
+        logger.info("SRP handshake initiated for user: {}", srpParamsDTO.getDerivedUsername());
 
         // Retrieve the user information and decrypt the user data
         User encryptedUser = userRepository.findByUsername(srpParamsDTO.getDerivedUsername());
         if (encryptedUser == null) {
+            logger.warn("Authentication attempt for non-existent user: {}", srpParamsDTO.getDerivedUsername());
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_CREDENTIALS);
         }
         User decryptedUser = userServerEncryptionService.decryptServerData(encryptedUser);
@@ -116,6 +125,7 @@ public class SrpServiceImpl implements SrpService {
         // Create the response with the encrypted data
         SrpParamsResponseDTO srpParamsResponse = srpEncryptionService.encryptSrpParamsResponseDTO(serverPublicValueB,
                 decryptedUser.getSalt());
+        logger.info("SRP handshake completed for user: {}", srpParamsDTO.getDerivedUsername());
         return srpParamsResponse;
     }
 
@@ -150,15 +160,23 @@ public class SrpServiceImpl implements SrpService {
         String clientPublicKey = (String) httpSession
                 .getAttribute(AppConstants.HttpSessionAttributes.CLIENT_PUBLIC_KEY);
 
+        // Security check for null session attributes
+        if (clientPublicValueA == null || serverPublicValueB == null || serverPrivateValueB == null
+                || derivedUsername == null) {
+            logger.warn("Authentication attempt with invalid session");
+            throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_SESSION);
+        }
+
         // Abort if A % N == 0
         if (clientPublicValueA.mod(AppConstants.N).equals(BigInteger.ZERO)) {
+            logger.warn("Authentication attempt with invalid client value A for user: {}", derivedUsername);
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_CLIENT_VALUE_A);
         }
 
         // Retrieve the user information and decrypt the user data
         User encryptedUser = userRepository.findByUsername(derivedUsername);
-        if (encryptedUser == null || clientPublicValueA == null || serverPublicValueB == null
-                || serverPrivateValueB == null) {
+        if (encryptedUser == null) {
+            logger.warn("Authentication attempt for missing user: {}", derivedUsername);
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_SESSION);
         }
         User decryptedUser = userServerEncryptionService.decryptServerData(encryptedUser);
@@ -176,6 +194,7 @@ public class SrpServiceImpl implements SrpService {
         // Compare the client's M1 with the server's M1, if the values are equal then
         // both the client and server share the same secret
         if (!serverProofM1.equals(userLoginDTO.getEclientProofM1())) {
+            logger.warn("Authentication failed - invalid proof for user: {}", derivedUsername);
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_PROOF);
         }
 
@@ -190,6 +209,7 @@ public class SrpServiceImpl implements SrpService {
         UserLoginResponseDTO userLoginResponse = srpEncryptionService.encryptUserLoginResponseDTO(
                 decryptedUser.getPublicKey(), decryptedUser.getPrivateKey(), sessionToken, serverProofM2,
                 clientPublicKey);
+        logger.info("User authenticated successfully: {}", derivedUsername);
         return userLoginResponse;
     }
 }

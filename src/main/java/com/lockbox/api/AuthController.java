@@ -36,22 +36,21 @@ public class AuthController {
             ResponseEntityBuilder<String> responseEntityBuilder = new ResponseEntityBuilder<>();
             return responseEntityBuilder.setData(rsaKeyPairService.getPublicKeyInPEM(publicKey)).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Error retrieving public key: " + e.getMessage())
-                    .throwInternalServerErrorException();
+            ExceptionBuilder.create().setMessage("Error retrieving public key").throwInternalServerErrorException();
             return null;
         }
     }
 
     @Transactional
     @PostMapping("/register")
-    public ResponseEntityDTO<UserRegistrationResponseDTO> registerUser(@RequestBody UserRegistrationRequestDTO userRegistration) {
+    public ResponseEntityDTO<UserRegistrationResponseDTO> registerUser(
+            @RequestBody UserRegistrationRequestDTO userRegistration) {
         try {
             UserRegistrationResponseDTO registerResponse = srpService.registerUser(userRegistration);
             ResponseEntityBuilder<UserRegistrationResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
             return responseEntityBuilder.setData(registerResponse).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Registering failed: " + e.getMessage())
-                    .throwInternalServerErrorException();
+            ExceptionBuilder.create().setMessage("Registration failed").throwInternalServerErrorException();
             return null;
         }
     }
@@ -63,8 +62,7 @@ public class AuthController {
             ResponseEntityBuilder<SrpParamsResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
             return responseEntityBuilder.setData(srpParamsResponse).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Fetching SRP params failed: " + e.getMessage())
-                    .throwInternalServerErrorException();
+            ExceptionBuilder.create().setMessage("Authentication failed").throwInternalServerErrorException();
             return null;
         }
     }
@@ -79,8 +77,7 @@ public class AuthController {
             ResponseEntityBuilder<UserLoginResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
             return responseEntityBuilder.setData(userLoginResponse).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Authentication failed: " + e.getMessage())
-                    .throwInternalServerErrorException();
+            ExceptionBuilder.create().setMessage("Authentication failed").throwInternalServerErrorException();
             return null;
         }
     }

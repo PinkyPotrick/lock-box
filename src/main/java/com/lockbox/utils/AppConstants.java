@@ -39,6 +39,7 @@ public class AppConstants {
         public static final String INVALID_CLIENT_VALUE_A = "Authentication failed: Invalid client value A.";
         public static final String INVALID_SESSION = "Session expired or invalid";
         public static final String INVALID_PROOF = "Proof verification failed. Authorization aborted!";
+        public static final String TOO_MANY_REQUESTS = "Too many requests. Please try again later.";
      }
 
      // Error messages
