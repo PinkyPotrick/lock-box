@@ -1,5 +1,8 @@
 package com.lockbox.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
@@ -8,17 +11,55 @@ import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
 
+import com.lockbox.security.filter.CustomIpFilter;
+import com.lockbox.security.filter.JwtAuthenticationFilter;
+import com.lockbox.security.filter.RateLimitingFilter;
+
 /**
  * Spring MVC configuration for CORS settings, static resources, and other web-related concerns.
  * 
- * Security notes: 
- * 1. Static resources are restricted to /static/** paths only 
- * 2. CORS is configured to allow only specific trusted origins 
- * 3. In production, update allowed origins to actual domain names
+ * Security notes: 1. Static resources are restricted to /static/** paths only 2. CORS is configured to allow only
+ * specific trusted origins 3. In production, update allowed origins to actual domain names
  */
 @Configuration
 @EnableWebMvc
 public class WebConfig implements WebMvcConfigurer {
+
+    @Autowired
+    private CustomIpFilter customIpFilter;
+
+    @Autowired
+    private RateLimitingFilter rateLimitingFilter;
+
+    @Autowired
+    private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Bean
+    public FilterRegistrationBean<CustomIpFilter> customIpFilterRegistration() {
+        FilterRegistrationBean<CustomIpFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(customIpFilter);
+        registration.addUrlPatterns("/api/*");
+        registration.setOrder(1);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<RateLimitingFilter> rateLimitingFilterRegistration() {
+        FilterRegistrationBean<RateLimitingFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(rateLimitingFilter);
+        registration.addUrlPatterns("/api/*");
+        registration.setOrder(2);
+        return registration;
+    }
+
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtAuthenticationFilterRegistration() {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>();
+        registration.setFilter(jwtAuthenticationFilter);
+        registration.addUrlPatterns("/api/*");
+        registration.setOrder(3);
+        return registration;
+    }
 
     @Override
     public void addResourceHandlers(@NonNull ResourceHandlerRegistry registry) {

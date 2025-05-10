@@ -5,6 +5,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 import com.lockbox.model.EncryptedDataAesCbc;
+import com.lockbox.service.encryption.GenericEncryptionServiceImpl;
+import com.lockbox.service.encryption.RSAKeyPairService;
 import com.lockbox.utils.EncryptionUtils;
 
 import org.junit.jupiter.api.BeforeEach;

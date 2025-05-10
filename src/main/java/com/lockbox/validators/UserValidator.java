@@ -5,7 +5,7 @@ import java.util.regex.Pattern;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
-import com.lockbox.dto.UserRegistrationDTO;
+import com.lockbox.dto.authentication.registration.UserRegistrationDTO;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.utils.EncryptionUtils;
 

@@ -31,7 +31,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         String uri = request.getRequestURI();
 
         // Apply rate limiting to auth endpoints only
-        if (uri.startsWith("/api/auth") && !uri.equals("/api/auth/public-key")) {
+        if (uri.startsWith("/api/auth") && !uri.equals("/api/auth/public-key") && !uri.equals("/api/auth/logout")) {
             // Get real client IP (handles proxies and direct connections)
             String clientIp = getClientIpAddress(request);
             logger.info("Rate limit check for {} from IP {}", uri, clientIp);
