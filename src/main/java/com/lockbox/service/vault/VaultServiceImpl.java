@@ -344,36 +344,28 @@ public class VaultServiceImpl implements VaultService {
     @Override
     @Transactional
     public void deleteVault(String id, String userId) throws Exception {
-        try {
-            // Check if vault exists
-            Optional<Vault> vaultOpt = findById(id);
-            if (!vaultOpt.isPresent()) {
-                logger.warn("Vault not found with ID: {}", id);
-                throw new RuntimeException("Vault not found");
-            }
-
-            Vault vault = vaultOpt.get();
-
-            // Ensure the user has access to this vault
-            if (!vault.getUser().getId().equals(userId)) {
-                logger.warn("User {} attempted to delete vault {} belonging to user {}", userId, id,
-                        vault.getUser().getId());
-                throw new RuntimeException("Access denied");
-            }
-
-            // Check if vault has credentials
-            int credentialCount = credentialRepository.countByVaultId(id);
-            if (credentialCount > 0) {
-                throw new RuntimeException("Cannot delete vault that contains credentials");
-            }
-
-            // Delete the vault
-            vaultRepository.deleteById(id);
-            logger.info("Vault deleted with ID: {}", id);
-        } catch (Exception e) {
-            logger.error("Error deleting vault {}: {}", id, e.getMessage());
-            throw new Exception("Failed to delete vault", e);
+        // Check if vault exists and is owned by the user
+        Optional<Vault> vaultOpt = vaultRepository.findById(id);
+        if (!vaultOpt.isPresent()) {
+            logger.warn("Vault not found with ID: {}", id);
+            throw new Exception("Vault not found");
         }
+
+        Vault vault = vaultOpt.get();
+
+        // Verify user ownership
+        if (!vault.getUser().getId().equals(userId)) {
+            logger.warn("User {} attempted to delete vault {} they don't own", userId, id);
+            throw new SecurityException("Access denied");
+        }
+
+        // First, delete all credentials in this vault
+        int deletedCredentials = credentialRepository.deleteByVaultId(id);
+        logger.info("Deleted {} credentials from vault {} before vault deletion", deletedCredentials, id);
+
+        // Then delete the vault itself
+        vaultRepository.deleteById(id);
+        logger.info("Vault deleted with ID: {}", id);
     }
 
     /**

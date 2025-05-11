@@ -22,12 +22,12 @@ public interface CredentialRepository extends JpaRepository<Credential, String> 
             + "WHERE c.vaultId = :vaultId ORDER BY d.name")
     Page<Credential> findByVaultIdOrderByDomainName(@Param("vaultId") String vaultId, Pageable pageable);
 
-    @Query(value = "SELECT c FROM Credential c LEFT JOIN Domain d ON c.domainId = d.id " +
-           "WHERE c.vaultId = :vaultId ORDER BY d.name ASC")
+    @Query(value = "SELECT c FROM Credential c LEFT JOIN Domain d ON c.domainId = d.id "
+            + "WHERE c.vaultId = :vaultId ORDER BY d.name ASC")
     Page<Credential> findByVaultIdOrderByDomainNameAsc(@Param("vaultId") String vaultId, Pageable pageable);
 
-    @Query(value = "SELECT c FROM Credential c LEFT JOIN Domain d ON c.domainId = d.id " +
-           "WHERE c.vaultId = :vaultId ORDER BY d.name DESC")
+    @Query(value = "SELECT c FROM Credential c LEFT JOIN Domain d ON c.domainId = d.id "
+            + "WHERE c.vaultId = :vaultId ORDER BY d.name DESC")
     Page<Credential> findByVaultIdOrderByDomainNameDesc(@Param("vaultId") String vaultId, Pageable pageable);
 
     int countByVaultId(String vaultId);
@@ -45,4 +45,6 @@ public interface CredentialRepository extends JpaRepository<Credential, String> 
     int countByUserId(String userId);
 
     int countByDomainId(String domainId);
+
+    int deleteByVaultId(String vaultId);
 }
