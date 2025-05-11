@@ -1,140 +1,103 @@
 package com.lockbox.validators;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.lockbox.dto.credential.CredentialDTO;
 import com.lockbox.dto.credential.CredentialRequestDTO;
+import com.lockbox.exception.ValidationException;
+import com.lockbox.model.CredentialCategory;
+import com.lockbox.utils.AppConstants;
+import com.lockbox.utils.AppConstants.FieldNames;
+import com.lockbox.utils.AppConstants.MaxLengths;
+import com.lockbox.utils.AppConstants.ValidationErrors;
 
 @Component
-public class CredentialValidator {
+public class CredentialValidator extends BaseValidator {
 
-    private final Logger logger = LoggerFactory.getLogger(CredentialValidator.class);
+    public CredentialValidator() {
+        super(AppConstants.EntityTypes.CREDENTIAL);
+    }
 
     /**
      * Validate a credential request DTO
      * 
      * @param requestDTO - The encrypted request DTO to validate
-     * @throws Exception If validation fails
+     * @throws ValidationException If validation fails
      */
-    public void validateCredentialRequest(CredentialRequestDTO requestDTO) throws Exception {
-        if (requestDTO == null) {
-            logger.error("Credential request cannot be null");
-            throw new Exception("Credential request cannot be null");
-        }
+    public void validateCredentialRequest(CredentialRequestDTO requestDTO) throws ValidationException {
+        validateNotNull(requestDTO, FieldNames.CREDENTIAL_REQUEST);
+        validateNotNull(requestDTO.getEncryptedUsername(), FieldNames.USERNAME, ValidationErrors.USERNAME_REQUIRED);
+        validateNotNull(requestDTO.getEncryptedPassword(), FieldNames.PASSWORD, ValidationErrors.PASSWORD_REQUIRED);
+        validateNotNull(requestDTO.getHelperAesKey(), FieldNames.ENCRYPTION_KEY,
+                ValidationErrors.ENCRYPTION_KEY_REQUIRED);
 
-        if (requestDTO.getEncryptedUsername() == null) {
-            logger.error("Encrypted username is required");
-            throw new Exception("Encrypted username is required");
-        }
-
-        if (requestDTO.getEncryptedPassword() == null) {
-            logger.error("Encrypted password is required");
-            throw new Exception("Encrypted password is required");
-        }
-
-        if (requestDTO.getHelperAesKey() == null) {
-            logger.error("Encryption key is required");
-            throw new Exception("Encryption key is required");
-        }
-
-        if (requestDTO.getDomainId() == null || requestDTO.getDomainId().trim().isEmpty()) {
-            logger.error("Domain ID is required");
-            throw new Exception("Domain ID is required");
-        }
-
-        if (requestDTO.getVaultId() == null || requestDTO.getVaultId().trim().isEmpty()) {
-            logger.error("Vault ID is required");
-            throw new Exception("Vault ID is required");
-        }
+        validateId(requestDTO.getDomainId(), FieldNames.DOMAIN_ID);
+        validateId(requestDTO.getVaultId(), FieldNames.VAULT_ID);
     }
 
     /**
      * Validate a credential DTO
      * 
      * @param credentialDTO - The decrypted credential DTO to validate
-     * @throws Exception If validation fails
+     * @throws ValidationException If validation fails
      */
-    public void validateCredentialDTO(CredentialDTO credentialDTO) throws Exception {
-        if (credentialDTO == null) {
-            logger.error("Credential data cannot be null");
-            throw new Exception("Credential data cannot be null");
+    public void validateCredentialDTO(CredentialDTO credentialDTO) throws ValidationException {
+        validateNotNull(credentialDTO, FieldNames.CREDENTIAL_DATA);
+
+        validateRequired(credentialDTO.getUsername(), FieldNames.USERNAME, ValidationErrors.USERNAME_REQUIRED);
+        validateMaxLength(credentialDTO.getUsername(), MaxLengths.USERNAME, FieldNames.USERNAME);
+
+        validateRequired(credentialDTO.getPassword(), FieldNames.PASSWORD, ValidationErrors.PASSWORD_REQUIRED);
+        validateMaxLength(credentialDTO.getPassword(), MaxLengths.PASSWORD, FieldNames.PASSWORD);
+
+        validateMaxLength(credentialDTO.getEmail(), MaxLengths.EMAIL, FieldNames.EMAIL);
+        validateMaxLength(credentialDTO.getNotes(), MaxLengths.NOTES, FieldNames.NOTES);
+
+        // Validate category if provided
+        if (hasContent(credentialDTO.getCategory())) {
+            validateCredentialCategory(credentialDTO.getCategory());
+            validateMaxLength(credentialDTO.getCategory(), MaxLengths.CATEGORY, FieldNames.CATEGORY);
         }
 
-        if (credentialDTO.getUsername() == null || credentialDTO.getUsername().trim().isEmpty()) {
-            logger.error("Username is required");
-            throw new Exception("Username is required");
-        }
-
-        if (credentialDTO.getUsername().length() > 255) {
-            logger.error("Username cannot exceed 255 characters");
-            throw new Exception("Username cannot exceed 255 characters");
-        }
-
-        if (credentialDTO.getPassword() == null || credentialDTO.getPassword().trim().isEmpty()) {
-            logger.error("Password is required");
-            throw new Exception("Password is required");
-        }
-
-        if (credentialDTO.getPassword().length() > 255) {
-            logger.error("Password cannot exceed 255 characters");
-            throw new Exception("Password cannot exceed 255 characters");
-        }
-
-        if (credentialDTO.getEmail() != null && credentialDTO.getEmail().length() > 255) {
-            logger.error("Email cannot exceed 255 characters");
-            throw new Exception("Email cannot exceed 255 characters");
-        }
-
-        if (credentialDTO.getNotes() != null && credentialDTO.getNotes().length() > 2000) {
-            logger.error("Notes cannot exceed 2000 characters");
-            throw new Exception("Notes cannot exceed 2000 characters");
-        }
-
-        if (credentialDTO.getCategory() != null && credentialDTO.getCategory().length() > 100) {
-            logger.error("Category cannot exceed 100 characters");
-            throw new Exception("Category cannot exceed 100 characters");
-        }
-
-        if (credentialDTO.getDomainId() == null || credentialDTO.getDomainId().trim().isEmpty()) {
-            logger.error("Domain ID is required");
-            throw new Exception("Domain ID is required");
-        }
-
-        if (credentialDTO.getVaultId() == null || credentialDTO.getVaultId().trim().isEmpty()) {
-            logger.error("Vault ID is required");
-            throw new Exception("Vault ID is required");
-        }
+        validateId(credentialDTO.getDomainId(), FieldNames.DOMAIN_ID);
+        validateId(credentialDTO.getVaultId(), FieldNames.VAULT_ID);
     }
 
     /**
      * Validate a credential request DTO specifically for updates
      * 
      * @param requestDTO - The encrypted update request DTO to validate
-     * @throws Exception If validation fails
+     * @throws ValidationException If validation fails
      */
-    public void validateCredentialUpdateRequest(CredentialRequestDTO requestDTO) throws Exception {
-        if (requestDTO == null) {
-            logger.error("Credential update request cannot be null");
-            throw new Exception("Credential update request cannot be null");
-        }
+    public void validateCredentialUpdateRequest(CredentialRequestDTO requestDTO) throws ValidationException {
+        validateNotNull(requestDTO, FieldNames.CREDENTIAL_UPDATE);
 
-        // For updates, at least one field should be provided
-        if (requestDTO.getEncryptedUsername() == null && requestDTO.getEncryptedPassword() == null
-                && requestDTO.getEncryptedEmail() == null && requestDTO.getEncryptedNotes() == null
-                && requestDTO.getEncryptedCategory() == null && requestDTO.getEncryptedFavorite() == null) {
-            logger.error("At least one field must be provided for update");
-            throw new Exception("At least one field must be provided for update");
-        }
-
-        // If any encrypted field is provided, the helper AES key is required
-        if ((requestDTO.getEncryptedUsername() != null || requestDTO.getEncryptedPassword() != null
+        // Check if at least one field is provided for update
+        boolean hasUpdateFields = requestDTO.getEncryptedUsername() != null || requestDTO.getEncryptedPassword() != null
                 || requestDTO.getEncryptedEmail() != null || requestDTO.getEncryptedNotes() != null
-                || requestDTO.getEncryptedCategory() != null || requestDTO.getEncryptedFavorite() != null)
-                && requestDTO.getHelperAesKey() == null) {
-            logger.error("Encryption key is required when updating encrypted fields");
-            throw new Exception("Encryption key is required when updating encrypted fields");
+                || requestDTO.getEncryptedCategory() != null || requestDTO.getEncryptedFavorite() != null;
+
+        if (!hasUpdateFields) {
+            throwValidationException(ValidationErrors.UPDATE_AT_LEAST_ONE);
+        }
+
+        // If any encrypted field is provided, helper key is required
+        if (hasUpdateFields && requestDTO.getHelperAesKey() == null) {
+            throwValidationException(ValidationErrors.ENCRYPTION_KEY_REQUIRED);
+        }
+    }
+
+    /**
+     * Validate that a category is in the allowed list
+     * 
+     * @param category - The category to validate
+     * @throws ValidationException if the category is invalid
+     */
+    private void validateCredentialCategory(String category) {
+        if (!CredentialCategory.isValid(category)) {
+            logger.error("Invalid category: {}", category);
+            String allowedCategories = String.join(", ", CredentialCategory.getAllDisplayNames());
+            throwValidationException(ValidationErrors.INVALID_CATEGORY.replace("{0}", allowedCategories));
         }
     }
 }

@@ -5,7 +5,10 @@ import java.time.LocalDateTime;
 public class ResponseEntityDTO<T> {
 
     private T item;
-    private String error;
+    private String message;
+    private boolean success;
+    private int statusCode;
+    private String errorType;
     private LocalDateTime timestamp;
 
     public ResponseEntityDTO() {
@@ -17,9 +20,9 @@ public class ResponseEntityDTO<T> {
         this.item = item;
     }
 
-    public ResponseEntityDTO(String error) {
+    public ResponseEntityDTO(String message) {
         this();
-        this.error = error;
+        this.message = message;
     }
 
     public T getItem() {
@@ -30,12 +33,36 @@ public class ResponseEntityDTO<T> {
         this.item = item;
     }
 
-    public String getError() {
-        return error;
+    public String getMessage() {
+        return message;
     }
 
-    public void setError(String error) {
-        this.error = error;
+    public void setMessage(String message) {
+        this.message = message;
+    }
+
+    public boolean isSuccess() {
+        return success;
+    }
+
+    public void setSuccess(boolean success) {
+        this.success = success;
+    }
+
+    public int getStatusCode() {
+        return statusCode;
+    }
+
+    public void setStatusCode(int statusCode) {
+        this.statusCode = statusCode;
+    }
+
+    public String getErrorType() {
+        return errorType;
+    }
+
+    public void setErrorType(String errorType) {
+        this.errorType = errorType;
     }
 
     public LocalDateTime getTimestamp() {

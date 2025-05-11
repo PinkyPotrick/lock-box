@@ -3,10 +3,12 @@ package com.lockbox.api;
 import java.security.PublicKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lockbox.dto.ResponseEntityDTO;
@@ -19,7 +21,6 @@ import com.lockbox.dto.authentication.srp.SrpParamsResponseDTO;
 import com.lockbox.service.authentication.AuthenticationService;
 import com.lockbox.service.authentication.SrpService;
 import com.lockbox.service.encryption.RSAKeyPairService;
-import com.lockbox.utils.ExceptionBuilder;
 import com.lockbox.utils.ResponseEntityBuilder;
 
 import jakarta.transaction.Transactional;
@@ -38,28 +39,27 @@ public class AuthController {
     private AuthenticationService authenticationService;
 
     @GetMapping("/public-key")
-    public ResponseEntityDTO<String> getPublicKey() throws Exception {
+    public ResponseEntityDTO<String> getPublicKey() {
         try {
             PublicKey publicKey = rsaKeyPairService.getPublicKey();
-            ResponseEntityBuilder<String> responseEntityBuilder = new ResponseEntityBuilder<>();
-            return responseEntityBuilder.setData(rsaKeyPairService.getPublicKeyInPEM(publicKey)).build();
+            return new ResponseEntityBuilder<String>().setData(rsaKeyPairService.getPublicKeyInPEM(publicKey))
+                    .setMessage("Public key retrieved successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Error retrieving public key").throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Error retrieving public key");
         }
     }
 
     @Transactional
     @PostMapping("/register")
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntityDTO<UserRegistrationResponseDTO> registerUser(
             @RequestBody UserRegistrationRequestDTO userRegistration) {
         try {
             UserRegistrationResponseDTO registerResponse = srpService.registerUser(userRegistration);
-            ResponseEntityBuilder<UserRegistrationResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
-            return responseEntityBuilder.setData(registerResponse).build();
+            return new ResponseEntityBuilder<UserRegistrationResponseDTO>().setData(registerResponse)
+                    .setMessage("Registration successful").setStatusCode(HttpStatus.CREATED.value()).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Registration failed").throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Registration failed");
         }
     }
 
@@ -67,26 +67,25 @@ public class AuthController {
     public ResponseEntityDTO<SrpParamsResponseDTO> getSrpParams(@RequestBody SrpParamsRequestDTO srpParams) {
         try {
             SrpParamsResponseDTO srpParamsResponse = srpService.initiateSrpHandshake(srpParams);
-            ResponseEntityBuilder<SrpParamsResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
-            return responseEntityBuilder.setData(srpParamsResponse).build();
+            return new ResponseEntityBuilder<SrpParamsResponseDTO>().setData(srpParamsResponse)
+                    .setMessage("SRP parameters retrieved successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Authentication failed").throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Authentication failed");
         }
     }
 
     // TEST USERS: pfilip 1234
     // usermare 12345678
+    // Abelien abelien#PASS1234 (abelien@mail.com)
 
     @PostMapping("/srp-authenticate")
     public ResponseEntityDTO<UserLoginResponseDTO> authenticateUser(@RequestBody UserLoginRequestDTO userLogin) {
         try {
             UserLoginResponseDTO userLoginResponse = srpService.verifyClientProofAndAuthenticate(userLogin);
-            ResponseEntityBuilder<UserLoginResponseDTO> responseEntityBuilder = new ResponseEntityBuilder<>();
-            return responseEntityBuilder.setData(userLoginResponse).build();
+            return new ResponseEntityBuilder<UserLoginResponseDTO>().setData(userLoginResponse)
+                    .setMessage("Authentication successful").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Authentication failed").throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Authentication failed");
         }
     }
 
@@ -94,11 +93,10 @@ public class AuthController {
     public ResponseEntityDTO<String> logout() {
         try {
             authenticationService.logout();
-            ResponseEntityBuilder<String> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData("Logged out successfully").build();
+            return new ResponseEntityBuilder<String>().setData("Logged out successfully")
+                    .setMessage("Logout successful").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Logout failed").throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Logout failed");
         }
     }
 }

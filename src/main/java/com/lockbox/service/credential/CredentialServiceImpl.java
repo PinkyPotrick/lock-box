@@ -67,78 +67,70 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public CredentialListResponseDTO findAllCredentialsByVault(String vaultId, String userId, Integer page,
             Integer size, String sort, String direction) throws Exception {
-        try {
-            // Verify vault ownership and get vault
-            Optional<com.lockbox.model.Vault> vaultOpt = vaultService.findById(vaultId);
-            if (!vaultOpt.isPresent() || !vaultOpt.get().getUser().getId().equals(userId)) {
-                logger.warn("User {} attempted to access vault {} they don't own", userId, vaultId);
-                throw new SecurityException("Access denied");
-            }
-
-            // Get vault name for response
-            String vaultName = vaultOpt.get().getName();
-
-            List<Credential> encryptedCredentials;
-            int totalCount;
-
-            // Handle pagination if specified
-            if (page != null && size != null) {
-                Sort.Direction sortDir = Sort.Direction.DESC; // Default direction
-                if (direction != null && direction.equalsIgnoreCase("ASC")) {
-                    sortDir = Sort.Direction.ASC;
-                }
-
-                if (sort != null && sort.equals("domain")) {
-                    // For domain sorting, we need a pageable without sort
-                    Pageable pageable = PageRequest.of(page, size);
-                    
-                    // Use special repository methods for domain sorting
-                    Page<Credential> credentialPage;
-                    if (sortDir == Sort.Direction.ASC) {
-                        credentialPage = credentialRepository.findByVaultIdOrderByDomainNameAsc(vaultId, pageable);
-                    } else {
-                        credentialPage = credentialRepository.findByVaultIdOrderByDomainNameDesc(vaultId, pageable);
-                    }
-                    encryptedCredentials = credentialPage.getContent();
-                } else {
-                    // For all other sorts, use the standard approach
-                    String sortField = "updatedAt"; // Default sort field
-                    if (sort != null && !sort.isEmpty()) {
-                        sortField = sort;
-                    }
-                    
-                    Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortField));
-                    Page<Credential> credentialPage = credentialRepository.findByVaultId(vaultId, pageable);
-                    encryptedCredentials = credentialPage.getContent();
-                }
-                totalCount = (int) credentialRepository.countByVaultId(vaultId);
-            } else {
-                encryptedCredentials = credentialRepository.findByVaultId(vaultId);
-                totalCount = encryptedCredentials.size();
-            }
-
-            List<Credential> decryptedCredentials = new ArrayList<>();
-
-            // Decrypt each credential
-            for (Credential encryptedCredential : encryptedCredentials) {              
-                decryptedCredentials.add(credentialServerEncryptionService.decryptServerData(encryptedCredential));
-            }
-
-            // Convert to DTOs
-            List<CredentialDTO> credentialDTOs = credentialMapper.toDTOList(decryptedCredentials);
-
-            // Encrypt for client response
-            List<CredentialResponseDTO> encryptedResponseDTOs = new ArrayList<>();
-            for (CredentialDTO credentialDTO : credentialDTOs) {
-                encryptedResponseDTOs.add(credentialClientEncryptionService.encryptCredentialForClient(credentialDTO));
-            }
-
-            // Return DTO with vault name
-            return new CredentialListResponseDTO(encryptedResponseDTOs, totalCount, vaultName);
-        } catch (Exception e) {
-            logger.error("Error fetching credentials for vault {}: {}", vaultId, e.getMessage());
-            throw new Exception("Failed to fetch credentials", e);
+        // Verify vault ownership and get vault
+        Optional<com.lockbox.model.Vault> vaultOpt = vaultService.findById(vaultId);
+        if (!vaultOpt.isPresent() || !vaultOpt.get().getUser().getId().equals(userId)) {
+            logger.warn("User {} attempted to access vault {} they don't own", userId, vaultId);
+            throw new SecurityException("Access denied");
         }
+
+        // Get vault name for response
+        String vaultName = vaultOpt.get().getName();
+
+        List<Credential> encryptedCredentials;
+        int totalCount;
+
+        // Handle pagination if specified
+        if (page != null && size != null) {
+            Sort.Direction sortDir = Sort.Direction.DESC; // Default direction
+            if (direction != null && direction.equalsIgnoreCase("ASC")) {
+                sortDir = Sort.Direction.ASC;
+            }
+
+            if (sort != null && sort.equals("domain")) {
+                // For domain sorting, we need a pageable without sort
+                Pageable pageable = PageRequest.of(page, size);
+
+                // Use special repository methods for domain sorting
+                Page<Credential> credentialPage;
+                if (sortDir == Sort.Direction.ASC) {
+                    credentialPage = credentialRepository.findByVaultIdOrderByDomainNameAsc(vaultId, pageable);
+                } else {
+                    credentialPage = credentialRepository.findByVaultIdOrderByDomainNameDesc(vaultId, pageable);
+                }
+                encryptedCredentials = credentialPage.getContent();
+            } else {
+                // For all other sorts, use the standard approach
+                String sortField = "updatedAt"; // Default sort field
+                if (sort != null && !sort.isEmpty()) {
+                    sortField = sort;
+                }
+
+                Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortField));
+                Page<Credential> credentialPage = credentialRepository.findByVaultId(vaultId, pageable);
+                encryptedCredentials = credentialPage.getContent();
+            }
+            totalCount = (int) credentialRepository.countByVaultId(vaultId);
+        } else {
+            encryptedCredentials = credentialRepository.findByVaultId(vaultId);
+            totalCount = encryptedCredentials.size();
+        }
+
+        List<Credential> decryptedCredentials = new ArrayList<>();
+
+        // Decrypt each credential
+        for (Credential encryptedCredential : encryptedCredentials) {
+            decryptedCredentials.add(credentialServerEncryptionService.decryptServerData(encryptedCredential));
+        }
+
+        // Convert to DTOs
+        List<CredentialDTO> credentialDTOs = credentialMapper.toDTOList(decryptedCredentials);
+
+        // Encrypt for client response, including vault name and total count
+        CredentialListResponseDTO response = credentialClientEncryptionService
+                .encryptCredentialListForClient(credentialDTOs, vaultName);
+        response.setTotalCount(totalCount);
+        return response;
     }
 
     /**
@@ -166,41 +158,36 @@ public class CredentialServiceImpl implements CredentialService {
      */
     @Override
     public CredentialResponseDTO findCredentialById(String id, String vaultId, String userId) throws Exception {
-        try {
-            // Find credential
-            Optional<Credential> credentialOpt = credentialRepository.findById(id);
-            if (!credentialOpt.isPresent()) {
-                logger.warn("Credential not found with ID: {}", id);
-                throw new Exception("Credential not found");
-            }
-
-            Credential encryptedCredential = credentialOpt.get();
-
-            // Verify vault ownership
-            if (!encryptedCredential.getVaultId().equals(vaultId)) {
-                logger.warn("Credential {} does not belong to vault {}", id, vaultId);
-                throw new Exception("Credential not found in specified vault");
-            }
-
-            // Verify user ownership
-            if (!encryptedCredential.getUserId().equals(userId)) {
-                logger.warn("User {} attempted to access credential {} belonging to user {}", userId, id,
-                        encryptedCredential.getUserId());
-                throw new SecurityException("Access denied");
-            }
-
-            // Decrypt credential
-            Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
-
-            // Convert to DTO
-            CredentialDTO credentialDTO = credentialMapper.toDTO(decryptedCredential);
-
-            // Encrypt for client response
-            return credentialClientEncryptionService.encryptCredentialForClient(credentialDTO);
-        } catch (Exception e) {
-            logger.error("Error fetching credential {}: {}", id, e.getMessage());
-            throw new Exception("Failed to fetch credential", e);
+        // Find credential
+        Optional<Credential> credentialOpt = credentialRepository.findById(id);
+        if (!credentialOpt.isPresent()) {
+            logger.warn("Credential not found with ID: {}", id);
+            throw new Exception("Credential not found");
         }
+
+        Credential encryptedCredential = credentialOpt.get();
+
+        // Verify vault ownership
+        if (!encryptedCredential.getVaultId().equals(vaultId)) {
+            logger.warn("Credential {} does not belong to vault {}", id, vaultId);
+            throw new Exception("Credential not found in specified vault");
+        }
+
+        // Verify user ownership
+        if (!encryptedCredential.getUserId().equals(userId)) {
+            logger.warn("User {} attempted to access credential {} belonging to user {}", userId, id,
+                    encryptedCredential.getUserId());
+            throw new SecurityException("Access denied");
+        }
+
+        // Decrypt credential
+        Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
+
+        // Convert to DTO
+        CredentialDTO credentialDTO = credentialMapper.toDTO(decryptedCredential);
+
+        // Encrypt for client response
+        return credentialClientEncryptionService.encryptCredentialForClient(credentialDTO);
     }
 
     /**
@@ -216,51 +203,46 @@ public class CredentialServiceImpl implements CredentialService {
     @Transactional
     public CredentialResponseDTO createCredential(CredentialRequestDTO requestDTO, String vaultId, String userId)
             throws Exception {
-        try {
-            // Validate the request
-            credentialValidator.validateCredentialRequest(requestDTO);
+        // Validate the request
+        credentialValidator.validateCredentialRequest(requestDTO);
 
-            // Verify vault ownership - using vaultService
-            if (!vaultService.isVaultOwnedByUser(vaultId, userId)) {
-                logger.warn("User {} attempted to create credential in vault {} they don't own", userId, vaultId);
-                throw new SecurityException("Access denied");
-            }
-
-            // Decrypt the request
-            CredentialDTO credentialDTO = credentialClientEncryptionService.decryptCredentialFromClient(requestDTO);
-
-            // Validate the decrypted data
-            credentialValidator.validateCredentialDTO(credentialDTO);
-
-            // Create entity from DTO
-            Credential credential = credentialMapper.toEntity(credentialDTO);
-
-            // Set vault, user, and timestamps
-            credential.setVaultId(vaultId);
-            credential.setUserId(userId);
-            credential.setDomainId(credentialDTO.getDomainId());
-            LocalDateTime now = LocalDateTime.now();
-            credential.setCreatedAt(now);
-            credential.setUpdatedAt(now);
-
-            // Set favorite status
-            credential.setFavorite(
-                    credentialDTO.isFavorite() ? String.valueOf(Boolean.TRUE) : String.valueOf(Boolean.FALSE));
-
-            // Encrypt and save
-            Credential encryptedCredential = credentialServerEncryptionService.encryptServerData(credential);
-            Credential savedCredential = credentialRepository.save(encryptedCredential);
-
-            // Decrypt for response
-            Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
-
-            // Convert to DTO and encrypt for client response
-            CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
-            return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
-        } catch (Exception e) {
-            logger.error("Error creating credential: {}", e.getMessage());
-            throw new Exception("Failed to create credential", e);
+        // Verify vault ownership - using vaultService
+        if (!vaultService.isVaultOwnedByUser(vaultId, userId)) {
+            logger.warn("User {} attempted to create credential in vault {} they don't own", userId, vaultId);
+            throw new SecurityException("Access denied");
         }
+
+        // Decrypt the request
+        CredentialDTO credentialDTO = credentialClientEncryptionService.decryptCredentialFromClient(requestDTO);
+
+        // Validate the decrypted data
+        credentialValidator.validateCredentialDTO(credentialDTO);
+
+        // Create entity from DTO
+        Credential credential = credentialMapper.toEntity(credentialDTO);
+
+        // Set vault, user, and timestamps
+        credential.setVaultId(vaultId);
+        credential.setUserId(userId);
+        credential.setDomainId(credentialDTO.getDomainId());
+        LocalDateTime now = LocalDateTime.now();
+        credential.setCreatedAt(now);
+        credential.setUpdatedAt(now);
+
+        // Set favorite status
+        credential
+                .setFavorite(credentialDTO.isFavorite() ? String.valueOf(Boolean.TRUE) : String.valueOf(Boolean.FALSE));
+
+        // Encrypt and save
+        Credential encryptedCredential = credentialServerEncryptionService.encryptServerData(credential);
+        Credential savedCredential = credentialRepository.save(encryptedCredential);
+
+        // Decrypt for response
+        Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
+
+        // Convert to DTO and encrypt for client response
+        CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
+        return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
     }
 
     /**
@@ -277,90 +259,85 @@ public class CredentialServiceImpl implements CredentialService {
     @Transactional
     public CredentialResponseDTO updateCredential(String id, CredentialRequestDTO requestDTO, String vaultId,
             String userId) throws Exception {
-        try {
-            // Validate the request
-            credentialValidator.validateCredentialRequest(requestDTO);
+        // Validate the request
+        credentialValidator.validateCredentialRequest(requestDTO);
 
-            // Find credential
-            Optional<Credential> credentialOpt = credentialRepository.findById(id);
-            if (!credentialOpt.isPresent()) {
-                logger.warn("Credential not found with ID: {}", id);
-                throw new Exception("Credential not found");
-            }
-
-            Credential encryptedCredential = credentialOpt.get();
-
-            // Verify vault ownership
-            if (!encryptedCredential.getVaultId().equals(vaultId)) {
-                logger.warn("Credential {} does not belong to vault {}", id, vaultId);
-                throw new Exception("Credential not found in specified vault");
-            }
-
-            // Verify user ownership
-            if (!encryptedCredential.getUserId().equals(userId)) {
-                logger.warn("User {} attempted to update credential {} belonging to user {}", userId, id,
-                        encryptedCredential.getUserId());
-                throw new SecurityException("Access denied");
-            }
-
-            // Decrypt the request
-            CredentialDTO credentialDTO = credentialClientEncryptionService.decryptCredentialFromClient(requestDTO);
-
-            // Validate the decrypted data
-            credentialValidator.validateCredentialDTO(credentialDTO);
-
-            // Decrypt existing credential
-            Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
-
-            // Update fields
-            if (credentialDTO.getUsername() != null) {
-                decryptedCredential.setUsername(credentialDTO.getUsername());
-            }
-
-            if (credentialDTO.getEmail() != null) {
-                decryptedCredential.setEmail(credentialDTO.getEmail());
-            }
-
-            if (credentialDTO.getPassword() != null) {
-                decryptedCredential.setPassword(credentialDTO.getPassword());
-            }
-
-            if (credentialDTO.getNotes() != null) {
-                decryptedCredential.setNotes(credentialDTO.getNotes());
-            }
-
-            if (credentialDTO.getCategory() != null) {
-                decryptedCredential.setCategory(credentialDTO.getCategory());
-            }
-
-            if (credentialDTO.getDomainId() != null) {
-                decryptedCredential.setDomainId(credentialDTO.getDomainId());
-            }
-
-            // Update favorite status if specified
-            if (credentialDTO.getFavoriteSpecified()) {
-                decryptedCredential.setFavorite(
-                        credentialDTO.isFavorite() ? String.valueOf(Boolean.TRUE) : String.valueOf(Boolean.FALSE));
-            }
-
-            // Update timestamp
-            decryptedCredential.setUpdatedAt(LocalDateTime.now());
-
-            // Encrypt and save
-            Credential encryptedUpdatedCredential = credentialServerEncryptionService
-                    .encryptServerData(decryptedCredential);
-            Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
-
-            // Decrypt for response
-            Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
-
-            // Convert to DTO and encrypt for client response
-            CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
-            return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
-        } catch (Exception e) {
-            logger.error("Error updating credential {}: {}", id, e.getMessage());
-            throw new Exception("Failed to update credential", e);
+        // Find credential
+        Optional<Credential> credentialOpt = credentialRepository.findById(id);
+        if (!credentialOpt.isPresent()) {
+            logger.warn("Credential not found with ID: {}", id);
+            throw new Exception("Credential not found");
         }
+
+        Credential encryptedCredential = credentialOpt.get();
+
+        // Verify vault ownership
+        if (!encryptedCredential.getVaultId().equals(vaultId)) {
+            logger.warn("Credential {} does not belong to vault {}", id, vaultId);
+            throw new Exception("Credential not found in specified vault");
+        }
+
+        // Verify user ownership
+        if (!encryptedCredential.getUserId().equals(userId)) {
+            logger.warn("User {} attempted to update credential {} belonging to user {}", userId, id,
+                    encryptedCredential.getUserId());
+            throw new SecurityException("Access denied");
+        }
+
+        // Decrypt the request
+        CredentialDTO credentialDTO = credentialClientEncryptionService.decryptCredentialFromClient(requestDTO);
+
+        // Validate the decrypted data
+        credentialValidator.validateCredentialDTO(credentialDTO);
+
+        // Decrypt existing credential
+        Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
+
+        // Update fields
+        if (credentialDTO.getUsername() != null) {
+            decryptedCredential.setUsername(credentialDTO.getUsername());
+        }
+
+        if (credentialDTO.getEmail() != null) {
+            decryptedCredential.setEmail(credentialDTO.getEmail());
+        }
+
+        if (credentialDTO.getPassword() != null) {
+            decryptedCredential.setPassword(credentialDTO.getPassword());
+        }
+
+        if (credentialDTO.getNotes() != null) {
+            decryptedCredential.setNotes(credentialDTO.getNotes());
+        }
+
+        if (credentialDTO.getCategory() != null) {
+            decryptedCredential.setCategory(credentialDTO.getCategory());
+        }
+
+        if (credentialDTO.getDomainId() != null) {
+            decryptedCredential.setDomainId(credentialDTO.getDomainId());
+        }
+
+        // Update favorite status if specified
+        if (credentialDTO.getFavoriteSpecified()) {
+            decryptedCredential.setFavorite(
+                    credentialDTO.isFavorite() ? String.valueOf(Boolean.TRUE) : String.valueOf(Boolean.FALSE));
+        }
+
+        // Update timestamp
+        decryptedCredential.setUpdatedAt(LocalDateTime.now());
+
+        // Encrypt and save
+        Credential encryptedUpdatedCredential = credentialServerEncryptionService
+                .encryptServerData(decryptedCredential);
+        Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
+
+        // Decrypt for response
+        Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
+
+        // Convert to DTO and encrypt for client response
+        CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
+        return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
     }
 
     /**
@@ -374,36 +351,31 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     @Transactional
     public void deleteCredential(String id, String vaultId, String userId) throws Exception {
-        try {
-            // Find credential
-            Optional<Credential> credentialOpt = credentialRepository.findById(id);
-            if (!credentialOpt.isPresent()) {
-                logger.warn("Credential not found with ID: {}", id);
-                throw new Exception("Credential not found");
-            }
-
-            Credential credential = credentialOpt.get();
-
-            // Verify vault ownership
-            if (!credential.getVaultId().equals(vaultId)) {
-                logger.warn("Credential {} does not belong to vault {}", id, vaultId);
-                throw new Exception("Credential not found in specified vault");
-            }
-
-            // Verify user ownership
-            if (!credential.getUserId().equals(userId)) {
-                logger.warn("User {} attempted to delete credential {} belonging to user {}", userId, id,
-                        credential.getUserId());
-                throw new SecurityException("Access denied");
-            }
-
-            // Delete credential
-            credentialRepository.deleteById(id);
-            logger.info("Credential deleted with ID: {}", id);
-        } catch (Exception e) {
-            logger.error("Error deleting credential {}: {}", id, e.getMessage());
-            throw new Exception("Failed to delete credential", e);
+        // Find credential
+        Optional<Credential> credentialOpt = credentialRepository.findById(id);
+        if (!credentialOpt.isPresent()) {
+            logger.warn("Credential not found with ID: {}", id);
+            throw new Exception("Credential not found");
         }
+
+        Credential credential = credentialOpt.get();
+
+        // Verify vault ownership
+        if (!credential.getVaultId().equals(vaultId)) {
+            logger.warn("Credential {} does not belong to vault {}", id, vaultId);
+            throw new Exception("Credential not found in specified vault");
+        }
+
+        // Verify user ownership
+        if (!credential.getUserId().equals(userId)) {
+            logger.warn("User {} attempted to delete credential {} belonging to user {}", userId, id,
+                    credential.getUserId());
+            throw new SecurityException("Access denied");
+        }
+
+        // Delete credential
+        credentialRepository.deleteById(id);
+        logger.info("Credential deleted with ID: {}", id);
     }
 
     /**
@@ -418,52 +390,47 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     @Transactional
     public CredentialResponseDTO toggleFavoriteStatus(String id, String vaultId, String userId) throws Exception {
-        try {
-            // Find credential
-            Optional<Credential> credentialOpt = credentialRepository.findById(id);
-            if (!credentialOpt.isPresent()) {
-                logger.warn("Credential not found with ID: {}", id);
-                throw new Exception("Credential not found");
-            }
-
-            Credential encryptedCredential = credentialOpt.get();
-
-            // Verify vault ownership
-            if (!encryptedCredential.getVaultId().equals(vaultId)) {
-                logger.warn("Credential {} does not belong to vault {}", id, vaultId);
-                throw new Exception("Credential not found in specified vault");
-            }
-
-            // Verify user ownership
-            if (!encryptedCredential.getUserId().equals(userId)) {
-                logger.warn("User {} attempted to update credential {} belonging to user {}", userId, id,
-                        encryptedCredential.getUserId());
-                throw new SecurityException("Access denied");
-            }
-
-            // Decrypt credential
-            Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
-
-            // Toggle favorite status
-            boolean isFavorite = String.valueOf(Boolean.TRUE).equals(decryptedCredential.getFavorite());
-            decryptedCredential.setFavorite(isFavorite ? String.valueOf(Boolean.FALSE) : String.valueOf(Boolean.TRUE));
-            decryptedCredential.setUpdatedAt(LocalDateTime.now());
-
-            // Encrypt and save
-            Credential encryptedUpdatedCredential = credentialServerEncryptionService
-                    .encryptServerData(decryptedCredential);
-            Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
-
-            // Decrypt for response
-            Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
-
-            // Convert to DTO and encrypt for client response
-            CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
-            return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
-        } catch (Exception e) {
-            logger.error("Error toggling favorite status for credential {}: {}", id, e.getMessage());
-            throw new Exception("Failed to update favorite status", e);
+        // Find credential
+        Optional<Credential> credentialOpt = credentialRepository.findById(id);
+        if (!credentialOpt.isPresent()) {
+            logger.warn("Credential not found with ID: {}", id);
+            throw new Exception("Credential not found");
         }
+
+        Credential encryptedCredential = credentialOpt.get();
+
+        // Verify vault ownership
+        if (!encryptedCredential.getVaultId().equals(vaultId)) {
+            logger.warn("Credential {} does not belong to vault {}", id, vaultId);
+            throw new Exception("Credential not found in specified vault");
+        }
+
+        // Verify user ownership
+        if (!encryptedCredential.getUserId().equals(userId)) {
+            logger.warn("User {} attempted to update credential {} belonging to user {}", userId, id,
+                    encryptedCredential.getUserId());
+            throw new SecurityException("Access denied");
+        }
+
+        // Decrypt credential
+        Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
+
+        // Toggle favorite status
+        boolean isFavorite = String.valueOf(Boolean.TRUE).equals(decryptedCredential.getFavorite());
+        decryptedCredential.setFavorite(isFavorite ? String.valueOf(Boolean.FALSE) : String.valueOf(Boolean.TRUE));
+        decryptedCredential.setUpdatedAt(LocalDateTime.now());
+
+        // Encrypt and save
+        Credential encryptedUpdatedCredential = credentialServerEncryptionService
+                .encryptServerData(decryptedCredential);
+        Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
+
+        // Decrypt for response
+        Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
+
+        // Convert to DTO and encrypt for client response
+        CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
+        return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
     }
 
     /**
@@ -478,50 +445,45 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     @Transactional
     public CredentialResponseDTO updateLastUsed(String id, String vaultId, String userId) throws Exception {
-        try {
-            // Find credential
-            Optional<Credential> credentialOpt = credentialRepository.findById(id);
-            if (!credentialOpt.isPresent()) {
-                logger.warn("Credential not found with ID: {}", id);
-                throw new Exception("Credential not found");
-            }
-
-            Credential encryptedCredential = credentialOpt.get();
-
-            // Verify vault ownership
-            if (!encryptedCredential.getVaultId().equals(vaultId)) {
-                logger.warn("Credential {} does not belong to vault {}", id, vaultId);
-                throw new Exception("Credential not found in specified vault");
-            }
-
-            // Verify user ownership
-            if (!encryptedCredential.getUserId().equals(userId)) {
-                logger.warn("User {} attempted to update credential {} belonging to user {}", userId, id,
-                        encryptedCredential.getUserId());
-                throw new SecurityException("Access denied");
-            }
-
-            // Decrypt credential
-            Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
-
-            // Update last used timestamp
-            decryptedCredential.setLastUsed(LocalDateTime.now());
-
-            // Encrypt and save
-            Credential encryptedUpdatedCredential = credentialServerEncryptionService
-                    .encryptServerData(decryptedCredential);
-            Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
-
-            // Decrypt for response
-            Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
-
-            // Convert to DTO and encrypt for client response
-            CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
-            return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
-        } catch (Exception e) {
-            logger.error("Error updating last used timestamp for credential {}: {}", id, e.getMessage());
-            throw new Exception("Failed to update last used timestamp", e);
+        // Find credential
+        Optional<Credential> credentialOpt = credentialRepository.findById(id);
+        if (!credentialOpt.isPresent()) {
+            logger.warn("Credential not found with ID: {}", id);
+            throw new Exception("Credential not found");
         }
+
+        Credential encryptedCredential = credentialOpt.get();
+
+        // Verify vault ownership
+        if (!encryptedCredential.getVaultId().equals(vaultId)) {
+            logger.warn("Credential {} does not belong to vault {}", id, vaultId);
+            throw new Exception("Credential not found in specified vault");
+        }
+
+        // Verify user ownership
+        if (!encryptedCredential.getUserId().equals(userId)) {
+            logger.warn("User {} attempted to update credential {} belonging to user {}", userId, id,
+                    encryptedCredential.getUserId());
+            throw new SecurityException("Access denied");
+        }
+
+        // Decrypt credential
+        Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
+
+        // Update last used timestamp
+        decryptedCredential.setLastUsed(LocalDateTime.now());
+
+        // Encrypt and save
+        Credential encryptedUpdatedCredential = credentialServerEncryptionService
+                .encryptServerData(decryptedCredential);
+        Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
+
+        // Decrypt for response
+        Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
+
+        // Convert to DTO and encrypt for client response
+        CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
+        return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
     }
 
     /**
@@ -534,30 +496,19 @@ public class CredentialServiceImpl implements CredentialService {
      */
     @Override
     public CredentialListResponseDTO findCredentialsByDomain(String domainId, String userId) throws Exception {
-        try {
-            List<Credential> encryptedCredentials = credentialRepository.findByDomainIdAndUserId(domainId, userId);
+        List<Credential> encryptedCredentials = credentialRepository.findByDomainIdAndUserId(domainId, userId);
 
-            List<Credential> decryptedCredentials = new ArrayList<>();
-            // Decrypt each credential
-            for (Credential encryptedCredential : encryptedCredentials) {
-                decryptedCredentials.add(credentialServerEncryptionService.decryptServerData(encryptedCredential));
-            }
-
-            // Map to DTOs
-            List<CredentialDTO> credentialDTOs = credentialMapper.toDTOList(decryptedCredentials);
-
-            // Encrypt for client response
-            List<CredentialResponseDTO> encryptedResponseDTOs = new ArrayList<>();
-            for (CredentialDTO credentialDTO : credentialDTOs) {
-                encryptedResponseDTOs.add(credentialClientEncryptionService.encryptCredentialForClient(credentialDTO));
-            }
-
-            // Return with "Domain View" as vault name
-            return new CredentialListResponseDTO(encryptedResponseDTOs, encryptedResponseDTOs.size(), "Domain View");
-        } catch (Exception e) {
-            logger.error("Error fetching credentials for domain {} and user {}: {}", domainId, userId, e.getMessage());
-            throw new Exception("Failed to fetch credentials by domain", e);
+        List<Credential> decryptedCredentials = new ArrayList<>();
+        // Decrypt each credential
+        for (Credential encryptedCredential : encryptedCredentials) {
+            decryptedCredentials.add(credentialServerEncryptionService.decryptServerData(encryptedCredential));
         }
+
+        // Map to DTOs
+        List<CredentialDTO> credentialDTOs = credentialMapper.toDTOList(decryptedCredentials);
+
+        // Encrypt for client response with "Domain View" as vault name
+        return credentialClientEncryptionService.encryptCredentialListForClient(credentialDTOs, "Domain View");
     }
 
     /**
@@ -569,31 +520,20 @@ public class CredentialServiceImpl implements CredentialService {
      */
     @Override
     public CredentialListResponseDTO findFavoriteCredentials(String userId) throws Exception {
-        try {
-            List<Credential> encryptedCredentials = credentialRepository.findByUserIdAndFavorite(userId,
-                    String.valueOf(Boolean.TRUE));
+        List<Credential> encryptedCredentials = credentialRepository.findByUserIdAndFavorite(userId,
+                String.valueOf(Boolean.TRUE));
 
-            List<Credential> decryptedCredentials = new ArrayList<>();
-            // Decrypt each credential
-            for (Credential encryptedCredential : encryptedCredentials) {
-                decryptedCredentials.add(credentialServerEncryptionService.decryptServerData(encryptedCredential));
-            }
-
-            // Map to DTOs
-            List<CredentialDTO> credentialDTOs = credentialMapper.toDTOList(decryptedCredentials);
-
-            // Encrypt for client response
-            List<CredentialResponseDTO> encryptedResponseDTOs = new ArrayList<>();
-            for (CredentialDTO credentialDTO : credentialDTOs) {
-                encryptedResponseDTOs.add(credentialClientEncryptionService.encryptCredentialForClient(credentialDTO));
-            }
-
-            // Return with "Favorites" as vault name
-            return new CredentialListResponseDTO(encryptedResponseDTOs, encryptedResponseDTOs.size(), "Favorites");
-        } catch (Exception e) {
-            logger.error("Error fetching favorite credentials for user {}: {}", userId, e.getMessage());
-            throw new Exception("Failed to fetch favorite credentials", e);
+        List<Credential> decryptedCredentials = new ArrayList<>();
+        // Decrypt each credential
+        for (Credential encryptedCredential : encryptedCredentials) {
+            decryptedCredentials.add(credentialServerEncryptionService.decryptServerData(encryptedCredential));
         }
+
+        // Map to DTOs
+        List<CredentialDTO> credentialDTOs = credentialMapper.toDTOList(decryptedCredentials);
+
+        // Encrypt for client response with "Favorites" as vault name
+        return credentialClientEncryptionService.encryptCredentialListForClient(credentialDTOs, "Favorites");
     }
 
     /**

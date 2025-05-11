@@ -1,6 +1,7 @@
 package com.lockbox.api;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -9,6 +10,7 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lockbox.dto.ResponseEntityDTO;
@@ -16,7 +18,6 @@ import com.lockbox.dto.vault.VaultListResponseDTO;
 import com.lockbox.dto.vault.VaultRequestDTO;
 import com.lockbox.dto.vault.VaultResponseDTO;
 import com.lockbox.service.vault.VaultService;
-import com.lockbox.utils.ExceptionBuilder;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
@@ -37,12 +38,10 @@ public class VaultController {
         try {
             String userId = securityUtils.getCurrentUserId();
             VaultListResponseDTO vaultListResponse = vaultService.findAllVaultsByUser(userId, page, size);
-            ResponseEntityBuilder<VaultListResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(vaultListResponse).build();
+            return new ResponseEntityBuilder<VaultListResponseDTO>().setData(vaultListResponse)
+                    .setMessage("Vaults retrieved successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch vaults: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to fetch vaults");
         }
     }
 
@@ -51,26 +50,23 @@ public class VaultController {
         try {
             String userId = securityUtils.getCurrentUserId();
             VaultResponseDTO vaultResponse = vaultService.findVaultById(id, userId);
-            ResponseEntityBuilder<VaultResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(vaultResponse).build();
+            return new ResponseEntityBuilder<VaultResponseDTO>().setData(vaultResponse)
+                    .setMessage("Vault retrieved successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch vault: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to fetch vault");
         }
     }
 
     @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
     public ResponseEntityDTO<VaultResponseDTO> createVault(@RequestBody VaultRequestDTO requestDTO) {
         try {
             String userId = securityUtils.getCurrentUserId();
             VaultResponseDTO vaultResponse = vaultService.createVault(requestDTO, userId);
-            ResponseEntityBuilder<VaultResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(vaultResponse).build();
+            return new ResponseEntityBuilder<VaultResponseDTO>().setData(vaultResponse)
+                    .setMessage("Vault created successfully").setStatusCode(HttpStatus.CREATED.value()).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to create vault: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to create vault");
         }
     }
 
@@ -80,12 +76,10 @@ public class VaultController {
         try {
             String userId = securityUtils.getCurrentUserId();
             VaultResponseDTO vaultResponse = vaultService.updateVault(id, requestDTO, userId);
-            ResponseEntityBuilder<VaultResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(vaultResponse).build();
+            return new ResponseEntityBuilder<VaultResponseDTO>().setData(vaultResponse)
+                    .setMessage("Vault updated successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to update vault: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to update vault");
         }
     }
 
@@ -94,26 +88,9 @@ public class VaultController {
         try {
             String userId = securityUtils.getCurrentUserId();
             vaultService.deleteVault(id, userId);
-            ResponseEntityBuilder<Void> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.build();
+            return new ResponseEntityBuilder<Void>().setMessage("Vault deleted successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to delete vault: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @GetMapping("/{id}/credentials/count")
-    public ResponseEntityDTO<Integer> getCredentialCountInVault(@PathVariable(name = "id") String id) {
-        try {
-            String userId = securityUtils.getCurrentUserId();
-            int count = vaultService.getCredentialCountInVault(id, userId);
-            ResponseEntityBuilder<Integer> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(count).build();
-        } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to get credential count: " + e.getMessage())
-                    .throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to delete vault");
         }
     }
 }

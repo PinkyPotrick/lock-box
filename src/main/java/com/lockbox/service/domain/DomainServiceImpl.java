@@ -105,62 +105,6 @@ public class DomainServiceImpl implements DomainService {
     }
 
     /**
-     * Find all domains for the current user.
-     * 
-     * @param userId - The current user ID
-     * @return {@link DomainListResponseDTO} containing encrypted domains
-     * @throws Exception If retrieval or encryption fails
-     */
-    @Override
-    public DomainListResponseDTO findAllDomainsByUser(String userId) throws Exception {
-        // Simply delegate to the paginated method with null pagination parameters
-        return findAllDomainsByUser(userId, null, null);
-    }
-
-    /**
-     * Find all domains for the current user with pagination.
-     * 
-     * @param userId   - The current user ID
-     * @param pageable - The pagination information
-     * @return {@link DomainListResponseDTO} containing encrypted domains
-     * @throws Exception If retrieval or encryption fails
-     */
-    @Override
-    public DomainListResponseDTO findAllDomainsByUser(String userId, Pageable pageable) throws Exception {
-        try {
-            // Get paginated results
-            Page<Domain> encryptedDomainsPage = domainRepository.findByUserId(userId, pageable);
-            List<Domain> decryptedDomains = new ArrayList<>();
-
-            // Decrypt each domain retrieved from database
-            for (Domain encryptedDomain : encryptedDomainsPage.getContent()) {
-                decryptedDomains.add(domainServerEncryptionService.decryptServerData(encryptedDomain));
-            }
-
-            // Convert to DTOs
-            List<DomainDTO> domainDTOs = domainMapper.toDTOList(decryptedDomains);
-
-            // Add credential count to each domain DTO
-            for (DomainDTO dto : domainDTOs) {
-                int credentialCount = credentialRepository.countByDomainIdAndUserId(dto.getId(), userId);
-                dto.setCredentialCount(credentialCount);
-            }
-
-            // Get the total count regardless of pagination
-            int totalCount = (int) encryptedDomainsPage.getTotalElements();
-
-            // Encrypt for client response and include total count
-            DomainListResponseDTO response = domainClientEncryptionService.encryptDomainListForClient(domainDTOs);
-            response.setTotalCount(totalCount);
-
-            return response;
-        } catch (Exception e) {
-            logger.error("Error fetching paginated domains for user {}: {}", userId, e.getMessage());
-            throw new Exception("Failed to fetch domains", e);
-        }
-    }
-
-    /**
      * Find domain by ID.
      * 
      * @param id     - The domain ID
@@ -239,7 +183,7 @@ public class DomainServiceImpl implements DomainService {
 
             // Convert to DTO
             DomainDTO responseDTO = domainMapper.toDTO(decryptedDomain);
-            responseDTO.setCredentialCount(0); // New domain has no credentials
+            responseDTO.setCredentialCount(0);
 
             // Encrypt for client response
             return domainClientEncryptionService.encryptDomainForClient(responseDTO);

@@ -10,7 +10,6 @@ import com.lockbox.dto.dashboard.DashboardOverviewResponseDTO;
 import com.lockbox.dto.loginhistory.LoginHistoryListResponseDTO;
 import com.lockbox.service.dashboard.DashboardService;
 import com.lockbox.utils.AppConstants;
-import com.lockbox.utils.ExceptionBuilder;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
@@ -29,12 +28,10 @@ public class DashboardController {
         try {
             String userId = securityUtils.getCurrentUserId();
             DashboardOverviewResponseDTO response = dashboardService.getDashboardOverview(userId);
-            ResponseEntityBuilder<DashboardOverviewResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(response).build();
+            return new ResponseEntityBuilder<DashboardOverviewResponseDTO>().setData(response)
+                    .setMessage("Dashboard overview retrieved successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Dashboard overview retrieval failed")
-                    .throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Dashboard overview retrieval failed");
         }
     }
 
@@ -44,11 +41,10 @@ public class DashboardController {
             String userId = securityUtils.getCurrentUserId();
             LoginHistoryListResponseDTO response = dashboardService.getLoginHistory(userId,
                     AppConstants.LOGIN_HISTORY_LIMIT);
-            ResponseEntityBuilder<LoginHistoryListResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(response).build();
+            return new ResponseEntityBuilder<LoginHistoryListResponseDTO>().setData(response)
+                    .setMessage("Login history retrieved successfully").build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Login history retrieval failed").throwInternalServerErrorException();
-            return null;
+            return ResponseEntityBuilder.handleErrorDTO(e, "Login history retrieval failed");
         }
     }
 }

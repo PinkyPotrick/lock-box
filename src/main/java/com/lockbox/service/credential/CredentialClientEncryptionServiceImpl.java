@@ -12,6 +12,7 @@ import com.lockbox.dto.credential.CredentialDTO;
 import com.lockbox.dto.credential.CredentialListResponseDTO;
 import com.lockbox.dto.credential.CredentialRequestDTO;
 import com.lockbox.dto.credential.CredentialResponseDTO;
+import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
 import com.lockbox.dto.encryption.EncryptedDataAesCbcMapper;
 import com.lockbox.model.EncryptedDataAesCbc;
 import com.lockbox.service.encryption.GenericEncryptionService;
@@ -111,25 +112,60 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
     }
 
     /**
-     * Encrypts a list of credential DTOs for client response.
+     * Encrypts a list of credential DTOs for client response with vault name.
      * 
      * @param credentialDTOs - The list of credential data to encrypt
+     * @param vaultName - The vault name to encrypt
      * @return {@link CredentialListResponseDTO} containing encrypted credentials ready for transmission
      * @throws Exception If encryption fails
      */
     @Override
-    public CredentialListResponseDTO encryptCredentialListForClient(List<CredentialDTO> credentialDTOs)
+    public CredentialListResponseDTO encryptCredentialListForClient(List<CredentialDTO> credentialDTOs, String vaultName) 
             throws Exception {
         if (credentialDTOs == null) {
             return null;
         }
 
+        // Generate a helper AES key for vault name encryption
+        SecretKey aesKey = EncryptionUtils.generateAESKey();
+        String aesKeyBase64 = EncryptionUtils.getAESKeyString(aesKey);
+        
         List<CredentialResponseDTO> encryptedCredentials = new ArrayList<>();
         for (CredentialDTO credentialDTO : credentialDTOs) {
             encryptedCredentials.add(encryptCredentialForClient(credentialDTO));
         }
-
-        return new CredentialListResponseDTO(encryptedCredentials, credentialDTOs.size());
+        
+        // Encrypt the vault name
+        EncryptedDataAesCbcDTO encryptedVaultName = null;
+        if (vaultName != null) {
+            encryptedVaultName = encryptVaultName(vaultName, aesKeyBase64);
+        }
+        
+        return new CredentialListResponseDTO(encryptedCredentials, credentialDTOs.size(), 
+                encryptedVaultName, aesKeyBase64);
+    }
+    
+    /**
+     * Encrypts a vault name for client response.
+     * 
+     * @param vaultName - The vault name to encrypt
+     * @param aesKeyBase64 - The AES key to use for encryption (base64 encoded)
+     * @return {@link EncryptedDataAesCbcDTO} containing encrypted vault name
+     * @throws Exception If encryption fails
+     */
+    @Override
+    public EncryptedDataAesCbcDTO encryptVaultName(String vaultName, String aesKeyBase64) throws Exception {
+        if (vaultName == null) {
+            return null;
+        }
+        
+        SecretKey aesKey = EncryptionUtils.getAESKeyFromString(aesKeyBase64);
+        EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
+        
+        EncryptedDataAesCbc encryptedVaultNameData = genericEncryptionService
+                .encryptDTOWithAESCBC(vaultName, EncryptedDataAesCbc.class, aesKey);
+                
+        return encryptedDataAesCbcMapper.toDto(encryptedVaultNameData);
     }
 
     /**

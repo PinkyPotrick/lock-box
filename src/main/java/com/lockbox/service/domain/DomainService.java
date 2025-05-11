@@ -2,18 +2,12 @@ package com.lockbox.service.domain;
 
 import java.util.Optional;
 
-import org.springframework.data.domain.Pageable;
-
 import com.lockbox.dto.domain.DomainListResponseDTO;
 import com.lockbox.dto.domain.DomainRequestDTO;
 import com.lockbox.dto.domain.DomainResponseDTO;
 import com.lockbox.model.Domain;
 
 public interface DomainService {
-
-    DomainListResponseDTO findAllDomainsByUser(String userId) throws Exception;
-
-    DomainListResponseDTO findAllDomainsByUser(String userId, Pageable pageable) throws Exception;
 
     DomainListResponseDTO findAllDomainsByUser(String userId, Integer page, Integer size) throws Exception;
 

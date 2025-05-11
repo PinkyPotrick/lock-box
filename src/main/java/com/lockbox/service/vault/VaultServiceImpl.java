@@ -119,8 +119,29 @@ public class VaultServiceImpl implements VaultService {
      */
     @Override
     public VaultListResponseDTO findAllVaultsByUser(String userId) throws Exception {
-        // Simply delegate to the paginated method with null pagination parameters
-        return findAllVaultsByUser(userId, null, null);
+        try {
+            List<Vault> vaults = vaultRepository.findByUserId(userId);
+
+            List<Vault> decryptedVaults = new ArrayList<>();
+            for (Vault encryptedVault : vaults) {
+                decryptedVaults.add(vaultServerEncryptionService.decryptServerData(encryptedVault));
+            }
+
+            // Convert to DTOs
+            List<VaultDTO> vaultDTOs = vaultMapper.toDTOList(decryptedVaults);
+
+            // Add credential count to each vault
+            for (VaultDTO dto : vaultDTOs) {
+                int credentialCount = credentialRepository.countByVaultId(dto.getId());
+                dto.setCredentialCount(credentialCount);
+            }
+
+            // Instead of using vaultMapper.toResponseDTOList, use the client encryption service
+            return vaultClientEncryptionService.encryptVaultListForClient(vaultDTOs);
+        } catch (Exception e) {
+            logger.error("Error fetching vaults for user {}: {}", userId, e.getMessage());
+            throw new Exception("Failed to fetch vaults", e);
+        }
     }
 
     /**
@@ -178,32 +199,31 @@ public class VaultServiceImpl implements VaultService {
      */
     @Override
     public VaultResponseDTO findVaultById(String id, String userId) throws Exception {
-        // Find and decrypt the vault
-        Optional<Vault> vaultOpt = findById(id);
+        try {
+            Optional<Vault> vaultOptional = vaultRepository.findById(id);
+            if (!vaultOptional.isPresent()) {
+                throw new Exception("Vault not found");
+            }
 
-        if (!vaultOpt.isPresent()) {
-            logger.warn("Vault not found with ID: {}", id);
-            throw new RuntimeException("Vault not found");
+            Vault vault = vaultOptional.get();
+
+            // Check ownership
+            if (!vault.getUser().getId().equals(userId)) {
+                throw new SecurityException("Access denied");
+            }
+
+            // Decrypt server-side encrypted data
+            Vault decryptedVault = vaultServerEncryptionService.decryptServerData(vault);
+
+            // Convert to DTO
+            VaultDTO vaultDTO = vaultMapper.toDTO(decryptedVault);
+
+            // Encrypt for client
+            return vaultClientEncryptionService.encryptVaultForClient(vaultDTO);
+        } catch (Exception e) {
+            logger.error("Error finding vault {} for user {}: {}", id, userId, e.getMessage());
+            throw new Exception("Failed to find vault", e);
         }
-
-        Vault vault = vaultOpt.get();
-
-        // Ensure the user has access to this vault
-        if (!vault.getUser().getId().equals(userId)) {
-            logger.warn("User {} attempted to access vault {} belonging to user {}", userId, id,
-                    vault.getUser().getId());
-            throw new RuntimeException("Access denied");
-        }
-
-        // Convert to DTO
-        VaultDTO vaultDTO = vaultMapper.toDTO(vault);
-
-        // Add credential count
-        int credentialCount = credentialRepository.countByVaultId(id);
-        vaultDTO.setCredentialCount(credentialCount);
-
-        // Encrypt for client response
-        return vaultClientEncryptionService.encryptVaultForClient(vaultDTO);
     }
 
     /**
@@ -218,10 +238,8 @@ public class VaultServiceImpl implements VaultService {
     @Transactional
     public VaultResponseDTO createVault(VaultRequestDTO requestDTO, String userId) throws Exception {
         try {
-            // Decrypt the request
+            // First decrypt the vault data, then validate
             VaultDTO vaultDTO = vaultClientEncryptionService.decryptVaultFromClient(requestDTO);
-
-            // Validate the decrypted data
             vaultValidator.validateVaultDTO(vaultDTO);
 
             // Find the user
@@ -270,30 +288,26 @@ public class VaultServiceImpl implements VaultService {
     @Transactional
     public VaultResponseDTO updateVault(String id, VaultRequestDTO requestDTO, String userId) throws Exception {
         try {
-            // Decrypt the request
-            VaultDTO vaultDTO = vaultClientEncryptionService.decryptVaultFromClient(requestDTO);
-
-            // Validate the decrypted data
-            vaultValidator.validateVaultDTO(vaultDTO);
-
-            // Check if vault exists
-            Optional<Vault> vaultOpt = findById(id);
-            if (!vaultOpt.isPresent()) {
-                logger.warn("Vault not found with ID: {}", id);
-                throw new RuntimeException("Vault not found");
+            Optional<Vault> vaultOptional = vaultRepository.findById(id);
+            if (!vaultOptional.isPresent()) {
+                throw new Exception("Vault not found");
             }
 
-            Vault existingVault = vaultOpt.get();
+            Vault vault = vaultOptional.get();
 
-            // Ensure the user has access to this vault
-            if (!existingVault.getUser().getId().equals(userId)) {
-                logger.warn("User {} attempted to update vault {} belonging to user {}", userId, id,
-                        existingVault.getUser().getId());
-                throw new RuntimeException("Access denied");
+            // Check ownership
+            if (!vault.getUser().getId().equals(userId)) {
+                throw new SecurityException("Access denied");
             }
+
+            // Validate the update request first
+            vaultValidator.validateVaultUpdateRequest(requestDTO);
+
+            // Decrypt the request data
+            VaultDTO decryptedVaultDTO = vaultClientEncryptionService.decryptVaultFromClient(requestDTO);
 
             // Update the vault
-            Vault updatedVault = vaultMapper.updateEntityFromDTO(existingVault, vaultDTO);
+            Vault updatedVault = vaultMapper.updateEntityFromDTO(vault, decryptedVaultDTO);
 
             // Update timestamp
             updatedVault.setUpdatedAt(LocalDateTime.now());
@@ -359,41 +373,6 @@ public class VaultServiceImpl implements VaultService {
         } catch (Exception e) {
             logger.error("Error deleting vault {}: {}", id, e.getMessage());
             throw new Exception("Failed to delete vault", e);
-        }
-    }
-
-    /**
-     * Get the count of credentials in a vault.
-     * 
-     * @param vaultId - The vault ID
-     * @param userId  - The current user ID for authorization
-     * @return Count of credentials in the vault
-     * @throws Exception If vault not found, access denied, or count fails
-     */
-    @Override
-    public int getCredentialCountInVault(String vaultId, String userId) throws Exception {
-        try {
-            // Check if vault exists
-            Optional<Vault> vaultOpt = findById(vaultId);
-            if (!vaultOpt.isPresent()) {
-                logger.warn("Vault not found with ID: {}", vaultId);
-                throw new RuntimeException("Vault not found");
-            }
-
-            Vault vault = vaultOpt.get();
-
-            // Ensure the user has access to this vault
-            if (!vault.getUser().getId().equals(userId)) {
-                logger.warn("User {} attempted to access vault {} belonging to user {}", userId, vaultId,
-                        vault.getUser().getId());
-                throw new RuntimeException("Access denied");
-            }
-
-            // Get credential count
-            return credentialRepository.countByVaultId(vaultId);
-        } catch (Exception e) {
-            logger.error("Error getting credential count for vault {}: {}", vaultId, e.getMessage());
-            throw new Exception("Failed to get credential count", e);
         }
     }
 

@@ -25,8 +25,6 @@ public interface VaultService {
 
     void deleteVault(String id, String userId) throws Exception;
 
-    int getCredentialCountInVault(String vaultId, String userId) throws Exception;
-
     boolean isVaultOwnedByUser(String vaultId, String userId) throws Exception;
 
     Optional<Vault> findById(String id) throws Exception;

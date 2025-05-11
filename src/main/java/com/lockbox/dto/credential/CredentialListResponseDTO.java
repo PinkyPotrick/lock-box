@@ -2,24 +2,24 @@ package com.lockbox.dto.credential;
 
 import java.util.List;
 
+import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
+
 public class CredentialListResponseDTO {
 
     private List<CredentialResponseDTO> credentials;
     private int totalCount;
-    private String vaultName; // TODO maybe encrypt this field too
+    private EncryptedDataAesCbcDTO encryptedVaultName;
+    private String helperVaultNameAesKey;
 
     public CredentialListResponseDTO() {
     }
 
-    public CredentialListResponseDTO(List<CredentialResponseDTO> credentials, int totalCount) {
+    public CredentialListResponseDTO(List<CredentialResponseDTO> credentials, int totalCount, 
+            EncryptedDataAesCbcDTO encryptedVaultName, String helperVaultNameAesKey) {
         this.credentials = credentials;
         this.totalCount = totalCount;
-    }
-
-    public CredentialListResponseDTO(List<CredentialResponseDTO> credentials, int totalCount, String vaultName) {
-        this.credentials = credentials;
-        this.totalCount = totalCount;
-        this.vaultName = vaultName;
+        this.encryptedVaultName = encryptedVaultName;
+        this.helperVaultNameAesKey = helperVaultNameAesKey;
     }
 
     public List<CredentialResponseDTO> getCredentials() {
@@ -38,11 +38,19 @@ public class CredentialListResponseDTO {
         this.totalCount = totalCount;
     }
 
-    public String getVaultName() {
-        return vaultName;
+    public EncryptedDataAesCbcDTO getEncryptedVaultName() {
+        return encryptedVaultName;
     }
 
-    public void setVaultName(String vaultName) {
-        this.vaultName = vaultName;
+    public void setEncryptedVaultName(EncryptedDataAesCbcDTO encryptedVaultName) {
+        this.encryptedVaultName = encryptedVaultName;
+    }
+
+    public String getHelperVaultNameAesKey() {
+        return helperVaultNameAesKey;
+    }
+
+    public void setHelperVaultNameAesKey(String helperVaultNameAesKey) {
+        this.helperVaultNameAesKey = helperVaultNameAesKey;
     }
 }
