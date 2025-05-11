@@ -55,18 +55,16 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Find all credentials for a specific vault with optional pagination.
      * 
-     * @param vaultId   The vault ID
-     * @param userId    The current user ID for authorization
-     * @param page      Optional page number (0-based)
-     * @param size      Optional page size
-     * @param sort      Optional field to sort by
-     * @param direction Optional sort direction ("ASC" or "DESC")
+     * @param vaultId - The vault ID
+     * @param userId  - The current user ID for authorization
+     * @param page    - Optional page number (0-based)
+     * @param size    - Optional page size
      * @return {@link CredentialListResponseDTO} containing encrypted credentials
      * @throws Exception If vault not found, access denied, or retrieval fails
      */
     @Override
     public CredentialListResponseDTO findAllCredentialsByVault(String vaultId, String userId, Integer page,
-            Integer size, String sort, String direction) throws Exception {
+            Integer size) throws Exception {
         // Verify vault ownership and get vault
         Optional<com.lockbox.model.Vault> vaultOpt = vaultService.findById(vaultId);
         if (!vaultOpt.isPresent() || !vaultOpt.get().getUser().getId().equals(userId)) {
@@ -82,34 +80,10 @@ public class CredentialServiceImpl implements CredentialService {
 
         // Handle pagination if specified
         if (page != null && size != null) {
-            Sort.Direction sortDir = Sort.Direction.DESC; // Default direction
-            if (direction != null && direction.equalsIgnoreCase("ASC")) {
-                sortDir = Sort.Direction.ASC;
-            }
-
-            if (sort != null && sort.equals("domain")) {
-                // For domain sorting, we need a pageable without sort
-                Pageable pageable = PageRequest.of(page, size);
-
-                // Use special repository methods for domain sorting
-                Page<Credential> credentialPage;
-                if (sortDir == Sort.Direction.ASC) {
-                    credentialPage = credentialRepository.findByVaultIdOrderByDomainNameAsc(vaultId, pageable);
-                } else {
-                    credentialPage = credentialRepository.findByVaultIdOrderByDomainNameDesc(vaultId, pageable);
-                }
-                encryptedCredentials = credentialPage.getContent();
-            } else {
-                // For all other sorts, use the standard approach
-                String sortField = "updatedAt"; // Default sort field
-                if (sort != null && !sort.isEmpty()) {
-                    sortField = sort;
-                }
-
-                Pageable pageable = PageRequest.of(page, size, Sort.by(sortDir, sortField));
-                Page<Credential> credentialPage = credentialRepository.findByVaultId(vaultId, pageable);
-                encryptedCredentials = credentialPage.getContent();
-            }
+            // Always sort by updatedAt DESC as standard approach
+            Pageable pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "updatedAt"));
+            Page<Credential> credentialPage = credentialRepository.findByVaultId(vaultId, pageable);
+            encryptedCredentials = credentialPage.getContent();
             totalCount = (int) credentialRepository.countByVaultId(vaultId);
         } else {
             encryptedCredentials = credentialRepository.findByVaultId(vaultId);
@@ -134,25 +108,11 @@ public class CredentialServiceImpl implements CredentialService {
     }
 
     /**
-     * Find all credentials for a specific vault.
-     * 
-     * @param vaultId The vault ID
-     * @param userId  The current user ID for authorization
-     * @return {@link CredentialListResponseDTO} containing encrypted credentials
-     * @throws Exception If vault not found, access denied, or retrieval fails
-     */
-    @Override
-    public CredentialListResponseDTO findAllCredentialsByVault(String vaultId, String userId) throws Exception {
-        // Delegate to the paginated method with null pagination parameters
-        return findAllCredentialsByVault(vaultId, userId, null, null, null, null);
-    }
-
-    /**
      * Find a specific credential by ID.
      * 
-     * @param id      The credential ID
-     * @param vaultId The vault ID
-     * @param userId  The current user ID for authorization
+     * @param id      - The credential ID
+     * @param vaultId - The vault ID
+     * @param userId  - The current user ID for authorization
      * @return {@link CredentialResponseDTO} with encryption
      * @throws Exception If credential not found, access denied, or retrieval fails
      */
@@ -193,9 +153,9 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Create a new credential.
      * 
-     * @param requestDTO The encrypted credential request DTO
-     * @param vaultId    The vault ID to add the credential to
-     * @param userId     The current user ID for authorization
+     * @param requestDTO - The encrypted credential request DTO
+     * @param vaultId    - The vault ID to add the credential to
+     * @param userId     - The current user ID for authorization
      * @return Created {@link CredentialResponseDTO} with encryption
      * @throws Exception If validation, creation, or encryption fails
      */
@@ -248,10 +208,10 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Update an existing credential.
      * 
-     * @param id         The credential ID
-     * @param requestDTO The encrypted credential request DTO
-     * @param vaultId    The vault ID
-     * @param userId     The current user ID for authorization
+     * @param id         - The credential ID
+     * @param requestDTO - The encrypted credential request DTO
+     * @param vaultId    - The vault ID
+     * @param userId     - The current user ID for authorization
      * @return Updated {@link CredentialResponseDTO} with encryption
      * @throws Exception If credential not found, access denied, or update fails
      */
@@ -343,9 +303,9 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Delete a credential.
      * 
-     * @param id      The credential ID
-     * @param vaultId The vault ID
-     * @param userId  The current user ID for authorization
+     * @param id      - The credential ID
+     * @param vaultId - The vault ID
+     * @param userId  - The current user ID for authorization
      * @throws Exception If credential not found, access denied, or deletion fails
      */
     @Override
@@ -381,9 +341,9 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Toggle favorite status for a credential.
      * 
-     * @param id      The credential ID
-     * @param vaultId The vault ID
-     * @param userId  The current user ID for authorization
+     * @param id      - The credential ID
+     * @param vaultId - The vault ID
+     * @param userId  - The current user ID for authorization
      * @return Updated {@link CredentialResponseDTO} with encryption
      * @throws Exception If credential not found, access denied, or update fails
      */
@@ -436,9 +396,9 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Update last used timestamp for a credential.
      * 
-     * @param id      The credential ID
-     * @param vaultId The vault ID
-     * @param userId  The current user ID for authorization
+     * @param id      - The credential ID
+     * @param vaultId - The vault ID
+     * @param userId  - The current user ID for authorization
      * @return Updated {@link CredentialResponseDTO} with encryption
      * @throws Exception If credential not found, access denied, or update fails
      */
@@ -489,8 +449,8 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Find credentials by domain for the current user.
      * 
-     * @param domain The domain to search for
-     * @param userId The current user ID
+     * @param domain - The domain to search for
+     * @param userId - The current user ID
      * @return {@link CredentialListResponseDTO} containing encrypted credentials matching the domain
      * @throws Exception If retrieval or encryption fails
      */
@@ -514,7 +474,7 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Find favorite credentials for the current user.
      * 
-     * @param userId The current user ID
+     * @param userId - The current user ID
      * @return {@link CredentialListResponseDTO} containing encrypted favorite credentials
      * @throws Exception If retrieval or encryption fails
      */
@@ -539,7 +499,7 @@ public class CredentialServiceImpl implements CredentialService {
     /**
      * Find a credential by ID (internal method).
      * 
-     * @param id The credential ID
+     * @param id - The credential ID
      * @return Optional {@link Credential} entity
      * @throws Exception If retrieval fails
      */

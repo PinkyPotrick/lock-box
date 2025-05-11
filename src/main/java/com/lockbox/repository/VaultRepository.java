@@ -20,7 +20,7 @@ public interface VaultRepository extends JpaRepository<Vault, String> {
     /**
      * Find all vaults by user ID
      * 
-     * @param userId The user ID
+     * @param userId - The user ID
      * @return List of vaults
      */
     @Query("SELECT v FROM Vault v WHERE v.user.id = :userId")
@@ -29,8 +29,8 @@ public interface VaultRepository extends JpaRepository<Vault, String> {
     /**
      * Find all vaults by user ID with pagination
      * 
-     * @param userId   The user ID
-     * @param pageable Pagination information
+     * @param userId   - The user ID
+     * @param pageable - Pagination information
      * @return Page of vaults
      */
     @Query("SELECT v FROM Vault v WHERE v.user.id = :userId")
@@ -39,7 +39,7 @@ public interface VaultRepository extends JpaRepository<Vault, String> {
     /**
      * Count vaults by user ID
      * 
-     * @param userId The user ID
+     * @param userId - The user ID
      * @return Count of vaults
      */
     @Query("SELECT COUNT(v) FROM Vault v WHERE v.user.id = :userId")

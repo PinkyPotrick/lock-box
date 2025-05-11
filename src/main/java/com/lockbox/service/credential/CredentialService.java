@@ -9,10 +9,8 @@ import com.lockbox.model.Credential;
 
 public interface CredentialService {
 
-    CredentialListResponseDTO findAllCredentialsByVault(String vaultId, String userId, Integer page, Integer size,
-            String sort, String direction) throws Exception;
-
-    CredentialListResponseDTO findAllCredentialsByVault(String vaultId, String userId) throws Exception;
+    CredentialListResponseDTO findAllCredentialsByVault(String vaultId, String userId, Integer page, Integer size)
+            throws Exception;
 
     CredentialResponseDTO findCredentialById(String id, String vaultId, String userId) throws Exception;
 

@@ -34,13 +34,11 @@ public class CredentialController {
     @GetMapping
     public ResponseEntityDTO<CredentialListResponseDTO> getAllCredentials(@PathVariable("vaultId") String vaultId,
             @RequestParam(name = "page", required = false) Integer page,
-            @RequestParam(name = "size", required = false) Integer size,
-            @RequestParam(name = "sort", required = false) String sort,
-            @RequestParam(name = "direction", required = false) String direction) {
+            @RequestParam(name = "size", required = false) Integer size) {
         try {
             String userId = securityUtils.getCurrentUserId();
             CredentialListResponseDTO credentialListResponse = credentialService.findAllCredentialsByVault(vaultId,
-                    userId, page, size, sort, direction);
+                    userId, page, size);
 
             return new ResponseEntityBuilder<CredentialListResponseDTO>().setData(credentialListResponse)
                     .setMessage("Credentials retrieved successfully").build();

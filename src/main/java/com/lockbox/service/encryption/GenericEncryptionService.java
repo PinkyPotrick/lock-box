@@ -2,17 +2,12 @@ package com.lockbox.service.encryption;
 
 import javax.crypto.SecretKey;
 
-/**
- * A generic interface for encrypting and decrypting Data Transfer Objects (DTOs)
- * using RSA and AES-CBC encryption algorithms. Provides functionality for securely
- * serializing and deserializing objects during communication between systems.
- */
 public interface GenericEncryptionService {
 
     public String decryptStringWithAESCBC(String string, SecretKey secretKey) throws Exception;
 
     public String encryptStringWithAESCBC(String string, SecretKey secretKey) throws Exception;
-    
+
     public <T, R> R decryptDTOWithRSA(T dto, Class<R> targetType, String privateKeyPem) throws Exception;
 
     public <T, R> R decryptDTOWithRSA(T dto, Class<R> targetType) throws Exception;

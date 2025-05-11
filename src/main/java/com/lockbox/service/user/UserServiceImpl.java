@@ -1,5 +1,13 @@
 package com.lockbox.service.user;
 
+import java.util.List;
+import java.util.Optional;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
 import com.lockbox.api.UserController;
 import com.lockbox.dto.authentication.registration.UserRegistrationDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationMapper;
@@ -9,14 +17,6 @@ import com.lockbox.model.User;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.service.profile.ProfileEncryptionService;
 import com.lockbox.validators.UserValidator;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Optional;
 
 @Service
 public class UserServiceImpl implements UserService {

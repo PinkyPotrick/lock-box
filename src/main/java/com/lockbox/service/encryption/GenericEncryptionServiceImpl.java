@@ -12,6 +12,11 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.lockbox.model.EncryptedDataAesCbc;
 import com.lockbox.utils.EncryptionUtils;
 
+/**
+ * A generic interface for encrypting and decrypting Data Transfer Objects (DTOs) using RSA and AES-CBC encryption
+ * algorithms. Provides functionality for securely serializing and deserializing objects during communication between
+ * systems.
+ */
 @Service
 public class GenericEncryptionServiceImpl implements GenericEncryptionService {
 
