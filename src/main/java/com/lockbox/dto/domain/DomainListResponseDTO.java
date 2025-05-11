@@ -5,10 +5,12 @@ import java.util.List;
 public class DomainListResponseDTO {
 
     private List<DomainResponseDTO> domains;
+    private int totalCount;
 
-    private long totalCount;
+    public DomainListResponseDTO() {
+    }
 
-    public DomainListResponseDTO(List<DomainResponseDTO> domains, long totalCount) {
+    public DomainListResponseDTO(List<DomainResponseDTO> domains, int totalCount) {
         this.domains = domains;
         this.totalCount = totalCount;
     }
@@ -21,11 +23,11 @@ public class DomainListResponseDTO {
         this.domains = domains;
     }
 
-    public long getTotalCount() {
+    public int getTotalCount() {
         return totalCount;
     }
 
-    public void setTotalCount(long totalCount) {
+    public void setTotalCount(int totalCount) {
         this.totalCount = totalCount;
     }
 }

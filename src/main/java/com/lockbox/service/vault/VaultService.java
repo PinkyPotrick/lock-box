@@ -27,6 +27,8 @@ public interface VaultService {
 
     int getCredentialCountInVault(String vaultId, String userId) throws Exception;
 
+    boolean isVaultOwnedByUser(String vaultId, String userId) throws Exception;
+
     Optional<Vault> findById(String id) throws Exception;
 
     int countByUserId(String userId);

@@ -398,6 +398,30 @@ public class VaultServiceImpl implements VaultService {
     }
 
     /**
+     * Check if a vault is owned by the specified user.
+     * 
+     * @param vaultId - The vault ID to check
+     * @param userId  - The user ID to check against
+     * @return true if the vault exists and is owned by the user, false otherwise
+     * @throws Exception If the check fails
+     */
+    @Override
+    public boolean isVaultOwnedByUser(String vaultId, String userId) throws Exception {
+        try {
+            Optional<Vault> vaultOpt = findById(vaultId);
+            if (!vaultOpt.isPresent()) {
+                return false;
+            }
+
+            Vault vault = vaultOpt.get();
+            return vault.getUser().getId().equals(userId);
+        } catch (Exception e) {
+            logger.error("Error checking vault ownership: {}", e.getMessage());
+            throw new Exception("Failed to check vault ownership", e);
+        }
+    }
+
+    /**
      * Internal method to find vault by ID.
      * 
      * @param id - The vault ID

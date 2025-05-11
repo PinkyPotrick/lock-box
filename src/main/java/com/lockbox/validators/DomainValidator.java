@@ -4,11 +4,12 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
+import com.lockbox.dto.domain.DomainDTO;
 import com.lockbox.dto.domain.DomainRequestDTO;
 
-import java.net.URI;
-import java.net.URISyntaxException;
-
+/**
+ * Validator for domain-related DTOs.
+ */
 @Component
 public class DomainValidator {
 
@@ -17,86 +18,85 @@ public class DomainValidator {
     /**
      * Validate a domain request DTO
      * 
-     * @param requestDTO The domain request to validate
+     * @param requestDTO - The encrypted request DTO to validate
      * @throws Exception If validation fails
+     * @deprecated Use {@link #validateDomainDTO(DomainDTO)} instead after decryption
      */
+    @Deprecated
     public void validateDomainRequest(DomainRequestDTO requestDTO) throws Exception {
         if (requestDTO == null) {
             logger.error("Domain request cannot be null");
             throw new Exception("Domain request cannot be null");
         }
 
-        if (requestDTO.getName() == null || requestDTO.getName().trim().isEmpty()) {
-            logger.error("Domain name is required");
-            throw new Exception("Domain name is required");
+        if (requestDTO.getEncryptedName() == null) {
+            logger.error("Encrypted domain name is required");
+            throw new Exception("Encrypted domain name is required");
         }
 
-        if (requestDTO.getName().length() > 100) {
-            logger.error("Domain name cannot exceed 100 characters");
-            throw new Exception("Domain name cannot exceed 100 characters");
-        }
-
-        if (requestDTO.getUrl() != null) {
-            try {
-                // Try to parse and normalize the URL to validate it
-                normalizeUrl(requestDTO.getUrl());
-            } catch (Exception e) {
-                logger.error("Invalid URL format: {}", e.getMessage());
-                throw new Exception("Invalid URL format");
-            }
-        }
-
-        if (requestDTO.getNotes() != null && requestDTO.getNotes().length() > 500) {
-            logger.error("Domain notes cannot exceed 500 characters");
-            throw new Exception("Domain notes cannot exceed 500 characters");
+        if (requestDTO.getHelperAesKey() == null) {
+            logger.error("Encryption key is required");
+            throw new Exception("Encryption key is required");
         }
     }
 
     /**
-     * Normalize a URL by removing protocol, www prefix, and trailing slashes
+     * Validate a domain DTO
      * 
-     * @param url The URL to normalize
-     * @return The normalized URL
-     * @throws Exception If the URL is invalid
+     * @param domainDTO - The decrypted domain DTO to validate
+     * @throws Exception If validation fails
      */
-    public String normalizeUrl(String url) throws Exception {
-        if (url == null || url.trim().isEmpty()) {
-            return "";
+    public void validateDomainDTO(DomainDTO domainDTO) throws Exception {
+        if (domainDTO == null) {
+            logger.error("Domain data cannot be null");
+            throw new Exception("Domain data cannot be null");
         }
 
-        // Ensure URL has a protocol for parsing
-        String urlWithProtocol = url;
-        if (!url.startsWith("http://") && !url.startsWith("https://")) {
-            urlWithProtocol = "https://" + url;
+        if (domainDTO.getName() == null || domainDTO.getName().trim().isEmpty()) {
+            logger.error("Domain name is required");
+            throw new Exception("Domain name is required");
         }
 
-        try {
-            URI uri = new URI(urlWithProtocol);
-            String host = uri.getHost();
+        if (domainDTO.getName().length() > 100) {
+            logger.error("Domain name cannot exceed 100 characters");
+            throw new Exception("Domain name cannot exceed 100 characters");
+        }
 
-            if (host == null) {
-                throw new Exception("Invalid URL");
-            }
+        if (domainDTO.getUrl() != null && domainDTO.getUrl().length() > 2000) {
+            logger.error("URL cannot exceed 2000 characters");
+            throw new Exception("URL cannot exceed 2000 characters");
+        }
 
-            // Remove www. prefix if present
-            if (host.startsWith("www.")) {
-                host = host.substring(4);
-            }
+        if (domainDTO.getNotes() != null && domainDTO.getNotes().length() > 1000) {
+            logger.error("Notes cannot exceed 1000 characters");
+            throw new Exception("Notes cannot exceed 1000 characters");
+        }
+    }
 
-            // Include path if present
-            String path = uri.getPath();
-            if (path != null && !path.isEmpty() && !path.equals("/")) {
-                // Remove trailing slash
-                if (path.endsWith("/")) {
-                    path = path.substring(0, path.length() - 1);
-                }
-                return host + path;
-            }
+    /**
+     * Validate a domain update request DTO
+     * 
+     * @param requestDTO - The encrypted update request DTO to validate
+     * @throws Exception If validation fails
+     */
+    public void validateDomainUpdateRequest(DomainRequestDTO requestDTO) throws Exception {
+        if (requestDTO == null) {
+            logger.error("Domain update request cannot be null");
+            throw new Exception("Domain update request cannot be null");
+        }
 
-            return host;
-        } catch (URISyntaxException e) {
-            logger.error("Error normalizing URL: {}", e.getMessage());
-            throw new Exception("Invalid URL format");
+        // For updates, at least one field should be provided
+        if (requestDTO.getEncryptedName() == null && requestDTO.getEncryptedUrl() == null
+                && requestDTO.getEncryptedNotes() == null && requestDTO.getLogo() == null) {
+            logger.error("At least one field must be provided for update");
+            throw new Exception("At least one field must be provided for update");
+        }
+
+        // If any encrypted field is provided, the helper AES key is required
+        if ((requestDTO.getEncryptedName() != null || requestDTO.getEncryptedUrl() != null
+                || requestDTO.getEncryptedNotes() != null) && requestDTO.getHelperAesKey() == null) {
+            logger.error("Encryption key is required when updating encrypted fields");
+            throw new Exception("Encryption key is required when updating encrypted fields");
         }
     }
 }

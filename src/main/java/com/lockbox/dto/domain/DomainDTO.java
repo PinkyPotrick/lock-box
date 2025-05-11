@@ -1,42 +1,32 @@
-package com.lockbox.model;
+package com.lockbox.dto.domain;
 
 import java.time.LocalDateTime;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Table;
+/**
+ * Data transfer object for Domain entity. Contains the decrypted domain data.
+ */
+public class DomainDTO {
 
-@Entity
-@Table(name = "domains")
-public class Domain extends BaseEntity {
-
-    @Column(name = "user_id", nullable = false)
+    private String id;
     private String userId;
-
-    // Store encrypted domain name in the database
-    @Column(name = "name", nullable = false, length = 1024)
     private String name;
-
-    // Store encrypted URL in the database
-    @Column(name = "url", length = 1024)
     private String url;
-
-    // Store encrypted notes in the database
-    @Column(name = "notes", length = 4500)
     private String notes;
-
-    // This is low sensitivity and can remain plaintext
-    @Column(name = "logo")
     private String logo;
-
-    @Column(name = "created_at")
     private LocalDateTime createdAt;
-
-    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+    private Integer credentialCount;
 
-    @Column(name = "aes_key", nullable = false, length = 344)
-    private String aesKey;
+    public DomainDTO() {
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public void setId(String id) {
+        this.id = id;
+    }
 
     public String getUserId() {
         return userId;
@@ -94,11 +84,11 @@ public class Domain extends BaseEntity {
         this.updatedAt = updatedAt;
     }
 
-    public String getAesKey() {
-        return aesKey;
+    public Integer getCredentialCount() {
+        return credentialCount;
     }
 
-    public void setAesKey(String aesKey) {
-        this.aesKey = aesKey;
+    public void setCredentialCount(Integer credentialCount) {
+        this.credentialCount = credentialCount;
     }
 }

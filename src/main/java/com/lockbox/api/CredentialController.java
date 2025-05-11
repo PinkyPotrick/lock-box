@@ -8,6 +8,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lockbox.dto.ResponseEntityDTO;
@@ -20,7 +21,7 @@ import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
 @RestController
-@RequestMapping("/api/credentials")
+@RequestMapping("/api/vaults/{vaultId}/credentials")
 public class CredentialController {
 
     @Autowired
@@ -30,120 +31,116 @@ public class CredentialController {
     private SecurityUtils securityUtils;
 
     @GetMapping
-    public ResponseEntityDTO<CredentialListResponseDTO> getAllCredentials() {
+    public ResponseEntityDTO<CredentialListResponseDTO> getAllCredentials(@PathVariable("vaultId") String vaultId,
+            @RequestParam(name = "page", required = false) Integer page,
+            @RequestParam(name = "size", required = false) Integer size,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "direction", required = false) String direction) {
         try {
             String userId = securityUtils.getCurrentUserId();
-            CredentialListResponseDTO credentialListResponse = credentialService.findAllCredentialsByUser(userId);
+            CredentialListResponseDTO credentialListResponse = credentialService.findAllCredentialsByVault(vaultId,
+                    userId, page, size, sort, direction);
+
             ResponseEntityBuilder<CredentialListResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
             return responseBuilder.setData(credentialListResponse).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch credentials").throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @GetMapping("/{id}")
-    public ResponseEntityDTO<CredentialResponseDTO> getCredentialById(@PathVariable String id) {
-        try {
-            String userId = securityUtils.getCurrentUserId();
-            CredentialResponseDTO credentialResponse = credentialService.findCredentialById(id, userId);
-            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
-        } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch credential").throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @PostMapping
-    public ResponseEntityDTO<CredentialResponseDTO> createCredential(@RequestBody CredentialRequestDTO requestDTO) {
-        try {
-            String userId = securityUtils.getCurrentUserId();
-            CredentialResponseDTO credentialResponse = credentialService.createCredential(requestDTO, userId);
-            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
-        } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to create credential").throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @PutMapping("/{id}")
-    public ResponseEntityDTO<CredentialResponseDTO> updateCredential(@PathVariable String id,
-            @RequestBody CredentialRequestDTO requestDTO) {
-        try {
-            String userId = securityUtils.getCurrentUserId();
-            CredentialResponseDTO credentialResponse = credentialService.updateCredential(id, requestDTO, userId);
-            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
-        } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to update credential").throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @DeleteMapping("/{id}")
-    public ResponseEntityDTO<Void> deleteCredential(@PathVariable String id) {
-        try {
-            String userId = securityUtils.getCurrentUserId();
-            credentialService.deleteCredential(id, userId);
-            ResponseEntityBuilder<Void> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.build();
-        } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to delete credential").throwInternalServerErrorException();
-            return null;
-        }
-    }
-
-    @PutMapping("/{id}/favorite")
-    public ResponseEntityDTO<CredentialResponseDTO> toggleFavorite(@PathVariable String id) {
-        try {
-            String userId = securityUtils.getCurrentUserId();
-            CredentialResponseDTO credentialResponse = credentialService.toggleFavorite(id, userId);
-            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
-        } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to update favorite status")
+            ExceptionBuilder.create().setMessage("Failed to fetch credentials: " + e.getMessage())
                     .throwInternalServerErrorException();
             return null;
         }
     }
 
-    @GetMapping("/domain/{domainId}")
-    public ResponseEntityDTO<CredentialListResponseDTO> getCredentialsByDomain(@PathVariable String domainId) {
+    @GetMapping("/{id}")
+    public ResponseEntityDTO<CredentialResponseDTO> getCredentialById(@PathVariable("vaultId") String vaultId,
+            @PathVariable("id") String id) {
         try {
             String userId = securityUtils.getCurrentUserId();
-            CredentialListResponseDTO credentialResponse = credentialService.findCredentialsByDomain(domainId, userId);
-            ResponseEntityBuilder<CredentialListResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
+            CredentialResponseDTO credential = credentialService.findCredentialById(id, vaultId, userId);
+
+            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
+            return responseBuilder.setData(credential).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch credentials").throwInternalServerErrorException();
+            ExceptionBuilder.create().setMessage("Failed to fetch credential: " + e.getMessage())
+                    .throwInternalServerErrorException();
             return null;
         }
     }
 
-    @GetMapping("/vault/{vaultId}")
-    public ResponseEntityDTO<CredentialListResponseDTO> getCredentialsByVault(@PathVariable String vaultId) {
+    @PostMapping
+    public ResponseEntityDTO<CredentialResponseDTO> createCredential(@PathVariable("vaultId") String vaultId,
+            @RequestBody CredentialRequestDTO requestDTO) {
         try {
             String userId = securityUtils.getCurrentUserId();
-            CredentialListResponseDTO credentialResponse = credentialService.findCredentialsByVault(vaultId, userId);
-            ResponseEntityBuilder<CredentialListResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
+            CredentialResponseDTO credential = credentialService.createCredential(requestDTO, vaultId, userId);
+
+            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
+            return responseBuilder.setData(credential).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch credentials").throwInternalServerErrorException();
+            ExceptionBuilder.create().setMessage("Failed to create credential: " + e.getMessage())
+                    .throwInternalServerErrorException();
             return null;
         }
     }
 
-    @GetMapping("/favorites")
-    public ResponseEntityDTO<CredentialListResponseDTO> getFavoriteCredentials() {
+    @PutMapping("/{id}")
+    public ResponseEntityDTO<CredentialResponseDTO> updateCredential(@PathVariable("vaultId") String vaultId,
+            @PathVariable("id") String id, @RequestBody CredentialRequestDTO requestDTO) {
         try {
             String userId = securityUtils.getCurrentUserId();
-            CredentialListResponseDTO credentialResponse = credentialService.findFavoriteCredentials(userId);
-            ResponseEntityBuilder<CredentialListResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
-            return responseBuilder.setData(credentialResponse).build();
+            CredentialResponseDTO credential = credentialService.updateCredential(id, requestDTO, vaultId, userId);
+
+            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
+            return responseBuilder.setData(credential).build();
         } catch (Exception e) {
-            ExceptionBuilder.create().setMessage("Failed to fetch favorite credentials")
+            ExceptionBuilder.create().setMessage("Failed to update credential: " + e.getMessage())
+                    .throwInternalServerErrorException();
+            return null;
+        }
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntityDTO<Void> deleteCredential(@PathVariable("vaultId") String vaultId,
+            @PathVariable("id") String id) {
+        try {
+            String userId = securityUtils.getCurrentUserId();
+            credentialService.deleteCredential(id, vaultId, userId);
+
+            ResponseEntityBuilder<Void> responseBuilder = new ResponseEntityBuilder<>();
+            return responseBuilder.build();
+        } catch (Exception e) {
+            ExceptionBuilder.create().setMessage("Failed to delete credential: " + e.getMessage())
+                    .throwInternalServerErrorException();
+            return null;
+        }
+    }
+
+    @PutMapping("/{id}/favorite")
+    public ResponseEntityDTO<CredentialResponseDTO> toggleFavoriteStatus(@PathVariable("vaultId") String vaultId,
+            @PathVariable("id") String id) {
+        try {
+            String userId = securityUtils.getCurrentUserId();
+            CredentialResponseDTO credential = credentialService.toggleFavoriteStatus(id, vaultId, userId);
+
+            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
+            return responseBuilder.setData(credential).build();
+        } catch (Exception e) {
+            ExceptionBuilder.create().setMessage("Failed to update favorite status: " + e.getMessage())
+                    .throwInternalServerErrorException();
+            return null;
+        }
+    }
+
+    @PutMapping("/{id}/used")
+    public ResponseEntityDTO<CredentialResponseDTO> updateLastUsed(@PathVariable("vaultId") String vaultId,
+            @PathVariable("id") String id) {
+        try {
+            String userId = securityUtils.getCurrentUserId();
+            CredentialResponseDTO credential = credentialService.updateLastUsed(id, vaultId, userId);
+
+            ResponseEntityBuilder<CredentialResponseDTO> responseBuilder = new ResponseEntityBuilder<>();
+            return responseBuilder.setData(credential).build();
+        } catch (Exception e) {
+            ExceptionBuilder.create().setMessage("Failed to update last used timestamp: " + e.getMessage())
                     .throwInternalServerErrorException();
             return null;
         }

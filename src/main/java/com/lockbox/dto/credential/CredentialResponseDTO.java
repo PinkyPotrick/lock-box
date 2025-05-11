@@ -2,33 +2,33 @@ package com.lockbox.dto.credential;
 
 import java.time.LocalDateTime;
 
+import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
+
 public class CredentialResponseDTO {
 
     private String id;
-
     private String userId;
-
-    private String domainId;
-
     private String vaultId;
-
-    private String username;
-
-    private String email;
-
-    private String password;
-
-    private String notes;
-
-    private String category;
-
-    private Boolean favorite;
-
+    private String domainId;
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
-
     private LocalDateTime lastUsed;
+
+    // Domain info (not encrypted)
+    private String domainName;
+    private String domainUrl;
+
+    // Encrypted fields
+    private EncryptedDataAesCbcDTO encryptedUsername;
+    private EncryptedDataAesCbcDTO encryptedEmail;
+    private EncryptedDataAesCbcDTO encryptedPassword;
+    private EncryptedDataAesCbcDTO encryptedNotes;
+    private EncryptedDataAesCbcDTO encryptedCategory;
+    private EncryptedDataAesCbcDTO encryptedFavorite;
+    private String helperAesKey;
+
+    public CredentialResponseDTO() {
+    }
 
     public String getId() {
         return id;
@@ -46,14 +46,6 @@ public class CredentialResponseDTO {
         this.userId = userId;
     }
 
-    public String getDomainId() {
-        return domainId;
-    }
-
-    public void setDomainId(String domainId) {
-        this.domainId = domainId;
-    }
-
     public String getVaultId() {
         return vaultId;
     }
@@ -62,52 +54,12 @@ public class CredentialResponseDTO {
         this.vaultId = vaultId;
     }
 
-    public String getUsername() {
-        return username;
+    public String getDomainId() {
+        return domainId;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
-    }
-
-    public String getEmail() {
-        return email;
-    }
-
-    public void setEmail(String email) {
-        this.email = email;
-    }
-
-    public String getPassword() {
-        return password;
-    }
-
-    public void setPassword(String password) {
-        this.password = password;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public String getCategory() {
-        return category;
-    }
-
-    public void setCategory(String category) {
-        this.category = category;
-    }
-
-    public Boolean getFavorite() {
-        return favorite;
-    }
-
-    public void setFavorite(Boolean favorite) {
-        this.favorite = favorite;
+    public void setDomainId(String domainId) {
+        this.domainId = domainId;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -132,5 +84,77 @@ public class CredentialResponseDTO {
 
     public void setLastUsed(LocalDateTime lastUsed) {
         this.lastUsed = lastUsed;
+    }
+
+    public String getDomainName() {
+        return domainName;
+    }
+
+    public void setDomainName(String domainName) {
+        this.domainName = domainName;
+    }
+
+    public String getDomainUrl() {
+        return domainUrl;
+    }
+
+    public void setDomainUrl(String domainUrl) {
+        this.domainUrl = domainUrl;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedUsername() {
+        return encryptedUsername;
+    }
+
+    public void setEncryptedUsername(EncryptedDataAesCbcDTO encryptedUsername) {
+        this.encryptedUsername = encryptedUsername;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedEmail() {
+        return encryptedEmail;
+    }
+
+    public void setEncryptedEmail(EncryptedDataAesCbcDTO encryptedEmail) {
+        this.encryptedEmail = encryptedEmail;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedPassword() {
+        return encryptedPassword;
+    }
+
+    public void setEncryptedPassword(EncryptedDataAesCbcDTO encryptedPassword) {
+        this.encryptedPassword = encryptedPassword;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedNotes() {
+        return encryptedNotes;
+    }
+
+    public void setEncryptedNotes(EncryptedDataAesCbcDTO encryptedNotes) {
+        this.encryptedNotes = encryptedNotes;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedCategory() {
+        return encryptedCategory;
+    }
+
+    public void setEncryptedCategory(EncryptedDataAesCbcDTO encryptedCategory) {
+        this.encryptedCategory = encryptedCategory;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedFavorite() {
+        return encryptedFavorite;
+    }
+
+    public void setEncryptedFavorite(EncryptedDataAesCbcDTO encryptedFavorite) {
+        this.encryptedFavorite = encryptedFavorite;
+    }
+
+    public String getHelperAesKey() {
+        return helperAesKey;
+    }
+
+    public void setHelperAesKey(String helperAesKey) {
+        this.helperAesKey = helperAesKey;
     }
 }

@@ -5,12 +5,21 @@ import java.util.List;
 public class CredentialListResponseDTO {
 
     private List<CredentialResponseDTO> credentials;
+    private int totalCount;
+    private String vaultName; // TODO maybe encrypt this field too
 
-    private long totalCount;
+    public CredentialListResponseDTO() {
+    }
 
-    public CredentialListResponseDTO(List<CredentialResponseDTO> credentials, long totalCount) {
+    public CredentialListResponseDTO(List<CredentialResponseDTO> credentials, int totalCount) {
         this.credentials = credentials;
         this.totalCount = totalCount;
+    }
+
+    public CredentialListResponseDTO(List<CredentialResponseDTO> credentials, int totalCount, String vaultName) {
+        this.credentials = credentials;
+        this.totalCount = totalCount;
+        this.vaultName = vaultName;
     }
 
     public List<CredentialResponseDTO> getCredentials() {
@@ -21,11 +30,19 @@ public class CredentialListResponseDTO {
         this.credentials = credentials;
     }
 
-    public long getTotalCount() {
+    public int getTotalCount() {
         return totalCount;
     }
 
-    public void setTotalCount(long totalCount) {
+    public void setTotalCount(int totalCount) {
         this.totalCount = totalCount;
+    }
+
+    public String getVaultName() {
+        return vaultName;
+    }
+
+    public void setVaultName(String vaultName) {
+        this.vaultName = vaultName;
     }
 }

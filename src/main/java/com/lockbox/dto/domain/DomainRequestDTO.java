@@ -1,18 +1,18 @@
 package com.lockbox.dto.domain;
 
+import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
+
 public class DomainRequestDTO {
 
     private String userId;
-
-    private String name;
-
-    private String url;
-
     private String logo;
+    private EncryptedDataAesCbcDTO encryptedName;
+    private EncryptedDataAesCbcDTO encryptedUrl;
+    private EncryptedDataAesCbcDTO encryptedNotes;
+    private String helperAesKey;
 
-    private String notes;
-
-    private Boolean verified;
+    public DomainRequestDTO() {
+    }
 
     public String getUserId() {
         return userId;
@@ -20,22 +20,6 @@ public class DomainRequestDTO {
 
     public void setUserId(String userId) {
         this.userId = userId;
-    }
-
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
     }
 
     public String getLogo() {
@@ -46,19 +30,35 @@ public class DomainRequestDTO {
         this.logo = logo;
     }
 
-    public String getNotes() {
-        return notes;
+    public EncryptedDataAesCbcDTO getEncryptedName() {
+        return encryptedName;
     }
 
-    public void setNotes(String notes) {
-        this.notes = notes;
+    public void setEncryptedName(EncryptedDataAesCbcDTO encryptedName) {
+        this.encryptedName = encryptedName;
     }
 
-    public Boolean getVerified() {
-        return verified;
+    public EncryptedDataAesCbcDTO getEncryptedUrl() {
+        return encryptedUrl;
     }
 
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
+    public void setEncryptedUrl(EncryptedDataAesCbcDTO encryptedUrl) {
+        this.encryptedUrl = encryptedUrl;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedNotes() {
+        return encryptedNotes;
+    }
+
+    public void setEncryptedNotes(EncryptedDataAesCbcDTO encryptedNotes) {
+        this.encryptedNotes = encryptedNotes;
+    }
+
+    public String getHelperAesKey() {
+        return helperAesKey;
+    }
+
+    public void setHelperAesKey(String helperAesKey) {
+        this.helperAesKey = helperAesKey;
     }
 }

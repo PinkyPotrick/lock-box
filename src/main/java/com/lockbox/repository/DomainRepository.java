@@ -1,17 +1,22 @@
 package com.lockbox.repository;
 
-import com.lockbox.model.Domain;
+import java.util.List;
+
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
-import java.util.List;
-import java.util.Optional;
+import com.lockbox.model.Domain;
 
+/**
+ * Repository interface for {@link Domain} entities.
+ */
 @Repository
 public interface DomainRepository extends JpaRepository<Domain, String> {
 
     /**
-     * Find domains by user ID
+     * Find all domains by user ID
      * 
      * @param userId The user ID
      * @return List of domains
@@ -19,22 +24,13 @@ public interface DomainRepository extends JpaRepository<Domain, String> {
     List<Domain> findByUserId(String userId);
 
     /**
-     * Find domain by URL and user ID
+     * Find all domains by user ID with pagination
      * 
-     * @param url    The normalized URL
-     * @param userId The user ID
-     * @return Optional domain
+     * @param userId   The user ID
+     * @param pageable Pagination information
+     * @return Page of domains
      */
-    Optional<Domain> findByUrlAndUserId(String url, String userId);
-
-    /**
-     * Find domains by name containing search string and user ID
-     * 
-     * @param name   The search string
-     * @param userId The user ID
-     * @return List of domains
-     */
-    List<Domain> findByNameContainingAndUserId(String name, String userId);
+    Page<Domain> findByUserId(String userId, Pageable pageable);
 
     /**
      * Count domains by user ID

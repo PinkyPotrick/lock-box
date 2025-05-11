@@ -6,10 +6,6 @@ import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.Table;
 
-/**
- * Entity representing stored credentials (username/password) for a domain. All sensitive fields are encrypted in the
- * database.
- */
 @Entity
 @Table(name = "credentials")
 public class Credential extends BaseEntity {
@@ -34,24 +30,26 @@ public class Credential extends BaseEntity {
     private LocalDateTime lastUsed;
 
     // All fields below are encrypted in the database
-
-    @Column(name = "username", nullable = false)
+    @Column(name = "username", nullable = false, length = 1024)
     private String username;
 
-    @Column(name = "email")
+    @Column(name = "email", length = 1024)
     private String email;
 
-    @Column(name = "password", nullable = false)
+    @Column(name = "password", nullable = false, length = 1024)
     private String password;
 
     @Column(name = "notes", columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "category")
+    @Column(name = "category", length = 255)
     private String category;
 
-    @Column(name = "favorite")
+    @Column(name = "favorite", length = 255)
     private String favorite;
+
+    @Column(name = "aes_key", nullable = false, length = 344)
+    private String aesKey;
 
     public String getUserId() {
         return userId;
@@ -147,5 +145,13 @@ public class Credential extends BaseEntity {
 
     public void setFavorite(String favorite) {
         this.favorite = favorite;
+    }
+
+    public String getAesKey() {
+        return aesKey;
+    }
+
+    public void setAesKey(String aesKey) {
+        this.aesKey = aesKey;
     }
 }

@@ -1,39 +1,20 @@
 package com.lockbox.dto.credential;
 
+import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
+
 public class CredentialRequestDTO {
 
-    private String userId;
-
-    private String domainId;
-
     private String vaultId;
+    private String domainId;
+    private EncryptedDataAesCbcDTO encryptedUsername;
+    private EncryptedDataAesCbcDTO encryptedEmail;
+    private EncryptedDataAesCbcDTO encryptedPassword;
+    private EncryptedDataAesCbcDTO encryptedNotes;
+    private EncryptedDataAesCbcDTO encryptedCategory;
+    private EncryptedDataAesCbcDTO encryptedFavorite;
+    private String helperAesKey;
 
-    private String username;
-
-    private String email;
-
-    private String password;
-
-    private String notes;
-
-    private String category;
-
-    private Boolean favorite;
-
-    public String getUserId() {
-        return userId;
-    }
-
-    public void setUserId(String userId) {
-        this.userId = userId;
-    }
-
-    public String getDomainId() {
-        return domainId;
-    }
-
-    public void setDomainId(String domainId) {
-        this.domainId = domainId;
+    public CredentialRequestDTO() {
     }
 
     public String getVaultId() {
@@ -44,51 +25,67 @@ public class CredentialRequestDTO {
         this.vaultId = vaultId;
     }
 
-    public String getUsername() {
-        return username;
+    public String getDomainId() {
+        return domainId;
     }
 
-    public void setUsername(String username) {
-        this.username = username;
+    public void setDomainId(String domainId) {
+        this.domainId = domainId;
     }
 
-    public String getEmail() {
-        return email;
+    public EncryptedDataAesCbcDTO getEncryptedUsername() {
+        return encryptedUsername;
     }
 
-    public void setEmail(String email) {
-        this.email = email;
+    public void setEncryptedUsername(EncryptedDataAesCbcDTO encryptedUsername) {
+        this.encryptedUsername = encryptedUsername;
     }
 
-    public String getPassword() {
-        return password;
+    public EncryptedDataAesCbcDTO getEncryptedEmail() {
+        return encryptedEmail;
     }
 
-    public void setPassword(String password) {
-        this.password = password;
+    public void setEncryptedEmail(EncryptedDataAesCbcDTO encryptedEmail) {
+        this.encryptedEmail = encryptedEmail;
     }
 
-    public String getNotes() {
-        return notes;
+    public EncryptedDataAesCbcDTO getEncryptedPassword() {
+        return encryptedPassword;
     }
 
-    public void setNotes(String notes) {
-        this.notes = notes;
+    public void setEncryptedPassword(EncryptedDataAesCbcDTO encryptedPassword) {
+        this.encryptedPassword = encryptedPassword;
     }
 
-    public String getCategory() {
-        return category;
+    public EncryptedDataAesCbcDTO getEncryptedNotes() {
+        return encryptedNotes;
     }
 
-    public void setCategory(String category) {
-        this.category = category;
+    public void setEncryptedNotes(EncryptedDataAesCbcDTO encryptedNotes) {
+        this.encryptedNotes = encryptedNotes;
     }
 
-    public Boolean getFavorite() {
-        return favorite;
+    public EncryptedDataAesCbcDTO getEncryptedCategory() {
+        return encryptedCategory;
     }
 
-    public void setFavorite(Boolean favorite) {
-        this.favorite = favorite;
+    public void setEncryptedCategory(EncryptedDataAesCbcDTO encryptedCategory) {
+        this.encryptedCategory = encryptedCategory;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedFavorite() {
+        return encryptedFavorite;
+    }
+
+    public void setEncryptedFavorite(EncryptedDataAesCbcDTO encryptedFavorite) {
+        this.encryptedFavorite = encryptedFavorite;
+    }
+
+    public String getHelperAesKey() {
+        return helperAesKey;
+    }
+
+    public void setHelperAesKey(String helperAesKey) {
+        this.helperAesKey = helperAesKey;
     }
 }

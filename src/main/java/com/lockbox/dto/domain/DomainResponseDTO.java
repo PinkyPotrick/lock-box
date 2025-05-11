@@ -2,29 +2,23 @@ package com.lockbox.dto.domain;
 
 import java.time.LocalDateTime;
 
+import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
+
 public class DomainResponseDTO {
 
     private String id;
-
     private String userId;
-
-    private String name;
-
-    private String url;
-
     private String logo;
-
-    private String notes;
-
-    private Boolean verified;
-
     private LocalDateTime createdAt;
-
     private LocalDateTime updatedAt;
-
-    private LocalDateTime lastUsed;
-
     private Integer credentialCount;
+    private EncryptedDataAesCbcDTO encryptedName;
+    private EncryptedDataAesCbcDTO encryptedUrl;
+    private EncryptedDataAesCbcDTO encryptedNotes;
+    private String helperAesKey;
+
+    public DomainResponseDTO() {
+    }
 
     public String getId() {
         return id;
@@ -42,44 +36,12 @@ public class DomainResponseDTO {
         this.userId = userId;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
-    }
-
-    public String getUrl() {
-        return url;
-    }
-
-    public void setUrl(String url) {
-        this.url = url;
-    }
-
     public String getLogo() {
         return logo;
     }
 
     public void setLogo(String logo) {
         this.logo = logo;
-    }
-
-    public String getNotes() {
-        return notes;
-    }
-
-    public void setNotes(String notes) {
-        this.notes = notes;
-    }
-
-    public Boolean getVerified() {
-        return verified;
-    }
-
-    public void setVerified(Boolean verified) {
-        this.verified = verified;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -98,19 +60,43 @@ public class DomainResponseDTO {
         this.updatedAt = updatedAt;
     }
 
-    public LocalDateTime getLastUsed() {
-        return lastUsed;
-    }
-
-    public void setLastUsed(LocalDateTime lastUsed) {
-        this.lastUsed = lastUsed;
-    }
-
     public Integer getCredentialCount() {
         return credentialCount;
     }
 
     public void setCredentialCount(Integer credentialCount) {
         this.credentialCount = credentialCount;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedName() {
+        return encryptedName;
+    }
+
+    public void setEncryptedName(EncryptedDataAesCbcDTO encryptedName) {
+        this.encryptedName = encryptedName;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedUrl() {
+        return encryptedUrl;
+    }
+
+    public void setEncryptedUrl(EncryptedDataAesCbcDTO encryptedUrl) {
+        this.encryptedUrl = encryptedUrl;
+    }
+
+    public EncryptedDataAesCbcDTO getEncryptedNotes() {
+        return encryptedNotes;
+    }
+
+    public void setEncryptedNotes(EncryptedDataAesCbcDTO encryptedNotes) {
+        this.encryptedNotes = encryptedNotes;
+    }
+
+    public String getHelperAesKey() {
+        return helperAesKey;
+    }
+
+    public void setHelperAesKey(String helperAesKey) {
+        this.helperAesKey = helperAesKey;
     }
 }

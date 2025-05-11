@@ -8,27 +8,30 @@ import org.springframework.stereotype.Component;
 
 import com.lockbox.model.Domain;
 
+/**
+ * Mapper class for converting between {@link Domain} entities and DTOs.
+ */
 @Component
 public class DomainMapper {
 
     /**
-     * Convert a Domain entity to a DomainResponseDTO
+     * Convert a {@link Domain} entity to a {@link DomainDTO}
      * 
-     * @param domain The Domain entity
-     * @return DomainResponseDTO
+     * @param domain - The Domain entity
+     * @return {@link DomainDTO} representation of the domain
      */
-    public DomainResponseDTO toResponseDTO(Domain domain) {
+    public DomainDTO toDTO(Domain domain) {
         if (domain == null) {
             return null;
         }
 
-        DomainResponseDTO dto = new DomainResponseDTO();
+        DomainDTO dto = new DomainDTO();
         dto.setId(domain.getId());
         dto.setUserId(domain.getUserId());
         dto.setName(domain.getName());
         dto.setUrl(domain.getUrl());
-        dto.setLogo(domain.getLogo());
         dto.setNotes(domain.getNotes());
+        dto.setLogo(domain.getLogo());
         dto.setCreatedAt(domain.getCreatedAt());
         dto.setUpdatedAt(domain.getUpdatedAt());
 
@@ -36,26 +39,26 @@ public class DomainMapper {
     }
 
     /**
-     * Convert a list of Domain entities to a list of DomainResponseDTOs
+     * Convert a list of {@link Domain} entities to a list of {@link DomainDTO}s
      * 
-     * @param domains The list of Domain entities
-     * @return List of DomainResponseDTOs
+     * @param domains - The list of Domain entities
+     * @return List of {@link DomainDTO}s
      */
-    public List<DomainResponseDTO> toResponseDTOList(List<Domain> domains) {
+    public List<DomainDTO> toDTOList(List<Domain> domains) {
         if (domains == null) {
             return null;
         }
 
-        return domains.stream().map(this::toResponseDTO).collect(Collectors.toList());
+        return domains.stream().map(this::toDTO).collect(Collectors.toList());
     }
 
     /**
-     * Convert a DomainRequestDTO to a Domain entity
+     * Convert a {@link DomainDTO} to a {@link Domain} entity
      * 
-     * @param dto The DomainRequestDTO
-     * @return Domain entity
+     * @param dto - The DomainDTO
+     * @return {@link Domain} entity
      */
-    public Domain toEntity(DomainRequestDTO dto) {
+    public Domain toEntity(DomainDTO dto) {
         if (dto == null) {
             return null;
         }
@@ -64,28 +67,24 @@ public class DomainMapper {
         domain.setUserId(dto.getUserId());
         domain.setName(dto.getName());
         domain.setUrl(dto.getUrl());
-        domain.setLogo(dto.getLogo());
         domain.setNotes(dto.getNotes());
-        domain.setCreatedAt(LocalDateTime.now());
-        domain.setUpdatedAt(LocalDateTime.now());
+        domain.setLogo(dto.getLogo());
+        domain.setCreatedAt(dto.getCreatedAt() != null ? dto.getCreatedAt() : LocalDateTime.now());
+        domain.setUpdatedAt(dto.getUpdatedAt() != null ? dto.getUpdatedAt() : LocalDateTime.now());
 
         return domain;
     }
 
     /**
-     * Update a Domain entity from a DomainRequestDTO
+     * Update a {@link Domain} entity from a {@link DomainDTO}
      * 
-     * @param entity The existing Domain entity
-     * @param dto    The DomainRequestDTO with updated data
-     * @return Updated Domain entity
+     * @param entity - The existing Domain entity
+     * @param dto    - The DomainDTO with updated data
+     * @return Updated {@link Domain} entity
      */
-    public Domain updateEntityFromDTO(Domain entity, DomainRequestDTO dto) {
+    public Domain updateEntityFromDTO(Domain entity, DomainDTO dto) {
         if (entity == null || dto == null) {
             return entity;
-        }
-
-        if (dto.getUserId() != null) {
-            entity.setUserId(dto.getUserId());
         }
 
         if (dto.getName() != null) {
@@ -96,12 +95,12 @@ public class DomainMapper {
             entity.setUrl(dto.getUrl());
         }
 
-        if (dto.getLogo() != null) {
-            entity.setLogo(dto.getLogo());
-        }
-
         if (dto.getNotes() != null) {
             entity.setNotes(dto.getNotes());
+        }
+
+        if (dto.getLogo() != null) {
+            entity.setLogo(dto.getLogo());
         }
 
         entity.setUpdatedAt(LocalDateTime.now());
