@@ -10,6 +10,12 @@ import org.springframework.stereotype.Service;
 import com.lockbox.dto.authentication.login.UserLoginDTO;
 import com.lockbox.dto.authentication.login.UserLoginRequestDTO;
 import com.lockbox.dto.authentication.login.UserLoginResponseDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeCompleteRequestDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeCompleteResponseDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeCredentialsDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeInitDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeInitRequestDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeInitResponseDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationRequestDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationResponseDTO;
@@ -242,5 +248,157 @@ public class SrpServiceImpl implements SrpService {
                 clientPublicKey);
         logger.info("User authenticated successfully: {}", decryptedUser.getId());
         return userLoginResponse;
+    }
+
+    /**
+     * Initiates a password change process using the SRP (Secure Remote Password) protocol by generating server-side
+     * values.
+     *
+     * This method represents the first step in the password change process and follows the same SRP protocol pattern
+     * used during login. It decrypts the received password change request data, retrieves and decrypts the user's
+     * current verifier, and generates a new server-side ephemeral value B. These values are stored in the session with
+     * a distinct namespace to separate them from regular authentication data, and the server's public value B along
+     * with the user's salt are returned to the client.
+     *
+     * The client will use these values, along with knowledge of the current password, to generate a proof that it knows
+     * the current password. This approach ensures that only users who know their current password can change it.
+     *
+     * @param passwordChangeInit - The encrypted password change initialization data received from the client, including
+     *                           the client's public ephemeral value A and derived username.
+     * @return A {@link PasswordChangeInitResponseDTO} containing the server's public ephemeral value B and the user's
+     *         salt for the current password, encrypted for secure transmission.
+     * @throws Exception If an error occurs during decryption, user retrieval, or SRP computation.
+     */
+    @Override
+    public PasswordChangeInitResponseDTO initiatePasswordChange(PasswordChangeInitRequestDTO passwordChangeInit)
+            throws Exception {
+        // Decrypt the received encrypted DTO data
+        PasswordChangeInitDTO initDTO = srpEncryptionService.decryptPasswordChangeInitRequestDTO(passwordChangeInit);
+        logger.info("Password change initiated for user: {}", initDTO.getDerivedUsername());
+
+        // Retrieve the user information and decrypt the user data
+        User encryptedUser = userRepository.findByUsername(initDTO.getDerivedUsername());
+        if (encryptedUser == null) {
+            logger.warn("Password change attempt for non-existent user: {}", initDTO.getDerivedUsername());
+            throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_CREDENTIALS);
+        }
+        User decryptedUser = userServerEncryptionService.decryptServerData(encryptedUser);
+        BigInteger userVerifier = new BigInteger(decryptedUser.getVerifier(), 16);
+
+        // Compute SRP variables
+        SrpUtils srpUtils = new SrpUtils();
+        BigInteger serverPrivateValueB = srpUtils.generateRandomPrivateValue();
+        BigInteger serverPublicValueB = srpUtils.computeB(userVerifier, serverPrivateValueB);
+
+        // Store temporary user values in session with distinct namespace for password change
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.PASSWORD_CLIENT_PUBLIC_VALUE_A,
+                initDTO.getClientPublicValueA());
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.PASSWORD_SERVER_PUBLIC_VALUE_B, serverPublicValueB);
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.PASSWORD_SERVER_PRIVATE_VALUE_B,
+                serverPrivateValueB);
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.PASSWORD_DERIVED_USERNAME,
+                initDTO.getDerivedUsername());
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.PASSWORD_USER_ID, decryptedUser.getId());
+
+        // Create the response with the encrypted data
+        PasswordChangeInitResponseDTO response = srpEncryptionService
+                .encryptPasswordChangeInitResponseDTO(serverPublicValueB, decryptedUser.getSalt());
+        logger.info("Password change handshake completed for user: {}", initDTO.getDerivedUsername());
+        return response;
+    }
+
+    /**
+     * Completes the password change process by verifying the user's knowledge of their current password and updating
+     * their credentials.
+     *
+     * This method handles the second phase of the password change SRP protocol. It retrieves the stored session values
+     * from the password change initiation step and verifies that the client has provided a valid proof of knowledge
+     * (M1) of the current password. This proof is calculated using the same SRP authentication mechanism used during
+     * login.
+     *
+     * If the client's proof matches the server's calculated proof, the method updates the user's credentials with the
+     * new verifier, salt, and derived username provided in the request. These values represent the user's new password.
+     * The method then generates a server proof (M2) as confirmation of the successful change and returns it to the
+     * client.
+     *
+     * This two-step process ensures that: 1. Only users who know their current password can change it 2. The new
+     * password is never transmitted in plaintext 3. The server can verify the legitimacy of the request without knowing
+     * either the old or new passwords
+     *
+     * @param completeRequest - The password change completion request, containing proof of knowledge of the current
+     *                        password and the new verifier and salt for the new password.
+     * @return A {@link PasswordChangeCompleteResponseDTO} containing the server's proof (M2) and success status,
+     *         encrypted for secure transmission back to the client.
+     * @throws Exception If an error occurs during verification, user update, or if the client's proof is invalid.
+     */
+    @Override
+    public PasswordChangeCompleteResponseDTO completePasswordChange(PasswordChangeCompleteRequestDTO completeRequest)
+            throws Exception {
+        // Retrieve session data for password change
+        BigInteger clientPublicValueA = (BigInteger) httpSession
+                .getAttribute(AppConstants.HttpSessionAttributes.PASSWORD_CLIENT_PUBLIC_VALUE_A);
+        BigInteger serverPublicValueB = (BigInteger) httpSession
+                .getAttribute(AppConstants.HttpSessionAttributes.PASSWORD_SERVER_PUBLIC_VALUE_B);
+        BigInteger serverPrivateValueB = (BigInteger) httpSession
+                .getAttribute(AppConstants.HttpSessionAttributes.PASSWORD_SERVER_PRIVATE_VALUE_B);
+        String derivedUsername = (String) httpSession
+                .getAttribute(AppConstants.HttpSessionAttributes.PASSWORD_DERIVED_USERNAME);
+        String userId = (String) httpSession.getAttribute(AppConstants.HttpSessionAttributes.PASSWORD_USER_ID);
+
+        // Security check for null session attributes
+        if (clientPublicValueA == null || serverPublicValueB == null || serverPrivateValueB == null
+                || derivedUsername == null || userId == null) {
+            logger.warn("Password change attempt with invalid session");
+            throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_SESSION);
+        }
+
+        // Retrieve the user information
+        User encryptedUser = userRepository.findByUsername(derivedUsername);
+        if (encryptedUser == null) {
+            logger.warn("Password change attempt for missing user: {}", derivedUsername);
+            throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_SESSION);
+        }
+        User decryptedUser = userServerEncryptionService.decryptServerData(encryptedUser);
+        BigInteger userVerifier = new BigInteger(decryptedUser.getVerifier(), 16);
+
+        // Decrypt the client's data including proof and new credentials
+        PasswordChangeCredentialsDTO credentials = srpEncryptionService
+                .decryptPasswordChangeCredentials(completeRequest);
+
+        // Compute SRP variables for verifying current password
+        SrpUtils srpUtils = new SrpUtils();
+        BigInteger scramblingParameterU = srpUtils.computeU(serverPublicValueB);
+        BigInteger sharedSecretS = srpUtils.computeS(clientPublicValueA, userVerifier, scramblingParameterU,
+                serverPrivateValueB);
+        String sessionKeyK = srpUtils.computeK(sharedSecretS);
+        String serverProofM1 = srpUtils.computeM1(derivedUsername, decryptedUser.getSalt(), clientPublicValueA,
+                serverPublicValueB, sessionKeyK);
+
+        // Compare the client's M1 with the server's M1
+        if (!serverProofM1.equals(credentials.getClientProofM1())) {
+            logger.warn("Password change failed - invalid proof for user: {}", userId);
+            authenticationService.recordFailedAuthentication(userId, AppConstants.AuthenticationErrors.INVALID_PROOF);
+            throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_PROOF);
+        }
+
+        // Compute server proof for response
+        String serverProofM2 = srpUtils.computeM2(clientPublicValueA, serverProofM1, sessionKeyK);
+
+        // Update the user with new credentials
+        decryptedUser.setUsername(credentials.getNewDerivedUsername());
+        decryptedUser.setSalt(credentials.getNewSalt());
+        decryptedUser.setVerifier(credentials.getNewVerifier());
+
+        // Re-encrypt and save
+        User updatedEncryptedUser = userServerEncryptionService.encryptServerData(decryptedUser);
+        userRepository.save(updatedEncryptedUser);
+
+        // Clear session attributes after successful authentication
+        httpSession.invalidate();
+
+        logger.info("Password successfully changed for user ID: {}", userId);
+
+        // Create and return the encrypted response
+        return srpEncryptionService.encryptPasswordChangeCompleteResponseDTO(serverProofM2, true, decryptedUser);
     }
 }

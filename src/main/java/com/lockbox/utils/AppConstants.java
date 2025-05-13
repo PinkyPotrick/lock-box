@@ -127,12 +127,20 @@ public class AppConstants {
 
    // HTTP session constants
    public static class HttpSessionAttributes {
+      // User authentication attributes
       public static final String CLIENT_PUBLIC_VALUE_A = "clientPublicValueA";
       public static final String SERVER_PUBLIC_VALUE_B = "serverPublicValueB";
       public static final String SERVER_PRIVATE_VALUE_B = "serverPrivateValueB";
       public static final String DERIVED_USERNAME = "derivedUsername";
       public static final String DERIVED_KEY = "derivedKey";
       public static final String CLIENT_PUBLIC_KEY = "clientPublicKey";
+
+      // User password change attributes
+      public static final String PASSWORD_CLIENT_PUBLIC_VALUE_A = "passwordClientPublicValueA";
+      public static final String PASSWORD_SERVER_PUBLIC_VALUE_B = "passwordServerPublicValueB";
+      public static final String PASSWORD_SERVER_PRIVATE_VALUE_B = "passwordServerPrivateValueB";
+      public static final String PASSWORD_DERIVED_USERNAME = "passwordDerivedUsername";
+      public static final String PASSWORD_USER_ID = "passwordUserId";
    }
 
    // Authentication error messages

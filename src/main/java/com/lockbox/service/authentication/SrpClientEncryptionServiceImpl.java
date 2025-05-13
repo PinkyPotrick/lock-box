@@ -10,6 +10,12 @@ import org.springframework.stereotype.Service;
 import com.lockbox.dto.authentication.login.UserLoginDTO;
 import com.lockbox.dto.authentication.login.UserLoginRequestDTO;
 import com.lockbox.dto.authentication.login.UserLoginResponseDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeCompleteRequestDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeCompleteResponseDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeCredentialsDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeInitDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeInitRequestDTO;
+import com.lockbox.dto.authentication.password.PasswordChangeInitResponseDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationRequestDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationResponseDTO;
@@ -18,6 +24,7 @@ import com.lockbox.dto.authentication.srp.SrpParamsRequestDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsResponseDTO;
 import com.lockbox.dto.encryption.EncryptedDataAesCbcMapper;
 import com.lockbox.model.EncryptedDataAesCbc;
+import com.lockbox.model.User;
 import com.lockbox.service.encryption.GenericEncryptionServiceImpl;
 import com.lockbox.utils.EncryptionUtils;
 
@@ -97,21 +104,21 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     /**
      * Decrypts the SRP parameters received from the client on frontend.
      * 
-     * @param encryprtedSrpParams - The encrypted SRP parameters received from the client, including the client's public
-     *                            value (A) and username.
+     * @param encryptedSrpParams - The encrypted SRP parameters received from the client, including the client's public
+     *                           value (A) and username.
      * @return A {@link SrpParamsDTO} containing the decrypted SRP parameters.
      * @throws Exception
      */
     @Override
-    public SrpParamsDTO decryptSrpParamsRequestDTO(SrpParamsRequestDTO encryprtedSrpParams) throws Exception {
+    public SrpParamsDTO decryptSrpParamsRequestDTO(SrpParamsRequestDTO encryptedSrpParams) throws Exception {
         String derivedUsername = genericEncryptionService
-                .decryptDTOWithRSA(encryprtedSrpParams.getEncryptedDerivedUsername(), String.class);
+                .decryptDTOWithRSA(encryptedSrpParams.getEncryptedDerivedUsername(), String.class);
         String clientPublicKey = genericEncryptionService.decryptDTOWithAESCBC(
-                encryprtedSrpParams.getEncryptedClientPublicKey(), String.class, encryprtedSrpParams.getHelperAesKey());
+                encryptedSrpParams.getEncryptedClientPublicKey(), String.class, encryptedSrpParams.getHelperAesKey());
         BigInteger clientPublicValueA = genericEncryptionService.decryptDTOWithAESCBC(
-                encryprtedSrpParams.getEncryptedClientPublicValueA(), BigInteger.class,
-                encryprtedSrpParams.getHelperAesKey());
-        String derivedKey = genericEncryptionService.decryptDTOWithRSA(encryprtedSrpParams.getDerivedKey(),
+                encryptedSrpParams.getEncryptedClientPublicValueA(), BigInteger.class,
+                encryptedSrpParams.getHelperAesKey());
+        String derivedKey = genericEncryptionService.decryptDTOWithRSA(encryptedSrpParams.getDerivedKey(),
                 String.class);
 
         SrpParamsDTO srpParamsDTO = new SrpParamsDTO();
@@ -157,11 +164,11 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
      */
     @Override
     public UserLoginDTO decryptUserLoginRequestDTO(UserLoginRequestDTO encryptedUserLogin) throws Exception {
-        String clientProofM = genericEncryptionService.decryptDTOWithRSA(encryptedUserLogin.getEncryptedClientProofM1(),
-                String.class);
+        String clientProofM1 = genericEncryptionService
+                .decryptDTOWithRSA(encryptedUserLogin.getEncryptedClientProofM1(), String.class);
 
         UserLoginDTO userLoginDTO = new UserLoginDTO();
-        userLoginDTO.setEclientProofM1(clientProofM);
+        userLoginDTO.setEclientProofM1(clientProofM1);
 
         return userLoginDTO;
     }
@@ -199,5 +206,126 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         userLoginResponse.setHelperAuthenticateAesKey(encryptedSessionToken.getAesKeyBase64());
 
         return userLoginResponse;
+    }
+
+    /**
+     * Decrypts the password change initialization data received from the client on frontend.
+     * 
+     * @param passwordChangeInitRequest - The encrypted password change initialization data received from the client,
+     *                                  including the derived key, encrypted derived username, and encrypted client's
+     *                                  public value (A).
+     * @return A {@link PasswordChangeInitDTO} containing the decrypted password change initialization data.
+     * @throws Exception If decryption fails
+     */
+    @Override
+    public PasswordChangeInitDTO decryptPasswordChangeInitRequestDTO(
+            PasswordChangeInitRequestDTO passwordChangeInitRequest) throws Exception {
+        String derivedUsername = genericEncryptionService
+                .decryptDTOWithRSA(passwordChangeInitRequest.getEncryptedDerivedUsername(), String.class);
+        BigInteger clientPublicValueA = genericEncryptionService.decryptDTOWithAESCBC(
+                passwordChangeInitRequest.getEncryptedClientPublicValueA(), BigInteger.class,
+                passwordChangeInitRequest.getHelperAesKey());
+        String derivedKey = genericEncryptionService.decryptDTOWithRSA(passwordChangeInitRequest.getDerivedKey(),
+                String.class);
+
+        PasswordChangeInitDTO passwordChangeInitDTO = new PasswordChangeInitDTO();
+        passwordChangeInitDTO.setDerivedUsername(derivedUsername);
+        passwordChangeInitDTO.setClientPublicValueA(clientPublicValueA);
+        passwordChangeInitDTO.setDerivedKey(derivedKey);
+
+        return passwordChangeInitDTO;
+    }
+
+    /**
+     * Encrypts the password change initialization response data to be sent to the client on frontend.
+     * 
+     * @param serverPublicValueB - the public value (B) of the server for password change verification.
+     * @param salt               - the unique salt of the user's current password.
+     * @return A {@link PasswordChangeInitResponseDTO} containing the encrypted server's public value (B) and the salt,
+     *         to be sent back to the client.
+     * @throws Exception If encryption fails
+     */
+    @Override
+    public PasswordChangeInitResponseDTO encryptPasswordChangeInitResponseDTO(BigInteger serverPublicValueB,
+            String salt) throws Exception {
+        SecretKey aesKey = EncryptionUtils.generateAESKey();
+        EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
+        PasswordChangeInitResponseDTO responseDTO = new PasswordChangeInitResponseDTO();
+
+        // Encrypt the server's public value B
+        EncryptedDataAesCbc encryptedServerPublicValueB = genericEncryptionService
+                .encryptDTOWithAESCBC(serverPublicValueB.toString(16), EncryptedDataAesCbc.class, aesKey);
+
+        responseDTO.setEncryptedServerPublicValueB(encryptedDataAesCbcMapper.toDto(encryptedServerPublicValueB));
+        responseDTO.setHelperAesKey(encryptedServerPublicValueB.getAesKeyBase64());
+        responseDTO.setSalt(salt); // Salt is sent in plaintext as in the SRP protocol
+
+        return responseDTO;
+    }
+
+    /**
+     * Decrypts the client proof and new credentials from the password change completion request.
+     * 
+     * @param passwordChangeCompleteRequest - The encrypted request data
+     * @return A DTO containing the decrypted proof and new credentials
+     * @throws Exception If decryption fails
+     */
+    @Override
+    public PasswordChangeCredentialsDTO decryptPasswordChangeCredentials(
+            PasswordChangeCompleteRequestDTO passwordChangeCompleteRequest) throws Exception {
+
+        // Decrypt the client's proof M1
+        String clientProofM1 = genericEncryptionService
+                .decryptDTOWithRSA(passwordChangeCompleteRequest.getEncryptedClientProofM1(), String.class);
+
+        // Decrypt the new salt
+        String newSalt = genericEncryptionService.decryptDTOWithRSA(passwordChangeCompleteRequest.getEncryptedNewSalt(),
+                String.class);
+
+        // Decrypt the new derived key
+        String newDerivedKey = genericEncryptionService
+                .decryptDTOWithRSA(passwordChangeCompleteRequest.getEncryptedNewDerivedKey(), String.class);
+
+        // Decrypt the new derived username
+        String newDerivedUsername = genericEncryptionService
+                .decryptDTOWithRSA(passwordChangeCompleteRequest.getEncryptedNewDerivedUsername(), String.class);
+
+        // Decrypt the new verifier
+        String newVerifier = genericEncryptionService.decryptDTOWithAESCBC(
+                passwordChangeCompleteRequest.getEncryptedNewVerifier(), String.class,
+                passwordChangeCompleteRequest.getHelperAesKey());
+
+        PasswordChangeCredentialsDTO credentials = new PasswordChangeCredentialsDTO();
+        credentials.setClientProofM1(clientProofM1);
+        credentials.setNewSalt(newSalt);
+        credentials.setNewDerivedKey(newDerivedKey);
+        credentials.setNewDerivedUsername(newDerivedUsername);
+        credentials.setNewVerifier(newVerifier);
+
+        return credentials;
+    }
+
+    /**
+     * Encrypts the server proof and success status for password change response.
+     * 
+     * @param serverProofM2 - The server's proof (M2) confirming successful verification.
+     * @param success       - Whether the password change was successfully processed.
+     * @return An encrypted {@link PasswordChangeCompleteResponseDTO} containing the server's proof and success status.
+     * @throws Exception If encryption fails
+     */
+    @Override
+    public PasswordChangeCompleteResponseDTO encryptPasswordChangeCompleteResponseDTO(String serverProofM2,
+            boolean success, User user) throws Exception {
+        PasswordChangeCompleteResponseDTO responseDTO = new PasswordChangeCompleteResponseDTO();
+        String userPublicKeyPem = user.getPublicKey();
+
+        // Encrypt the server's proof M2
+        String encryptedServerProofM2 = genericEncryptionService.encryptDTOWithRSA(serverProofM2, String.class,
+                userPublicKeyPem);
+
+        responseDTO.setEncryptedServerProofM2(encryptedServerProofM2);
+        responseDTO.setSuccess(success);
+
+        return responseDTO;
     }
 }

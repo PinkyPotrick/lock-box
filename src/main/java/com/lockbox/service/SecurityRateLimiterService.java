@@ -1,26 +1,39 @@
 package com.lockbox.service;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-import org.springframework.stereotype.Service;
-import org.springframework.web.context.request.RequestContextHolder;
-import org.springframework.web.context.request.ServletRequestAttributes;
-
-import jakarta.servlet.http.HttpServletRequest;
 import java.security.SecureRandom;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.Map;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import org.springframework.scheduling.annotation.Scheduled;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Service;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
+
+import jakarta.servlet.http.HttpServletRequest;
+
+/*
+ * TODO: Might want to take into consideration the following:
+ * 
+ * 1. Implement monitoring to track:
+ * 
+ *  - How often legitimate users hit the rate limit
+ *  - Distribution of attempts per session
+ *  - If you see many users hitting limits, consider adjustin
+ * 
+ *  2. Consider progressive rate limiting where repeated patterns of hitting the limit result in longer windows (10 min, then 30 min, etc.)
+ */
 @Service
 public class SecurityRateLimiterService {
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityRateLimiterService.class);
 
-    private static final int MAX_REQUESTS_PER_MINUTE = 5;
+    private static final int MAX_REQUESTS_PER_WINDOW = 5;
+    private static final int RESET_WINDOW_MINUTES = 5;
     private static final int MIN_DELAY_MS = 300;
     private static final int MAX_ADDITIONAL_DELAY_MS = 200;
     private final Random random = new SecureRandom();
@@ -30,7 +43,7 @@ public class SecurityRateLimiterService {
 
     private static class RequestCounter {
         private int count = 0;
-        private Instant resetTime = Instant.now().plus(Duration.ofMinutes(1));
+        private Instant resetTime = Instant.now().plus(Duration.ofMinutes(RESET_WINDOW_MINUTES));
 
         public void increment() {
             count++;
@@ -46,7 +59,7 @@ public class SecurityRateLimiterService {
 
         public void reset() {
             count = 0;
-            resetTime = Instant.now().plus(Duration.ofMinutes(1));
+            resetTime = Instant.now().plus(Duration.ofMinutes(RESET_WINDOW_MINUTES));
         }
     }
 
@@ -68,12 +81,12 @@ public class SecurityRateLimiterService {
         int currentCount = counter.getCount();
 
         // More extensive logging
-        if (currentCount > MAX_REQUESTS_PER_MINUTE) {
+        if (currentCount > MAX_REQUESTS_PER_WINDOW) {
             logger.info("Rate limit exceeded: {} requests for IP {} (limit: {})", currentCount, clientIP,
-                    MAX_REQUESTS_PER_MINUTE);
+                    MAX_REQUESTS_PER_WINDOW);
             return true;
         } else {
-            logger.info("Request {} of {} for IP {}", currentCount, MAX_REQUESTS_PER_MINUTE, clientIP);
+            logger.info("Request {} of {} for IP {}", currentCount, MAX_REQUESTS_PER_WINDOW, clientIP);
             return false;
         }
     }
@@ -95,7 +108,6 @@ public class SecurityRateLimiterService {
         }
     }
 
-    // Replace getClientIP() with this safer implementation
     private String getClientIP() {
         try {
             ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder

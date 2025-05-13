@@ -1,6 +1,9 @@
 package com.lockbox.security.filter;
 
-import com.lockbox.service.SecurityRateLimiterService;
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,16 +13,32 @@ import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.lockbox.service.SecurityRateLimiterService;
+
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import java.io.IOException;
 
 @Component
 public class RateLimitingFilter extends OncePerRequestFilter {
 
     private static final Logger logger = LoggerFactory.getLogger(RateLimitingFilter.class);
+
+    // Define sensitive endpoints that should be rate limited
+    private static final Set<String> RATE_LIMITED_ENDPOINTS = new HashSet<>(Arrays.asList( //
+            "/api/auth/login", //
+            "/api/auth/register", //
+            "/api/auth/srp-init", //
+            "/api/users/password-change/init", //
+            "/api/users/password-change/complete" //
+    ));
+
+    // Define endpoints that are exempt from rate limiting
+    private static final Set<String> WHITE_LIST_ENDPOINTS = new HashSet<>(Arrays.asList( //
+            "/api/auth/public-key", //
+            "/api/auth/logout" //
+    ));
 
     @Autowired
     private SecurityRateLimiterService securityRateLimiterService;
@@ -30,8 +49,8 @@ public class RateLimitingFilter extends OncePerRequestFilter {
 
         String uri = request.getRequestURI();
 
-        // Apply rate limiting to auth endpoints only
-        if (uri.startsWith("/api/auth") && !uri.equals("/api/auth/public-key") && !uri.equals("/api/auth/logout")) {
+        // Apply rate limiting to auth endpoints and password change endpoints
+        if (shouldApplyRateLimit(uri)) {
             // Get real client IP (handles proxies and direct connections)
             String clientIp = getClientIpAddress(request);
             logger.info("Rate limit check for {} from IP {}", uri, clientIp);
@@ -47,11 +66,31 @@ public class RateLimitingFilter extends OncePerRequestFilter {
         try {
             filterChain.doFilter(request, response);
         } finally {
-            // Apply consistent timing for auth endpoints
-            if (uri.startsWith("/api/auth")) {
+            // Apply consistent timing for auth endpoints and password change endpoints
+            if (uri.startsWith("/api/auth") || uri.contains("/password-change/")) {
                 securityRateLimiterService.applyConsistentTiming();
             }
         }
+    }
+
+    /**
+     * Determines whether rate limiting should be applied to the given URI.
+     * 
+     * @param uri The request URI
+     * @return true if rate limiting should be applied, false otherwise
+     */
+    private boolean shouldApplyRateLimit(String uri) {
+        // Check if the URI exactly matches any of our explicitly rate limited endpoints
+        if (RATE_LIMITED_ENDPOINTS.contains(uri)) {
+            return true;
+        }
+
+        // Check if the URI starts with /api/auth but is not in the white list
+        if (uri.startsWith("/api/auth") && !WHITE_LIST_ENDPOINTS.contains(uri)) {
+            return true;
+        }
+
+        return false;
     }
 
     /**
