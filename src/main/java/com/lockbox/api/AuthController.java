@@ -74,10 +74,16 @@ public class AuthController {
         }
     }
 
-    // TEST USERS: pfilip 1234
+    // TEST USERS (PC): 
+    // pfilip 1234
     // usermare 12345678
     // Abelien abelien#PASS1234 (abelien@mail.com)
     // JohnDoe john#DOE1234 / john#DOE12345 (johndoe@somemail.com)
+
+    // TEST USERS (Laptop):
+    // pfilip pfilip@lockmail.com 1234
+    // usermare usermare@lockmail.com 12345678
+    // magik magik@lockmail.com magik|
 
     @PostMapping("/srp-authenticate")
     public ResponseEntityDTO<UserLoginResponseDTO> authenticateUser(@RequestBody UserLoginRequestDTO userLogin) {
