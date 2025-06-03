@@ -68,7 +68,7 @@ public class AppConstants {
       public static final String VERIFIER = "Verifier";
       public static final String USER_REGISTRATION = "User registration data";
       public static final String VAULT_UPDATE = "Vault update request";
-      
+
       // Audit log field names
       public static final String AUDIT_LOG_DATA = "Audit log data";
       public static final String ACTION_TYPE = "Action type";
@@ -92,6 +92,16 @@ public class AppConstants {
       public static final int DESCRIPTION = 1000;
       public static final int URL = 2048;
       public static final int LOGO = 255;
+
+      // Added AuditLog-related max lengths
+      public static final int ACTION_TYPE = 50;
+      public static final int ACTION_STATUS = 20;
+      public static final int RESOURCE_ID = 255;
+      public static final int RESOURCE_NAME = 255;
+      public static final int CLIENT_INFO = 1024;
+      public static final int IP_ADDRESS = 45;
+      public static final int FAILURE_REASON = 1024;
+      public static final int ADDITIONAL_INFO = 2048;
    }
 
    // Validation error messages
@@ -129,6 +139,12 @@ public class AppConstants {
       // Generic user validation errors (prevent enumeration attacks)
       public static final String USER_ALREADY_EXISTS = "User registration failed. Please try with different credentials.";
       public static final String REGISTRATION_ERROR = "An error occurred during registration. Please try again later.";
+
+      // Added audit log validation errors
+      public static final String INVALID_DATE_FORMAT = "Invalid date format. Use ISO format (yyyy-MM-ddTHH:mm:ss)";
+      public static final String INVALID_DATE_RANGE = "Start date cannot be after end date";
+      public static final String INVALID_OPERATION_TYPE = "Invalid operation type. Valid values are: READ, WRITE, UPDATE, DELETE, ALL";
+      public static final String INVALID_LOG_LEVEL = "Invalid log level. Valid values are: DEBUG, INFO, WARNING, ERROR, CRITICAL, ALL";
    }
 
    public static class SessionKeyAttributes {

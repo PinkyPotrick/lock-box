@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.JoinColumn;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.Table;
@@ -12,6 +14,14 @@ import jakarta.persistence.Table;
 @Table(name = "audit_logs")
 public class AuditLog extends BaseEntity {
 
+    public enum OperationType {
+        READ, WRITE, UPDATE, DELETE
+    }
+
+    public enum LogLevel {
+        DEBUG, INFO, WARNING, ERROR, CRITICAL
+    }
+
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
@@ -19,12 +29,25 @@ public class AuditLog extends BaseEntity {
     @Column(nullable = false, length = 50)
     private String actionType;
 
+    @Column(name = "operation_type")
+    @Enumerated(EnumType.STRING)
+    private OperationType operationType;
+
+    @Column(name = "log_level")
+    @Enumerated(EnumType.STRING)
+    private LogLevel logLevel;
+
+    // These fields should be encrypted
     @Column(length = 255)
     private String resourceId;
 
     @Column(length = 1024)
     private String resourceName;
 
+    @Column(length = 2048)
+    private String additionalInfo;
+
+    // These fields don't need encryption (non-sensitive metadata)
     @Column(name = "client_info", length = 255)
     private String clientInfo;
 
@@ -36,9 +59,6 @@ public class AuditLog extends BaseEntity {
 
     @Column(name = "failure_reason", length = 1024)
     private String failureReason;
-
-    @Column(name = "additional_info", length = 2048)
-    private String additionalInfo;
 
     @Column(name = "timestamp", nullable = false)
     private LocalDateTime timestamp;
@@ -60,6 +80,22 @@ public class AuditLog extends BaseEntity {
 
     public void setActionType(String actionType) {
         this.actionType = actionType;
+    }
+
+    public OperationType getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(OperationType operationType) {
+        this.operationType = operationType;
+    }
+
+    public LogLevel getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(LogLevel logLevel) {
+        this.logLevel = logLevel;
     }
 
     public String getResourceId() {

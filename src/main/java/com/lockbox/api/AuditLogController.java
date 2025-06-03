@@ -1,8 +1,7 @@
 package com.lockbox.api;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -15,9 +14,14 @@ import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
+/**
+ * REST controller for audit log operations.
+ */
 @RestController
 @RequestMapping("/api/audit-logs")
 public class AuditLogController {
+
+    private final Logger logger = LoggerFactory.getLogger(AuditLogController.class);
 
     @Autowired
     private AuditLogService auditLogService;
@@ -25,32 +29,35 @@ public class AuditLogController {
     @Autowired
     private SecurityUtils securityUtils;
 
+    /**
+     * Get audit logs with filtering and pagination capabilities.
+     *
+     * @param page          Page number (0-based)
+     * @param size          Page size
+     * @param operationType Filter by operation type (READ, WRITE, UPDATE, DELETE, or ALL)
+     * @param level         Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL, or ALL)
+     * @param startDate     Filter by start date (ISO format)
+     * @param endDate       Filter by end date (ISO format)
+     * @return Encrypted audit logs for the requesting user
+     */
     @GetMapping
     public ResponseEntityDTO<AuditLogListResponseDTO> getAuditLogs(
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size,
-            @RequestParam(name = "actionType", required = false) String actionType,
-            @RequestParam(name = "startDate", required = false) String startDateStr,
-            @RequestParam(name = "endDate", required = false) String endDateStr) {
+            @RequestParam(name = "operationType", required = false) String operationType,
+            @RequestParam(name = "level", required = false) String level,
+            @RequestParam(name = "startDate", required = false) String startDate,
+            @RequestParam(name = "endDate", required = false) String endDate) {
+
         try {
             String userId = securityUtils.getCurrentUserId();
-            AuditLogListResponseDTO response;
-
-            // Handle different filter scenarios
-            if (actionType != null) {
-                response = auditLogService.findAuditLogsByUserAndType(userId, actionType, page, size);
-            } else if (startDateStr != null && endDateStr != null) {
-                DateTimeFormatter formatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME;
-                LocalDateTime startDate = LocalDateTime.parse(startDateStr, formatter);
-                LocalDateTime endDate = LocalDateTime.parse(endDateStr, formatter);
-                response = auditLogService.findAuditLogsByUserAndDateRange(userId, startDate, endDate, page, size);
-            } else {
-                response = auditLogService.findAllAuditLogsByUser(userId, page, size);
-            }
+            AuditLogListResponseDTO response = auditLogService.getFilteredAuditLogs(userId, page, size, operationType,
+                    level, startDate, endDate);
 
             return new ResponseEntityBuilder<AuditLogListResponseDTO>().setData(response)
                     .setMessage("Audit logs retrieved successfully").build();
         } catch (Exception e) {
+            logger.error("Failed to fetch audit logs: {}", e.getMessage(), e);
             return ResponseEntityBuilder.handleErrorDTO(e, "Failed to fetch audit logs");
         }
     }

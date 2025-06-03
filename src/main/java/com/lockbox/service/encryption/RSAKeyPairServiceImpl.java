@@ -1,14 +1,5 @@
 package com.lockbox.service.encryption;
 
-import org.springframework.stereotype.Service;
-
-import com.lockbox.utils.AppConstants;
-import com.lockbox.utils.EncryptionUtils;
-
-import jakarta.annotation.PostConstruct;
-
-import javax.crypto.Cipher;
-
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -22,13 +13,28 @@ import java.security.spec.PKCS8EncodedKeySpec;
 import java.security.spec.X509EncodedKeySpec;
 import java.util.Base64;
 
+import javax.crypto.Cipher;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
+import com.lockbox.utils.AppConstants;
+import com.lockbox.utils.EncryptionUtils;
+
+import jakarta.annotation.PostConstruct;
+
 @Service
 public class RSAKeyPairServiceImpl implements RSAKeyPairService {
 
-    // Define the directory and file paths
-    private static final String CONFIG_DIR = "src/main/java/com/lockbox/config";
-    private static final String PRIVATE_KEY_FILE = CONFIG_DIR + "/server-private-key.pem";
-    private static final String PUBLIC_KEY_FILE = CONFIG_DIR + "/server-public-key.pem";
+    // Use property values from configuration
+    @Value("${key.private.path:./config/server-private-key.pem}")
+    private String privateKeyPath;
+
+    @Value("${key.public.path:./config/server-public-key.pem}")
+    private String publicKeyPath;
+
+    // Define fallback directory for generating new keys if needed
+    private static final String CONFIG_DIR = "./config";
 
     private KeyPair keyPair;
 
@@ -36,11 +42,15 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
     @PostConstruct
     public void init() {
         try {
-            // Ensure the config directory exists
-            Files.createDirectories(Path.of(CONFIG_DIR));
+            File privateKeyFile = new File(privateKeyPath);
+            File publicKeyFile = new File(publicKeyPath);
 
-            if (new File(PRIVATE_KEY_FILE).exists() && new File(PUBLIC_KEY_FILE).exists()) {
-                // Load the existing key pair
+            // Ensure the config directory exists
+            Path configDir = Path.of(CONFIG_DIR);
+            Files.createDirectories(configDir);
+
+            if (privateKeyFile.exists() && publicKeyFile.exists()) {
+                // Load the existing key pair from specified paths
                 this.keyPair = loadKeyPair();
             } else {
                 // Generate a new key pair and save it
@@ -180,11 +190,11 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
 
     public KeyPair loadKeyPair() throws Exception {
         // Load public key
-        String publicKeyPem = new String(Files.readAllBytes(Path.of(PUBLIC_KEY_FILE)));
+        String publicKeyPem = new String(Files.readAllBytes(Path.of(publicKeyPath)));
         PublicKey publicKey = loadPublicKey(publicKeyPem);
 
         // Load private key
-        String privateKeyPem = new String(Files.readAllBytes(Path.of(PRIVATE_KEY_FILE)));
+        String privateKeyPem = new String(Files.readAllBytes(Path.of(privateKeyPath)));
         PrivateKey privateKey = loadPrivateKey(privateKeyPem);
 
         return new KeyPair(publicKey, privateKey);
@@ -224,13 +234,13 @@ public class RSAKeyPairServiceImpl implements RSAKeyPairService {
         String publicKeyPem = "-----BEGIN PUBLIC KEY-----\n" + //
                 Base64.getMimeEncoder().encodeToString(publicKeySpec.getEncoded()) + //
                 "\n-----END PUBLIC KEY-----";
-        Files.write(Path.of(PUBLIC_KEY_FILE), publicKeyPem.getBytes());
+        Files.write(Path.of(publicKeyPath), publicKeyPem.getBytes());
 
         // Save the private key in PEM format
         PKCS8EncodedKeySpec privateKeySpec = new PKCS8EncodedKeySpec(keyPair.getPrivate().getEncoded());
         String privateKeyPem = "-----BEGIN PRIVATE KEY-----\n" + //
                 Base64.getMimeEncoder().encodeToString(privateKeySpec.getEncoded()) + //
                 "\n-----END PRIVATE KEY-----";
-        Files.write(Path.of(PRIVATE_KEY_FILE), privateKeyPem.getBytes());
+        Files.write(Path.of(privateKeyPath), privateKeyPem.getBytes());
     }
 }

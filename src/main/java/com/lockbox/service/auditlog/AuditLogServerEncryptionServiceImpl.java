@@ -14,10 +14,8 @@ import com.lockbox.service.encryption.RSAKeyPairService;
 import com.lockbox.utils.EncryptionUtils;
 
 /**
- * Implementation of the {@link AuditLogServerEncryptionService} interface.
- * Provides methods to encrypt and decrypt
- * {@link AuditLog} data for secure storage in the database. Uses AES-CBC
- * encryption to secure sensitive log data.
+ * Implementation of the {@link AuditLogServerEncryptionService} interface. Provides methods to encrypt and decrypt
+ * {@link AuditLog} data for secure storage in the database. Uses AES-CBC encryption to secure sensitive log data.
  */
 @Service
 public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryptionService {
@@ -34,8 +32,7 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
     private RSAKeyPairService rsaKeyPairService;
 
     /**
-     * Encrypts sensitive audit log data before storing in the database. Uses
-     * AES-CBC to encrypt sensitive fields.
+     * Encrypts sensitive audit log data before storing in the database. Uses AES-CBC to encrypt sensitive fields.
      * 
      * @param auditLog - The audit log with plaintext data to be encrypted
      * @return {@link AuditLog} object with sensitive fields encrypted
@@ -57,13 +54,17 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
             encryptedAuditLog.setUser(auditLog.getUser());
             encryptedAuditLog.setTimestamp(auditLog.getTimestamp());
             encryptedAuditLog.setActionType(auditLog.getActionType());
+            encryptedAuditLog.setOperationType(auditLog.getOperationType());
+            encryptedAuditLog.setLogLevel(auditLog.getLogLevel());
             encryptedAuditLog.setActionStatus(auditLog.getActionStatus());
             encryptedAuditLog.setIpAddress(auditLog.getIpAddress());
+            encryptedAuditLog.setClientInfo(auditLog.getClientInfo());
+            encryptedAuditLog.setFailureReason(auditLog.getFailureReason());
 
             SecretKey aesKey = EncryptionUtils.generateAESKey();
             String serverPublicKeyPem = rsaKeyPairService.getPublicKeyInPEM(rsaKeyPairService.getPublicKey());
 
-            // Encrypt sensitive fields
+            // Encrypt sensitive fields only
             if (auditLog.getResourceId() != null) {
                 logger.debug("Encrypting audit log resource ID with AES-CBC");
                 encryptedAuditLog.setResourceId(
@@ -76,26 +77,14 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getResourceName(), aesKey));
             }
 
-            if (auditLog.getClientInfo() != null) {
-                logger.debug("Encrypting audit log client info with AES-CBC");
-                encryptedAuditLog.setClientInfo(
-                        genericEncryptionService.encryptStringWithAESCBC(auditLog.getClientInfo(), aesKey));
-            }
-
-            if (auditLog.getFailureReason() != null) {
-                logger.debug("Encrypting audit log failure reason with AES-CBC");
-                encryptedAuditLog.setFailureReason(
-                        genericEncryptionService.encryptStringWithAESCBC(auditLog.getFailureReason(), aesKey));
-            }
-
             if (auditLog.getAdditionalInfo() != null) {
                 logger.debug("Encrypting audit log additional info with AES-CBC");
                 encryptedAuditLog.setAdditionalInfo(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getAdditionalInfo(), aesKey));
             }
 
-            encryptedAuditLog.setAesKey(rsaKeyPairService.encryptRSAWithPublicKey(
-                    EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
+            encryptedAuditLog.setAesKey(rsaKeyPairService
+                    .encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
 
             return encryptedAuditLog;
         } catch (Exception e) {
@@ -105,8 +94,7 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
     }
 
     /**
-     * Decrypts encrypted audit log data after retrieving from the database. Uses
-     * AES-CBC to decrypt sensitive fields.
+     * Decrypts encrypted audit log data after retrieving from the database. Uses AES-CBC to decrypt sensitive fields.
      * 
      * @param auditLog - The audit log with encrypted data to be decrypted
      * @return {@link AuditLog} object with decrypted sensitive fields
@@ -134,10 +122,14 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
             decryptedAuditLog.setUser(auditLog.getUser());
             decryptedAuditLog.setTimestamp(auditLog.getTimestamp());
             decryptedAuditLog.setActionType(auditLog.getActionType());
+            decryptedAuditLog.setOperationType(auditLog.getOperationType());
+            decryptedAuditLog.setLogLevel(auditLog.getLogLevel());
             decryptedAuditLog.setActionStatus(auditLog.getActionStatus());
             decryptedAuditLog.setIpAddress(auditLog.getIpAddress());
+            decryptedAuditLog.setClientInfo(auditLog.getClientInfo());
+            decryptedAuditLog.setFailureReason(auditLog.getFailureReason());
 
-            // Decrypt sensitive fields
+            // Decrypt sensitive fields only
             if (auditLog.getResourceId() != null) {
                 logger.debug("Decrypting audit log resource ID with AES-CBC");
                 decryptedAuditLog.setResourceId(
@@ -148,18 +140,6 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
                 logger.debug("Decrypting audit log resource name with AES-CBC");
                 decryptedAuditLog.setResourceName(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getResourceName(), auditLogAesKey));
-            }
-
-            if (auditLog.getClientInfo() != null) {
-                logger.debug("Decrypting audit log client info with AES-CBC");
-                decryptedAuditLog.setClientInfo(
-                        genericEncryptionService.decryptStringWithAESCBC(auditLog.getClientInfo(), auditLogAesKey));
-            }
-
-            if (auditLog.getFailureReason() != null) {
-                logger.debug("Decrypting audit log failure reason with AES-CBC");
-                decryptedAuditLog.setFailureReason(
-                        genericEncryptionService.decryptStringWithAESCBC(auditLog.getFailureReason(), auditLogAesKey));
             }
 
             if (auditLog.getAdditionalInfo() != null) {

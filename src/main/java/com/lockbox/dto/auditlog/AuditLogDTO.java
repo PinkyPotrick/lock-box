@@ -2,12 +2,17 @@ package com.lockbox.dto.auditlog;
 
 import java.time.LocalDateTime;
 
+import com.lockbox.model.AuditLog.LogLevel;
+import com.lockbox.model.AuditLog.OperationType;
+
 public class AuditLogDTO {
 
     private String id;
     private String userId;
     private String username;
     private String actionType;
+    private OperationType operationType;
+    private LogLevel logLevel;
     private String resourceId;
     private String resourceName;
     private String clientInfo;
@@ -50,6 +55,22 @@ public class AuditLogDTO {
 
     public void setActionType(String actionType) {
         this.actionType = actionType;
+    }
+
+    public OperationType getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(OperationType operationType) {
+        this.operationType = operationType;
+    }
+
+    public LogLevel getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(LogLevel logLevel) {
+        this.logLevel = logLevel;
     }
 
     public String getResourceId() {

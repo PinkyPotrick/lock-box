@@ -3,6 +3,8 @@ package com.lockbox.dto.auditlog;
 import java.time.LocalDateTime;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
+import com.lockbox.model.AuditLog.LogLevel;
+import com.lockbox.model.AuditLog.OperationType;
 
 public class AuditLogResponseDTO {
 
@@ -10,12 +12,14 @@ public class AuditLogResponseDTO {
     private String userId;
     private LocalDateTime timestamp;
     private String actionType;
+    private OperationType operationType;
+    private LogLevel logLevel;
     private String actionStatus;
     private String ipAddress;
     private EncryptedDataAesCbcDTO encryptedResourceId;
     private EncryptedDataAesCbcDTO encryptedResourceName;
-    private EncryptedDataAesCbcDTO encryptedClientInfo;
-    private EncryptedDataAesCbcDTO encryptedFailureReason;
+    private String clientInfo;
+    private String failureReason;
     private EncryptedDataAesCbcDTO encryptedAdditionalInfo;
     private String helperAesKey;
 
@@ -54,6 +58,22 @@ public class AuditLogResponseDTO {
         this.actionType = actionType;
     }
 
+    public OperationType getOperationType() {
+        return operationType;
+    }
+
+    public void setOperationType(OperationType operationType) {
+        this.operationType = operationType;
+    }
+
+    public LogLevel getLogLevel() {
+        return logLevel;
+    }
+
+    public void setLogLevel(LogLevel logLevel) {
+        this.logLevel = logLevel;
+    }
+
     public String getActionStatus() {
         return actionStatus;
     }
@@ -86,20 +106,20 @@ public class AuditLogResponseDTO {
         this.encryptedResourceName = encryptedResourceName;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedClientInfo() {
-        return encryptedClientInfo;
+    public String getClientInfo() {
+        return clientInfo;
     }
 
-    public void setEncryptedClientInfo(EncryptedDataAesCbcDTO encryptedClientInfo) {
-        this.encryptedClientInfo = encryptedClientInfo;
+    public void setClientInfo(String clientInfo) {
+        this.clientInfo = clientInfo;
     }
 
-    public EncryptedDataAesCbcDTO getEncryptedFailureReason() {
-        return encryptedFailureReason;
+    public String getFailureReason() {
+        return failureReason;
     }
 
-    public void setEncryptedFailureReason(EncryptedDataAesCbcDTO encryptedFailureReason) {
-        this.encryptedFailureReason = encryptedFailureReason;
+    public void setFailureReason(String failureReason) {
+        this.failureReason = failureReason;
     }
 
     public EncryptedDataAesCbcDTO getEncryptedAdditionalInfo() {

@@ -124,3 +124,6 @@ $RECYCLE.BIN/
 *.iws
 *.iml
 *.ipr
+
+# Secure properties
+/config/

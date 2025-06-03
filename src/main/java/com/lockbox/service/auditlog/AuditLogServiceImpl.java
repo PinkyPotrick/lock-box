@@ -1,6 +1,7 @@
 package com.lockbox.service.auditlog;
 
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -18,15 +19,18 @@ import com.lockbox.dto.auditlog.AuditLogDTO;
 import com.lockbox.dto.auditlog.AuditLogListResponseDTO;
 import com.lockbox.dto.auditlog.AuditLogMapper;
 import com.lockbox.dto.auditlog.AuditLogResponseDTO;
+import com.lockbox.exception.ValidationException;
 import com.lockbox.model.AuditLog;
+import com.lockbox.model.AuditLog.LogLevel;
+import com.lockbox.model.AuditLog.OperationType;
 import com.lockbox.model.User;
 import com.lockbox.repository.AuditLogRepository;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.validators.AuditLogValidator;
 
 /**
- * Implementation of the {@link AuditLogService} interface. Provides
- * functionality for managing {@link AuditLog} entities.
+ * Implementation of the {@link AuditLogService} interface. Provides functionality for managing {@link AuditLog}
+ * entities.
  */
 @Service
 public class AuditLogServiceImpl implements AuditLogService {
@@ -64,7 +68,6 @@ public class AuditLogServiceImpl implements AuditLogService {
     public AuditLogListResponseDTO findAllAuditLogsByUser(String userId, Integer page, Integer size) throws Exception {
         try {
             List<AuditLog> encryptedAuditLogs;
-            int totalCount;
 
             // Create pageable object inside the service if pagination parameters are
             // provided
@@ -72,10 +75,8 @@ public class AuditLogServiceImpl implements AuditLogService {
                 Pageable pageable = PageRequest.of(page, size);
                 Page<AuditLog> auditLogPage = auditLogRepository.findByUserId(userId, pageable);
                 encryptedAuditLogs = auditLogPage.getContent();
-                totalCount = (int) auditLogPage.getTotalElements();
             } else {
                 encryptedAuditLogs = auditLogRepository.findByUserId(userId);
-                totalCount = encryptedAuditLogs.size();
             }
 
             List<AuditLog> decryptedAuditLogs = new ArrayList<>();
@@ -108,17 +109,14 @@ public class AuditLogServiceImpl implements AuditLogService {
      */
     @Override
     public AuditLogListResponseDTO findAuditLogsByUserAndType(String userId, String actionType, Integer page,
-            Integer size)
-            throws Exception {
+            Integer size) throws Exception {
         try {
             List<AuditLog> encryptedAuditLogs;
-            int totalCount;
 
             // Create pageable object
             Pageable pageable = (page != null && size != null) ? PageRequest.of(page, size) : PageRequest.of(0, 100);
             Page<AuditLog> auditLogPage = auditLogRepository.findByUserIdAndActionType(userId, actionType, pageable);
             encryptedAuditLogs = auditLogPage.getContent();
-            totalCount = (int) auditLogPage.getTotalElements();
 
             List<AuditLog> decryptedAuditLogs = new ArrayList<>();
 
@@ -140,6 +138,77 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     /**
+     * Find audit logs for the current user with multiple filters and pagination.
+     * 
+     * @param userId        - The current user ID
+     * @param operationType - Operation type filter (can be null for no filter)
+     * @param logLevel      - Log level filter (can be null for no filter)
+     * @param startDate     - Start of date range (can be null for no lower bound)
+     * @param endDate       - End of date range (can be null for no upper bound)
+     * @param page          - Page number (0-based index)
+     * @param size          - Page size
+     * @return {@link AuditLogListResponseDTO} containing encrypted audit logs
+     * @throws Exception If retrieval or encryption fails
+     */
+    @Override
+    public AuditLogListResponseDTO findAuditLogsByUserAndFilters(String userId, OperationType operationType,
+            LogLevel logLevel, LocalDateTime startDate, LocalDateTime endDate, Integer page, Integer size)
+            throws Exception {
+        try {
+            Pageable pageable = (page != null && size != null) ? PageRequest.of(page, size) : PageRequest.of(0, 100);
+            Page<AuditLog> auditLogPage;
+
+            // Handle all the filter combinations
+            if (operationType != null && logLevel != null && startDate != null && endDate != null) {
+                // All filters applied
+                auditLogPage = auditLogRepository.findByUserIdAndOperationTypeAndLogLevelAndTimestampBetween(userId,
+                        operationType, logLevel, startDate, endDate, pageable);
+            } else if (operationType != null && logLevel != null) {
+                // Operation type and log level filters only
+                auditLogPage = auditLogRepository.findByUserIdAndOperationTypeAndLogLevel(userId, operationType,
+                        logLevel, pageable);
+            } else if (operationType != null && startDate != null && endDate != null) {
+                // Operation type and date range filters only
+                auditLogPage = auditLogRepository.findByUserIdAndOperationTypeAndTimestampBetween(userId, operationType,
+                        startDate, endDate, pageable);
+            } else if (logLevel != null && startDate != null && endDate != null) {
+                // Log level and date range filters only
+                auditLogPage = auditLogRepository.findByUserIdAndLogLevelAndTimestampBetween(userId, logLevel,
+                        startDate, endDate, pageable);
+            } else if (operationType != null) {
+                // Operation type filter only
+                auditLogPage = auditLogRepository.findByUserIdAndOperationType(userId, operationType, pageable);
+            } else if (logLevel != null) {
+                // Log level filter only
+                auditLogPage = auditLogRepository.findByUserIdAndLogLevel(userId, logLevel, pageable);
+            } else if (startDate != null && endDate != null) {
+                // Date range filter only
+                auditLogPage = auditLogRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate, pageable);
+            } else {
+                // No filters, return all logs
+                auditLogPage = auditLogRepository.findByUserId(userId, pageable);
+            }
+
+            List<AuditLog> encryptedAuditLogs = auditLogPage.getContent();
+            List<AuditLog> decryptedAuditLogs = new ArrayList<>();
+
+            // Decrypt each audit log retrieved from database
+            for (AuditLog encryptedAuditLog : encryptedAuditLogs) {
+                decryptedAuditLogs.add(auditLogServerEncryptionService.decryptServerData(encryptedAuditLog));
+            }
+
+            // Convert to DTOs
+            List<AuditLogDTO> auditLogDTOs = auditLogMapper.toDTOList(decryptedAuditLogs);
+
+            // Encrypt for client response
+            return auditLogClientEncryptionService.encryptAuditLogListForClient(auditLogDTOs);
+        } catch (Exception e) {
+            logger.error("Error fetching filtered audit logs for user {}: {}", userId, e.getMessage());
+            throw new Exception("Failed to fetch audit logs", e);
+        }
+    }
+
+    /**
      * Find audit logs for the current user by date range with optional pagination.
      * 
      * @param userId    - The current user ID
@@ -152,18 +221,15 @@ public class AuditLogServiceImpl implements AuditLogService {
      */
     @Override
     public AuditLogListResponseDTO findAuditLogsByUserAndDateRange(String userId, LocalDateTime startDate,
-            LocalDateTime endDate, Integer page, Integer size)
-            throws Exception {
+            LocalDateTime endDate, Integer page, Integer size) throws Exception {
         try {
             List<AuditLog> encryptedAuditLogs;
-            int totalCount;
 
             // Create pageable object
             Pageable pageable = (page != null && size != null) ? PageRequest.of(page, size) : PageRequest.of(0, 100);
-            Page<AuditLog> auditLogPage = auditLogRepository.findByUserIdAndTimestampBetween(
-                    userId, startDate, endDate, pageable);
+            Page<AuditLog> auditLogPage = auditLogRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate,
+                    pageable);
             encryptedAuditLogs = auditLogPage.getContent();
-            totalCount = (int) auditLogPage.getTotalElements();
 
             List<AuditLog> decryptedAuditLogs = new ArrayList<>();
 
@@ -231,29 +297,93 @@ public class AuditLogServiceImpl implements AuditLogService {
     }
 
     /**
-     * Delete audit logs older than the specified cutoff date.
+     * Delete audit logs older than the specified cutoff date. Default retention period is 3 months.
      * 
      * @param cutoffDate - Delete logs older than this date
+     * @return Number of logs deleted
      * @throws Exception If deletion fails
      */
     @Override
     @Transactional
-    public void deleteOldAuditLogs(LocalDateTime cutoffDate) throws Exception {
+    public int deleteOldAuditLogs(LocalDateTime cutoffDate) throws Exception {
         try {
-            // This would require a custom repository method for efficient deletion
-            // For now, we'll get the logs and delete them one by one
-
-            // This approach is not recommended for production with large volumes
-            // Consider implementing a native query for batch deletion
-
             logger.info("Deleting audit logs older than {}", cutoffDate);
-
-            // TODO: Implement when needed, using a more efficient approach
-            // auditLogRepository.deleteByTimestampBefore(cutoffDate);
-
+            int deletedCount = auditLogRepository.deleteByTimestampBefore(cutoffDate);
+            logger.info("Successfully deleted {} audit logs", deletedCount);
+            return deletedCount;
         } catch (Exception e) {
             logger.error("Error deleting old audit logs: {}", e.getMessage());
             throw new Exception("Failed to delete old audit logs", e);
+        }
+    }
+
+    /**
+     * Delete audit logs older than the default retention period (3 months).
+     * 
+     * @return Number of logs deleted
+     * @throws Exception If deletion fails
+     */
+    @Override
+    @Transactional
+    public int deleteOldAuditLogs() throws Exception {
+        // Default retention period: 3 months
+        LocalDateTime cutoffDate = LocalDateTime.now().minusMonths(3);
+        return deleteOldAuditLogs(cutoffDate);
+    }
+
+    /**
+     * Get filtered audit logs based on the provided parameters. This method handles all the parameter parsing and
+     * validation logic.
+     *
+     * @param userId        User ID to filter logs for
+     * @param page          Page number (0-based)
+     * @param size          Page size
+     * @param operationType Operation type filter string
+     * @param level         Log level filter string
+     * @param startDateStr  Start date as ISO string
+     * @param endDateStr    End date as ISO string
+     * @return Filtered and paginated audit logs
+     * @throws Exception If filtering fails
+     */
+    @Override
+    public AuditLogListResponseDTO getFilteredAuditLogs(String userId, Integer page, Integer size, String operationType,
+            String level, String startDateStr, String endDateStr) throws Exception {
+
+        try {
+            // Validate the filter parameters
+            auditLogValidator.validateFilterParameters(operationType, level, startDateStr, endDateStr);
+
+            // Parse date parameters if present
+            LocalDateTime startDate = null;
+            LocalDateTime endDate = null;
+
+            if (startDateStr != null && !startDateStr.isEmpty()) {
+                startDate = LocalDateTime.parse(startDateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
+
+            if (endDateStr != null && !endDateStr.isEmpty()) {
+                endDate = LocalDateTime.parse(endDateStr, DateTimeFormatter.ISO_LOCAL_DATE_TIME);
+            }
+
+            // Parse operation type if present
+            OperationType opType = null;
+            if (operationType != null && !operationType.isEmpty() && !operationType.equalsIgnoreCase("ALL")) {
+                opType = OperationType.valueOf(operationType.toUpperCase());
+            }
+
+            // Parse log level if present
+            LogLevel logLevel = null;
+            if (level != null && !level.isEmpty() && !level.equalsIgnoreCase("ALL")) {
+                logLevel = LogLevel.valueOf(level.toUpperCase());
+            }
+
+            // Find logs with filters
+            return findAuditLogsByUserAndFilters(userId, opType, logLevel, startDate, endDate, page, size);
+        } catch (ValidationException e) {
+            throw e; // Let the controller handle the validation exception
+        } catch (Exception e) {
+            logger.error("Error fetching filtered audit logs: {}", e.getMessage(), e);
+            throw new Exception("Failed to fetch audit logs", e);
         }
     }
 }
