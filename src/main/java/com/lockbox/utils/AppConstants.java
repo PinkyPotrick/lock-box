@@ -32,6 +32,7 @@ public class AppConstants {
       public static final String DOMAIN = "Domain";
       public static final String USER = "User";
       public static final String GENERIC = "Generic";
+      public static final String AUDIT_LOG = "AuditLog";
    }
 
    // Field name constants for validation messages
@@ -67,6 +68,17 @@ public class AppConstants {
       public static final String VERIFIER = "Verifier";
       public static final String USER_REGISTRATION = "User registration data";
       public static final String VAULT_UPDATE = "Vault update request";
+      
+      // Audit log field names
+      public static final String AUDIT_LOG_DATA = "Audit log data";
+      public static final String ACTION_TYPE = "Action type";
+      public static final String ACTION_STATUS = "Action status";
+      public static final String RESOURCE_ID = "Resource ID";
+      public static final String RESOURCE_NAME = "Resource name";
+      public static final String CLIENT_INFO = "Client information";
+      public static final String IP_ADDRESS = "IP address";
+      public static final String FAILURE_REASON = "Failure reason";
+      public static final String ADDITIONAL_INFO = "Additional information";
    }
 
    // Max length constants for validation
