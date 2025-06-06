@@ -17,58 +17,88 @@ import com.lockbox.model.LoginHistory;
 @Repository
 public interface LoginHistoryRepository extends JpaRepository<LoginHistory, String> {
 
-    /**
-     * Find login history entries by user ID ordered by login timestamp in descending order.
-     * 
-     * @param userId - The user ID to filter by
-     * @return List of login history entries for the specified user
-     */
-    List<LoginHistory> findByUserIdOrderByLoginTimestampDesc(String userId);
+        /**
+         * Find login history entries by user ID ordered by login timestamp in descending order.
+         * 
+         * @param userId - The user ID to filter by
+         * @return List of login history entries for the specified user
+         */
+        List<LoginHistory> findByUserIdOrderByLoginTimestampDesc(String userId);
 
-    /**
-     * Find a limited number of login history entries by user ID ordered by login timestamp in descending order.
-     * 
-     * @param userId - The user ID to filter by
-     * @param limit  - The maximum number of entries to return
-     * @return Limited list of login history entries for the specified user
-     */
-    @Query(value = "SELECT l FROM LoginHistory l WHERE l.userId = :userId ORDER BY l.loginTimestamp DESC")
-    List<LoginHistory> findLatestByUserId(@Param("userId") String userId, @Param("limit") int limit);
+        /**
+         * Find a limited number of login history entries by user ID ordered by login timestamp in descending order.
+         * 
+         * @param userId - The user ID to filter by
+         * @param limit  - The maximum number of entries to return
+         * @return Limited list of login history entries for the specified user
+         */
+        @Query(value = "SELECT l FROM LoginHistory l WHERE l.userId = :userId ORDER BY l.loginTimestamp DESC")
+        List<LoginHistory> findLatestByUserId(@Param("userId") String userId, @Param("limit") int limit);
 
-    /**
-     * Find login history entries by date and user ID.
-     * 
-     * @param date   - The date string in format "YYYY-MM-DD"
-     * @param userId - The user ID to filter by
-     * @return List of login history entries for the specified user and date
-     */
-    List<LoginHistory> findByDateAndUserIdOrderByLoginTimestampDesc(String date, String userId);
+        /**
+         * Find login history entries by date and user ID.
+         * 
+         * @param date   - The date string in format "YYYY-MM-DD"
+         * @param userId - The user ID to filter by
+         * @return List of login history entries for the specified user and date
+         */
+        List<LoginHistory> findByDateAndUserIdOrderByLoginTimestampDesc(String date, String userId);
 
-    /**
-     * Find login history entries within a date range for a specific user.
-     * 
-     * @param startTime - The start date and time of the range
-     * @param endTime   - The end date and time of the range
-     * @param userId    - The user ID to filter by
-     * @return List of login history entries within the specified date range for the user
-     */
-    List<LoginHistory> findByLoginTimestampBetweenAndUserIdOrderByLoginTimestampDesc(LocalDateTime startTime,
-            LocalDateTime endTime, String userId);
+        /**
+         * Find login history entries within a date range for a specific user.
+         * 
+         * @param startTime - The start date and time of the range
+         * @param endTime   - The end date and time of the range
+         * @param userId    - The user ID to filter by
+         * @return List of login history entries within the specified date range for the user
+         */
+        List<LoginHistory> findByLoginTimestampBetweenAndUserIdOrderByLoginTimestampDesc(LocalDateTime startTime,
+                        LocalDateTime endTime, String userId);
 
-    /**
-     * Count the total number of login history entries for a specific user.
-     * 
-     * @param userId - The user ID to count entries for
-     * @return Total count of login history entries for the user
-     */
-    int countByUserId(String userId);
+        /**
+         * Count the total number of login history entries for a specific user.
+         * 
+         * @param userId - The user ID to count entries for
+         * @return Total count of login history entries for the user
+         */
+        int countByUserId(String userId);
 
-    /**
-     * Count the number of login history entries with a specific success status for a user.
-     * 
-     * @param userId  - The user ID to count entries for
-     * @param success - The success status to filter by (true/false)
-     * @return Count of login history entries matching the criteria
-     */
-    int countByUserIdAndSuccess(String userId, boolean success);
+        /**
+         * Count the number of login history entries with a specific success status for a user.
+         * 
+         * @param userId  - The user ID to count entries for
+         * @param success - The success status to filter by (true/false)
+         * @return Count of login history entries matching the criteria
+         */
+        int countByUserIdAndSuccess(String userId, boolean success);
+
+        /**
+         * Find login history entries by user ID, IP address, user agent, and status.
+         * 
+         * @param userId    - The user ID to filter by
+         * @param ipAddress - The IP address to filter by
+         * @param userAgent - The user agent string to filter by
+         * @param status    - The login status to filter by
+         * @return List of login history entries matching the criteria
+         */
+        List<LoginHistory> findByUserIdAndIpAddressAndUserAgentAndSuccess(String userId, String ipAddress,
+                        String userAgent, boolean success);
+
+        /**
+         * Count the number of login history entries for a user with a specific status after a given timestamp.
+         * 
+         * @param userId    - The user ID to filter by
+         * @param status    - The login status to filter by
+         * @param timestamp - The timestamp to filter entries after
+         * @return Count of login history entries matching the criteria
+         */
+        int countByUserIdAndSuccessAndTimestampAfter(String userId, boolean success, LocalDateTime timestamp);
+
+        /**
+         * Find login history entries by user ID ordered by timestamp in descending order.
+         * 
+         * @param userId - The user ID to filter by
+         * @return List of login history entries for the specified user ordered by timestamp
+         */
+        List<LoginHistory> findByUserIdOrderByTimestampDesc(String userId);
 }

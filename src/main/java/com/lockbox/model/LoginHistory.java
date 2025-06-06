@@ -35,6 +35,9 @@ public class LoginHistory extends BaseEntity {
     @Column(name = "failure_reason")
     private String failureReason;
 
+    @Column(name = "timestamp")
+    private LocalDateTime timestamp;
+
     @Column(nullable = false, length = 344)
     private String aesKey;
 
@@ -54,6 +57,7 @@ public class LoginHistory extends BaseEntity {
         this.success = success;
         this.failureReason = failureReason;
         this.date = loginTimestamp.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        this.timestamp = loginTimestamp;
     }
 
     @PrePersist
@@ -64,6 +68,10 @@ public class LoginHistory extends BaseEntity {
 
         if (this.date == null) {
             this.date = this.loginTimestamp.format(DateTimeFormatter.ISO_LOCAL_DATE);
+        }
+
+        if (this.timestamp == null) {
+            this.timestamp = this.loginTimestamp;
         }
     }
 
@@ -121,6 +129,14 @@ public class LoginHistory extends BaseEntity {
 
     public void setFailureReason(String failureReason) {
         this.failureReason = failureReason;
+    }
+
+    public LocalDateTime getTimestamp() {
+        return timestamp;
+    }
+
+    public void setTimestamp(LocalDateTime timestamp) {
+        this.timestamp = timestamp;
     }
 
     public String getAesKey() {

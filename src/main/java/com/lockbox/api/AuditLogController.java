@@ -15,9 +15,6 @@ import com.lockbox.utils.AppConstants.Errors;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
-/**
- * REST controller for audit log operations.
- */
 @RestController
 @RequestMapping("/api/audit-logs")
 public class AuditLogController {
@@ -30,17 +27,6 @@ public class AuditLogController {
     @Autowired
     private SecurityUtils securityUtils;
 
-    /**
-     * Get audit logs with filtering and pagination capabilities.
-     *
-     * @param page          Page number (0-based)
-     * @param size          Page size
-     * @param operationType Filter by operation type (READ, WRITE, UPDATE, DELETE, or ALL)
-     * @param level         Filter by log level (DEBUG, INFO, WARNING, ERROR, CRITICAL, or ALL)
-     * @param startDate     Filter by start date (ISO format)
-     * @param endDate       Filter by end date (ISO format)
-     * @return Encrypted audit logs for the requesting user
-     */
     @GetMapping
     public ResponseEntityDTO<AuditLogListResponseDTO> getAuditLogs(
             @RequestParam(name = "page", required = false) Integer page,

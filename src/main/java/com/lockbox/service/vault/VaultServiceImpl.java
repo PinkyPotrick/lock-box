@@ -28,6 +28,7 @@ import com.lockbox.repository.CredentialRepository;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.repository.VaultRepository;
 import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.service.notification.NotificationCreationService;
 import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.AppConstants.AuditLogMessages;
 import com.lockbox.utils.AppConstants.LogMessages;
@@ -64,6 +65,10 @@ public class VaultServiceImpl implements VaultService {
 
     @Autowired
     private AuditLogService auditLogService;
+
+    // Add NotificationCreationService as a dependency
+    @Autowired
+    private NotificationCreationService notificationCreationService;
 
     /**
      * Find all vaults for the current user with optional pagination.
@@ -239,7 +244,8 @@ public class VaultServiceImpl implements VaultService {
             // Add audit logging for failure
             try {
                 auditLogService.logUserAction(userId, ActionType.VAULT_CREATE, OperationType.WRITE, LogLevel.ERROR,
-                        null, vaultDTO.getName(), ActionStatus.FAILURE, e.getMessage(), AuditLogMessages.FAILED_VAULT_CREATE);
+                        null, vaultDTO.getName(), ActionStatus.FAILURE, e.getMessage(),
+                        AuditLogMessages.FAILED_VAULT_CREATE);
             } catch (Exception ex) {
                 logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
             }
@@ -355,17 +361,21 @@ public class VaultServiceImpl implements VaultService {
                 throw new SecurityException("Access denied");
             }
 
-            // Get vault name for audit log
+            // Get vault name and credential count before deletion
             Vault decryptedVault = vaultServerEncryptionService.decryptServerData(vault);
             String vaultName = decryptedVault.getName();
-
-            // Delete all credentials in this vault
             int deletedCredentials = credentialRepository.deleteByVaultId(id);
-            logger.info("Deleted {} credentials from vault {} before vault deletion", deletedCredentials, id);
 
             // Delete the vault
             vaultRepository.deleteById(id);
             logger.info("Vault deleted with ID: {}", id);
+
+            // Create notification for vault deletion
+            try {
+                notificationCreationService.createVaultDeletedNotification(userId, vaultName, deletedCredentials);
+            } catch (Exception e) {
+                logger.error("Failed to create vault deletion notification: {}", e.getMessage());
+            }
 
             // Log successful deletion
             try {

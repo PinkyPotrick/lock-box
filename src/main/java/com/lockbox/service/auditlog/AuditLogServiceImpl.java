@@ -354,10 +354,10 @@ public class AuditLogServiceImpl implements AuditLogService {
         try {
             logger.info("Deleting audit logs older than {}", cutoffDate);
             int deletedCount = auditLogRepository.deleteByTimestampBefore(cutoffDate);
-            logger.info(AppConstants.SchedulerMessages.CLEANUP_COMPLETE, deletedCount);
+            logger.info(AppConstants.SchedulerMessages.AUDIT_LOG_CLEANUP_COMPLETE, deletedCount);
             return deletedCount;
         } catch (Exception e) {
-            logger.error(AppConstants.SchedulerMessages.CLEANUP_ERROR, e.getMessage());
+            logger.error(AppConstants.SchedulerMessages.AUDIT_LOG_CLEANUP_ERROR, e.getMessage());
             throw new Exception("Failed to delete old audit logs", e);
         }
     }/**

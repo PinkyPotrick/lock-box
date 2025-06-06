@@ -3,6 +3,9 @@ package com.lockbox.utils;
 import java.math.BigInteger;
 import java.time.temporal.ChronoUnit;
 
+/**
+ * Class containing application-wide constants
+ */
 public class AppConstants {
 
    // The blockchain constants
@@ -26,6 +29,12 @@ public class AppConstants {
    public static final int LOGIN_HISTORY_LIMIT = 10;
    public static final int DEFAULT_PAGE_SIZE = 100;
    public static final int DEFAULT_PAGE_NUMBER = 0;
+
+   // Maximum login attempts before account lock
+   public static final int MAX_ATTEMPTS_BEFORE_LOCK = 10;
+
+   // Threshold for failed login attempts to trigger security notifications
+   public static final int FAILED_LOGIN_ATTEMPTS_THRESHOLD = 5;
 
    // Time constants
    public static final int DEFAULT_AUDIT_LOG_RETENTION_MONTHS = 3;
@@ -63,19 +72,21 @@ public class AppConstants {
       public static final String USER = "User";
       public static final String GENERIC = "Generic";
       public static final String AUDIT_LOG = "AuditLog";
+      public static final String NOTIFICATION = "notification";
    }
 
    // Field name constants for validation messages
    public static class FieldNames {
       // Common field names
-      public static final String USERNAME = "Username";
-      public static final String PASSWORD = "Password";
-      public static final String EMAIL = "Email";
-      public static final String NOTES = "Notes";
-      public static final String CATEGORY = "Category";
-      public static final String NAME = "Name";
-      public static final String DESCRIPTION = "Description";
-      public static final String URL = "URL";
+      public static final String USERNAME = "username";
+      public static final String PASSWORD = "password";
+      public static final String EMAIL = "email";
+      public static final String NAME = "name";
+      public static final String NOTES = "notes";
+      public static final String CATEGORY = "category";
+      public static final String LAST_NAME = "lastName";
+      public static final String URL = "url";
+      public static final String DESCRIPTION = "description";
       public static final String DOMAIN = "Domain";
       public static final String ENCRYPTION_KEY = "Encryption key";
 
@@ -109,6 +120,17 @@ public class AppConstants {
       public static final String IP_ADDRESS = "IP address";
       public static final String FAILURE_REASON = "Failure reason";
       public static final String ADDITIONAL_INFO = "Additional information";
+
+      // Notification fields
+      public static final String NOTIFICATION_DATA = "notificationData";
+      public static final String NOTIFICATION_TYPE = "notificationType";
+      public static final String NOTIFICATION_REQUEST = "notificationRequest";
+      public static final String TITLE = "title";
+      public static final String MESSAGE = "message";
+      public static final String RESOURCE_ID_FIELD = "resourceId";
+      public static final String PRIORITY = "priority";
+      public static final String ACTION_LINK = "actionLink";
+      public static final String METADATA = "metadata";
    }
 
    // Max length constants for validation
@@ -132,6 +154,13 @@ public class AppConstants {
       public static final int IP_ADDRESS = 45;
       public static final int FAILURE_REASON = 1024;
       public static final int ADDITIONAL_INFO = 2048;
+
+      // Notification max lengths
+      public static final int TITLE = 255;
+      public static final int MESSAGE = 1024;
+      public static final int RESOURCE_ID_LENGTH = 100;
+      public static final int ACTION_LINK = 1024;
+      public static final int METADATA = 2048;
    }
 
    // Validation error messages
@@ -175,6 +204,12 @@ public class AppConstants {
       public static final String INVALID_DATE_RANGE = "Start date cannot be after end date";
       public static final String INVALID_OPERATION_TYPE = "Invalid operation type. Valid values are: READ, WRITE, UPDATE, DELETE, ALL";
       public static final String INVALID_LOG_LEVEL = "Invalid log level. Valid values are: DEBUG, INFO, WARNING, ERROR, CRITICAL, ALL";
+
+      // Notification validation errors
+      public static final String NOTIFICATION_TYPE_REQUIRED = "Notification type is required";
+      public static final String TITLE_REQUIRED = "Title is required";
+      public static final String MESSAGE_REQUIRED = "Message is required";
+      public static final String PRIORITY_REQUIRED = "Priority is required";
    }
 
    public static class SessionKeyAttributes {
@@ -215,6 +250,7 @@ public class AppConstants {
    public static class ActionStatus {
       public static final String SUCCESS = "SUCCESS";
       public static final String FAILURE = "FAILURE";
+      public static final String WARNING = "WARNING";
    }
 
    // Error messages
@@ -300,12 +336,74 @@ public class AppConstants {
       public static final String RESOURCE_NOT_FOUND = "{} not found with ID: {}";
       public static final String RESOURCE_NOT_IN_PARENT = "{} {} does not belong to {} {}";
       public static final String UNAUTHORIZED_ACCESS = "User {} attempted to access {} {} they don't own";
+
+      // Notification log messages
+      public static final String NOTIFICATION_CREATE_SUCCESS = "Created notification with ID: {}";
+      public static final String NOTIFICATION_MARK_READ_SUCCESS = "Marked {} notifications as {}";
+      public static final String NOTIFICATION_MARK_ALL_READ_SUCCESS = "Marked all notifications as read for user: {}";
+      public static final String NOTIFICATION_DELETE_SUCCESS = "Deleted notification with ID: {}";
+      public static final String NOTIFICATION_DELETE_EXPIRED = "Deleted {} expired notifications";
+      public static final String NOTIFICATION_ACCESS_DENIED = "User {} attempted to access notification {} they don't own";
+      public static final String NOTIFICATION_NOT_FOUND = "Notification not found with ID: {}";
    }
 
    // Scheduler messages
    public static class SchedulerMessages {
-      public static final String CLEANUP_START = "Starting scheduled audit log cleanup";
-      public static final String CLEANUP_COMPLETE = "Scheduled audit log cleanup completed, deleted {} logs";
-      public static final String CLEANUP_ERROR = "Error during scheduled audit log cleanup: {}";
+      public static final String AUDIT_LOG_CLEANUP_START = "Starting scheduled audit log cleanup";
+      public static final String AUDIT_LOG_CLEANUP_COMPLETE = "Scheduled audit log cleanup completed, deleted {} logs";
+      public static final String AUDIT_LOG_CLEANUP_ERROR = "Error during scheduled audit log cleanup: {}";
+      public static final String NOTIFICATION_CLEANUP_START = "Starting scheduled cleanup of expired notifications";
+      public static final String NOTIFICATION_LOG_CLEANUP_COMPLETE = "Notification cleanup complete. Deleted {} expired notifications";
+      public static final String NOTIFICATION_LOG_CLEANUP_ERROR = "Error during notification cleanup: {}";
+   }
+
+   // Default scheduler intervals
+   public static class SchedulerIntervals {
+      public static final String NOTIFICATION_CLEANUP_CRON = "0 0 3 * * ?"; // 3:00 AM every day
+      public static final String AUDIT_LOG_CLEANUP_CRON = "0 0 2 * * 0"; // 2:00 AM every Sunday
+   }
+
+   public static class NotificationExpiry {
+      public static final int LOW_PRIORITY_DAYS = 30;
+      public static final int MEDIUM_PRIORITY_DAYS = 60;
+      public static final int HIGH_PRIORITY_DAYS = 90;
+   }
+
+   // New notification-related constants for standard messages
+   public static class NotificationMessages {
+      // Security notifications
+      public static final String NEW_LOGIN_TITLE = "New login detected";
+      public static final String NEW_LOGIN_MESSAGE = "Someone logged into your account from a new device or location. IP address: %s";
+
+      public static final String FAILED_LOGIN_TITLE = "Multiple failed login attempts";
+      public static final String FAILED_LOGIN_MESSAGE = "There were %d failed login attempts to your account in the last hour. Last attempt from IP: %s";
+
+      public static final String PASSWORD_CHANGE_TITLE = "Password changed";
+      public static final String PASSWORD_CHANGE_MESSAGE = "Your account password was changed successfully";
+
+      public static final String ACCOUNT_LOCKED_TITLE = "Account locked";
+      public static final String ACCOUNT_LOCKED_MESSAGE = "Your account has been locked due to multiple failed login attempts. Please reset your password to unlock your account.";
+
+      public static final String DATA_BREACH_TITLE = "Potential data breach detected";
+      public static final String DATA_BREACH_MESSAGE = "A potential data breach has been detected for service: %s. Please update your password immediately.";
+
+      public static final String SUSPICIOUS_ACTIVITY_TITLE = "Suspicious activity detected";
+      public static final String SUSPICIOUS_ACTIVITY_MESSAGE = "We detected unusual activity on your account. Please review your recent activity and contact support if you don't recognize any actions.";
+
+      public static final String FREQUENT_CHANGES_TITLE = "Frequent Security Changes";
+      public static final String FREQUENT_CHANGES_MESSAGE = "We've noticed frequent security-related changes to your account. If you did not make these changes, please secure your account.";
+
+      public static final String RECOVERY_ATTEMPT_TITLE = "Account recovery attempted";
+      public static final String RECOVERY_ATTEMPT_MESSAGE = "An account recovery was attempted for your account. If this wasn't you, please secure your account immediately.";
+
+      // Content notifications
+      public static final String VAULT_DELETED_TITLE = "Vault deleted";
+      public static final String VAULT_DELETED_MESSAGE = "Your vault '%s' has been deleted along with %d credentials";
+
+      public static final String CREDENTIAL_UPDATED_TITLE = "Credential updated";
+      public static final String CREDENTIAL_UPDATED_MESSAGE = "Your credential '%s' in vault '%s' has been updated";
+
+      public static final String CREDENTIAL_DELETED_TITLE = "Credential deleted";
+      public static final String CREDENTIAL_DELETED_MESSAGE = "Your credential '%s' has been deleted from vault '%s'";
    }
 }

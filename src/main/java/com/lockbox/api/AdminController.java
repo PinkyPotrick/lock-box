@@ -16,6 +16,7 @@ import com.lockbox.model.ActionType;
 import com.lockbox.model.LogLevel;
 import com.lockbox.model.OperationType;
 import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.service.notification.NotificationService;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.AppConstants.AuditLogMessages;
@@ -33,6 +34,9 @@ public class AdminController {
     private AuditLogService auditLogService;
 
     @Autowired
+    private NotificationService notificationService;
+
+    @Autowired
     private SecurityUtils securityUtils;
 
     // curl -X DELETE "http://localhost:8080/api/admin/audit-logs/cleanup" -H "Authorization: Basic $(echo -n user:pass
@@ -40,12 +44,6 @@ public class AdminController {
     // curl -v -X DELETE "http://localhost:8080/api/admin/audit-logs/cleanup" -H "Authorization: Basic $(echo -n
     // user:pass | base64)"
 
-    /**
-     * Endpoint to trigger audit log cleanup
-     * 
-     * @param months Number of months to retain logs (default: 3)
-     * @return Response with deletion count
-     */
     @DeleteMapping("/audit-logs/cleanup")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntityDTO<Integer> cleanupAuditLogs(@RequestParam(required = false) Integer months) {
@@ -87,6 +85,20 @@ public class AdminController {
             }
 
             return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_CLEANUP);
+        }
+    }
+
+    @DeleteMapping("/notifications/cleanup")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntityDTO<Integer> cleanupExpiredNotifications() {
+        try {
+            int deletedCount = notificationService.cleanupExpiredNotifications();
+
+            return new ResponseEntityBuilder<Integer>().setData(deletedCount)
+                    .setMessage("Successfully deleted " + deletedCount + " expired notifications").build();
+        } catch (Exception e) {
+            logger.error("Error cleaning up expired notifications: {}", e.getMessage(), e);
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to clean up expired notifications");
         }
     }
 }

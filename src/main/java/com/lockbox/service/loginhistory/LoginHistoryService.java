@@ -11,4 +11,8 @@ public interface LoginHistoryService {
     double getLoginSuccessRate(String userId) throws Exception;
 
     int clearOldLoginHistory(String userId, LocalDateTime before) throws Exception;
+
+    boolean isNewDeviceOrLocation(String userId, String ipAddress, String userAgent);
+
+    int countRecentFailedAttempts(String userId);
 }

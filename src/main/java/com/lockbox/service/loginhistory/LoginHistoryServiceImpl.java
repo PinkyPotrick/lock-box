@@ -141,4 +141,36 @@ public class LoginHistoryServiceImpl implements LoginHistoryService {
             throw new Exception("Failed to clear old login history", e);
         }
     }
+
+    /**
+     * Checks if the combination of IP address and user agent is new for this user.
+     * 
+     * @param userId    - The user ID
+     * @param ipAddress - The IP address
+     * @param userAgent - The user agent string
+     * @return boolean - true if this is a new device/location, false otherwise
+     */
+    @Override
+    public boolean isNewDeviceOrLocation(String userId, String ipAddress, String userAgent) {
+        // Look for previous successful logins from this IP and user agent combination
+        List<LoginHistory> previousLogins = loginHistoryRepository
+                .findByUserIdAndIpAddressAndUserAgentAndSuccess(userId, ipAddress, userAgent, true);
+
+        // If no previous successful logins found, this is a new device/location
+        return previousLogins.isEmpty();
+    }
+
+    /**
+     * Counts the number of failed login attempts for a user within the last hour.
+     * 
+     * @param userId - The user ID
+     * @return int - The count of recent failed attempts
+     */
+    @Override
+    public int countRecentFailedAttempts(String userId) {
+        // Look for failed logins in the last hour
+        LocalDateTime oneHourAgo = LocalDateTime.now().minusHours(1);
+
+        return loginHistoryRepository.countByUserIdAndSuccessAndTimestampAfter(userId, false, oneHourAgo);
+    }
 }

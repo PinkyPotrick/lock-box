@@ -26,6 +26,7 @@ import com.lockbox.model.LogLevel;
 import com.lockbox.model.OperationType;
 import com.lockbox.repository.CredentialRepository;
 import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.service.notification.NotificationCreationService;
 import com.lockbox.service.vault.VaultService;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
@@ -62,6 +63,10 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Autowired
     private AuditLogService auditLogService;
+
+    // Add NotificationCreationService as a dependency
+    @Autowired
+    private NotificationCreationService notificationCreationService;
 
     /**
      * Find all credentials for a specific vault with optional pagination.
@@ -391,6 +396,21 @@ public class CredentialServiceImpl implements CredentialService {
                 logger.error("Failed to create audit log: {}", e.getMessage());
             }
 
+            // Get vault name for notification
+            Optional<com.lockbox.model.Vault> vaultOpt = vaultService.findById(vaultId);
+            String vaultName = "";
+            if (vaultOpt.isPresent()) {
+                vaultName = vaultOpt.get().getName();
+            }
+
+            // After successful update but before returning
+            try {
+                notificationCreationService.createCredentialUpdatedNotification(userId, credentialName, vaultName, id,
+                        vaultId);
+            } catch (Exception e) {
+                logger.error("Failed to create credential update notification: {}", e.getMessage());
+            }
+
             return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
         } catch (Exception e) {
             // Add audit logging for failure
@@ -459,6 +479,20 @@ public class CredentialServiceImpl implements CredentialService {
                         String.format(AuditLogMessages.CREDENTIAL_DELETED, vaultId));
             } catch (Exception e) {
                 logger.error("Failed to create audit log: {}", e.getMessage());
+            }
+
+            // Get vault name for notification
+            Optional<com.lockbox.model.Vault> vaultOpt = vaultService.findById(vaultId);
+            String vaultName = "";
+            if (vaultOpt.isPresent()) {
+                vaultName = vaultOpt.get().getName();
+            }
+
+            // After credential is deleted but before returning
+            try {
+                notificationCreationService.createCredentialDeletedNotification(userId, credentialName, vaultName);
+            } catch (Exception e) {
+                logger.error("Failed to create credential deletion notification: {}", e.getMessage());
             }
         } catch (Exception e) {
             // Add audit logging for failure

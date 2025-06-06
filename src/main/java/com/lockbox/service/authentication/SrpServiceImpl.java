@@ -29,6 +29,7 @@ import com.lockbox.model.User;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.service.notification.NotificationCreationService;
 import com.lockbox.service.token.TokenService;
 import com.lockbox.service.user.UserServerEncryptionServiceImpl;
 import com.lockbox.service.user.UserService;
@@ -36,8 +37,10 @@ import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.utils.EncryptionUtils;
+import com.lockbox.utils.RequestUtils;
 import com.lockbox.utils.SrpUtils;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 @Service
@@ -64,6 +67,9 @@ public class SrpServiceImpl implements SrpService {
     private HttpSession httpSession;
 
     @Autowired
+    private HttpServletRequest request;
+
+    @Autowired
     private SessionKeyStoreService sessionKeyStore;
 
     @Autowired
@@ -71,6 +77,10 @@ public class SrpServiceImpl implements SrpService {
 
     @Autowired
     private AuditLogService auditLogService;
+
+    // Add NotificationCreationService as a dependency
+    @Autowired
+    private NotificationCreationService notificationCreationService;
 
     /**
      * Registers a new user by decrypting the received registration data, creating the user, and generating a session
@@ -266,6 +276,20 @@ public class SrpServiceImpl implements SrpService {
         // Record successful authentication
         authenticationService.recordSuccessfulAuthentication(decryptedUser.getId());
 
+        // After successful authentication and before returning
+        try {
+            // Get client IP address from request context or a request-scoped bean
+            String ipAddress = RequestUtils.getClientIpAddress(request);
+
+            // Create new login notification if it's a new device/location
+            if (authenticationService.isNewDeviceOrLocation(decryptedUser.getId(), ipAddress)) {
+                notificationCreationService.createNewLoginNotification(decryptedUser.getId(), ipAddress);
+            }
+        } catch (Exception ex) {
+            // Don't block authentication if notification fails
+            logger.error("Failed to create login notification: {}", ex.getMessage());
+        }
+
         // Create the response with the encrypted data
         UserLoginResponseDTO userLoginResponse = srpEncryptionService.encryptUserLoginResponseDTO(
                 decryptedUser.getPublicKey(), decryptedUser.getPrivateKey(), sessionToken, serverProofM2,
@@ -427,6 +451,14 @@ public class SrpServiceImpl implements SrpService {
                     userId, "User Account", ActionStatus.SUCCESS, null, "Password changed successfully");
         } catch (Exception e) {
             logger.error("Failed to create audit log for password change: {}", e.getMessage());
+        }
+
+        // After saving the updated user
+        try {
+            notificationCreationService.createPasswordChangedNotification(userId);
+        } catch (Exception ex) {
+            // Don't block password change if notification fails
+            logger.error("Failed to create password change notification: {}", ex.getMessage());
         }
 
         // Create and return the encrypted response
