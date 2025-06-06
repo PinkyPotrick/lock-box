@@ -22,13 +22,19 @@ import com.lockbox.dto.authentication.registration.UserRegistrationResponseDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsRequestDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsResponseDTO;
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.model.User;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.service.SessionKeyStoreService;
+import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.token.TokenService;
 import com.lockbox.service.user.UserServerEncryptionServiceImpl;
 import com.lockbox.service.user.UserService;
 import com.lockbox.utils.AppConstants;
+import com.lockbox.utils.AppConstants.ActionStatus;
+import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.utils.EncryptionUtils;
 import com.lockbox.utils.SrpUtils;
 
@@ -62,6 +68,9 @@ public class SrpServiceImpl implements SrpService {
 
     @Autowired
     private AuthenticationService authenticationService;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     /**
      * Registers a new user by decrypting the received registration data, creating the user, and generating a session
@@ -100,6 +109,14 @@ public class SrpServiceImpl implements SrpService {
                 .encryptUserRegistrationResponseDTO(sessionToken);
 
         logger.info("User registered successfully: {}", userRegistrationDTO.getDerivedUsername());
+        try {
+            auditLogService.logUserAction(user.getId(), ActionType.USER_REGISTRATION, OperationType.WRITE,
+                    LogLevel.INFO, user.getId(), "User Registration", ActionStatus.SUCCESS, null,
+                    "New user registered successfully");
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for user registration: {}", e.getMessage());
+        }
+
         return userRegistrationResponse;
     }
 
@@ -224,6 +241,13 @@ public class SrpServiceImpl implements SrpService {
             logger.warn("Authentication failed - invalid proof for user: {}", decryptedUser.getId());
             authenticationService.recordFailedAuthentication(decryptedUser.getId(),
                     AppConstants.AuthenticationErrors.INVALID_PROOF);
+            try {
+                auditLogService.logUserAction(decryptedUser.getId(), ActionType.LOGIN_FAILED, OperationType.READ,
+                        LogLevel.WARNING, null, "Authentication System", ActionStatus.FAILURE, "Invalid proof",
+                        "Failed login attempt - invalid authentication proof");
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_PROOF);
         }
 
@@ -397,6 +421,13 @@ public class SrpServiceImpl implements SrpService {
         httpSession.invalidate();
 
         logger.info("Password successfully changed for user ID: {}", userId);
+
+        try {
+            auditLogService.logUserAction(userId, ActionType.PASSWORD_CHANGE, OperationType.UPDATE, LogLevel.INFO,
+                    userId, "User Account", ActionStatus.SUCCESS, null, "Password changed successfully");
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for password change: {}", e.getMessage());
+        }
 
         // Create and return the encrypted response
         return srpEncryptionService.encryptPasswordChangeCompleteResponseDTO(serverProofM2, true, decryptedUser);

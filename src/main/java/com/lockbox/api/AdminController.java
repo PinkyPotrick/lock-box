@@ -12,8 +12,16 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lockbox.dto.ResponseEntityDTO;
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.utils.AppConstants;
+import com.lockbox.utils.AppConstants.ActionStatus;
+import com.lockbox.utils.AppConstants.AuditLogMessages;
+import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.utils.ResponseEntityBuilder;
+import com.lockbox.utils.SecurityUtils;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -24,6 +32,14 @@ public class AdminController {
     @Autowired
     private AuditLogService auditLogService;
 
+    @Autowired
+    private SecurityUtils securityUtils;
+
+    // curl -X DELETE "http://localhost:8080/api/admin/audit-logs/cleanup" -H "Authorization: Basic $(echo -n user:pass
+    // | base64)"
+    // curl -v -X DELETE "http://localhost:8080/api/admin/audit-logs/cleanup" -H "Authorization: Basic $(echo -n
+    // user:pass | base64)"
+
     /**
      * Endpoint to trigger audit log cleanup
      * 
@@ -31,21 +47,46 @@ public class AdminController {
      * @return Response with deletion count
      */
     @DeleteMapping("/audit-logs/cleanup")
-    @PreAuthorize("hasRole('ADMIN')") // Now this will work with @EnableMethodSecurity
+    @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntityDTO<Integer> cleanupAuditLogs(@RequestParam(required = false) Integer months) {
         try {
+            String userId = securityUtils.getCurrentUserId();
             int deletedCount;
             if (months != null && months > 0) {
-                LocalDateTime cutoffDate = LocalDateTime.now().minusMonths(months);
+                LocalDateTime cutoffDate = LocalDateTime.now().minus(months, AppConstants.AUDIT_LOG_RETENTION_UNIT);
                 deletedCount = auditLogService.deleteOldAuditLogs(cutoffDate);
             } else {
                 deletedCount = auditLogService.deleteOldAuditLogs();
             }
+
+            // Log the admin action
+            try {
+                auditLogService.logUserAction(userId, ActionType.ADMIN_AUDIT_LOG_CLEANUP, OperationType.DELETE,
+                        LogLevel.INFO, null, "Audit Log System", ActionStatus.SUCCESS, null,
+                        String.format(AuditLogMessages.ADMIN_CLEANED_AUDIT_LOGS, deletedCount,
+                                (months != null ? months + " months" : "default")));
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
             return new ResponseEntityBuilder<Integer>().setData(deletedCount)
                     .setMessage("Successfully deleted " + deletedCount + " audit logs").build();
         } catch (Exception e) {
             logger.error("Error cleaning up audit logs: {}", e.getMessage(), e);
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to clean up audit logs");
+
+            try {
+                // Get current user from security context
+                String userId = securityUtils.getCurrentUserId();
+
+                // Log the failure
+                auditLogService.logUserAction(userId, ActionType.ADMIN_AUDIT_LOG_CLEANUP, OperationType.DELETE,
+                        LogLevel.ERROR, null, "Audit Log System", ActionStatus.FAILURE, e.getMessage(),
+                        AuditLogMessages.FAILED_CLEANUP);
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_CLEANUP);
         }
     }
 }

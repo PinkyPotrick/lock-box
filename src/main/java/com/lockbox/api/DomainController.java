@@ -18,6 +18,7 @@ import com.lockbox.dto.domain.DomainListResponseDTO;
 import com.lockbox.dto.domain.DomainRequestDTO;
 import com.lockbox.dto.domain.DomainResponseDTO;
 import com.lockbox.service.domain.DomainService;
+import com.lockbox.utils.AppConstants.AuditLogMessages;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
@@ -41,7 +42,7 @@ public class DomainController {
             return new ResponseEntityBuilder<DomainListResponseDTO>().setData(domainListResponse)
                     .setMessage("Domains retrieved successfully").build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to fetch domains");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_DOMAIN_VIEW);
         }
     }
 
@@ -53,7 +54,7 @@ public class DomainController {
             return new ResponseEntityBuilder<DomainResponseDTO>().setData(domainResponse)
                     .setMessage("Domain retrieved successfully").build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to fetch domain");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_DOMAIN_VIEW);
         }
     }
 
@@ -66,7 +67,7 @@ public class DomainController {
             return new ResponseEntityBuilder<DomainResponseDTO>().setData(domainResponse)
                     .setMessage("Domain created successfully").setStatusCode(HttpStatus.CREATED.value()).build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to create domain");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_DOMAIN_CREATE);
         }
     }
 
@@ -79,7 +80,7 @@ public class DomainController {
             return new ResponseEntityBuilder<DomainResponseDTO>().setData(domainResponse)
                     .setMessage("Domain updated successfully").build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to update domain");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_DOMAIN_UPDATE);
         }
     }
 
@@ -90,7 +91,7 @@ public class DomainController {
             domainService.deleteDomain(id, userId);
             return new ResponseEntityBuilder<Void>().setMessage("Domain deleted successfully").build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to delete domain");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_DOMAIN_DELETE);
         }
     }
 

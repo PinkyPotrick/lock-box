@@ -19,11 +19,18 @@ import com.lockbox.dto.vault.VaultListResponseDTO;
 import com.lockbox.dto.vault.VaultMapper;
 import com.lockbox.dto.vault.VaultRequestDTO;
 import com.lockbox.dto.vault.VaultResponseDTO;
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.model.User;
 import com.lockbox.model.Vault;
 import com.lockbox.repository.CredentialRepository;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.repository.VaultRepository;
+import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.utils.AppConstants.ActionStatus;
+import com.lockbox.utils.AppConstants.AuditLogMessages;
+import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.validators.VaultValidator;
 
 /**
@@ -54,6 +61,9 @@ public class VaultServiceImpl implements VaultService {
 
     @Autowired
     private VaultMapper vaultMapper;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     /**
      * Find all vaults for the current user with optional pagination.
@@ -130,6 +140,14 @@ public class VaultServiceImpl implements VaultService {
 
             // Check ownership
             if (!vault.getUser().getId().equals(userId)) {
+                // Log unauthorized access attempt
+                try {
+                    auditLogService.logUserAction(userId, ActionType.VAULT_VIEW, OperationType.READ, LogLevel.WARNING,
+                            id, null, ActionStatus.FAILURE, "Access denied", "Attempted unauthorized vault view");
+                } catch (Exception ex) {
+                    logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+                }
+
                 throw new SecurityException("Access denied");
             }
 
@@ -139,11 +157,27 @@ public class VaultServiceImpl implements VaultService {
             // Convert to DTO
             VaultDTO vaultDTO = vaultMapper.toDTO(decryptedVault);
 
+            // Log successful vault view
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_VIEW, OperationType.READ, LogLevel.INFO, id,
+                        decryptedVault.getName(), ActionStatus.SUCCESS, null, AuditLogMessages.VAULT_VIEWED);
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
             // Encrypt for client
             return vaultClientEncryptionService.encryptVaultForClient(vaultDTO);
         } catch (Exception e) {
-            logger.error("Error finding vault {} for user {}: {}", id, userId, e.getMessage());
-            throw new Exception("Failed to find vault", e);
+            // Only log errors not already logged above
+            if (!(e instanceof SecurityException)) {
+                try {
+                    auditLogService.logUserAction(userId, ActionType.VAULT_VIEW, OperationType.READ, LogLevel.ERROR, id,
+                            null, ActionStatus.FAILURE, e.getMessage(), "Error viewing vault");
+                } catch (Exception ex) {
+                    logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+                }
+            }
+            throw e;
         }
     }
 
@@ -188,11 +222,28 @@ public class VaultServiceImpl implements VaultService {
             VaultDTO responseDTO = vaultMapper.toDTO(decryptedVault);
             responseDTO.setCredentialCount(0); // New vault has no credentials
 
+            // Add audit logging before returning
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_CREATE, OperationType.WRITE, LogLevel.INFO,
+                        savedVault.getId(), decryptedVault.getName(), ActionStatus.SUCCESS, null, "New vault created");
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
             // Encrypt for client response
             return vaultClientEncryptionService.encryptVaultForClient(responseDTO);
         } catch (Exception e) {
-            logger.error("Error creating vault: {}", e.getMessage());
-            throw new Exception("Failed to create vault", e);
+            // First decrypt the vault data, then validate
+            VaultDTO vaultDTO = vaultClientEncryptionService.decryptVaultFromClient(requestDTO);
+
+            // Add audit logging for failure
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_CREATE, OperationType.WRITE, LogLevel.ERROR,
+                        null, vaultDTO.getName(), ActionStatus.FAILURE, e.getMessage(), AuditLogMessages.FAILED_VAULT_CREATE);
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+            throw e;
         }
     }
 
@@ -247,11 +298,24 @@ public class VaultServiceImpl implements VaultService {
             int credentialCount = credentialRepository.countByVaultId(id);
             responseDTO.setCredentialCount(credentialCount);
 
-            // Encrypt for client response
+            // Add audit logging before returning
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_UPDATE, OperationType.UPDATE, LogLevel.INFO, id,
+                        decryptedVault.getName(), ActionStatus.SUCCESS, null, "Vault updated");
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
             return vaultClientEncryptionService.encryptVaultForClient(responseDTO);
         } catch (Exception e) {
-            logger.error("Error updating vault {}: {}", id, e.getMessage());
-            throw new Exception("Failed to update vault", e);
+            // Add audit logging for failure
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_UPDATE, OperationType.UPDATE, LogLevel.ERROR, id,
+                        null, ActionStatus.FAILURE, e.getMessage(), AuditLogMessages.FAILED_VAULT_UPDATE);
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+            throw e;
         }
     }
 
@@ -265,28 +329,65 @@ public class VaultServiceImpl implements VaultService {
     @Override
     @Transactional
     public void deleteVault(String id, String userId) throws Exception {
-        // Check if vault exists and is owned by the user
-        Optional<Vault> vaultOpt = vaultRepository.findById(id);
-        if (!vaultOpt.isPresent()) {
-            logger.warn("Vault not found with ID: {}", id);
-            throw new Exception("Vault not found");
+        try {
+            // Get vault name before deletion for the audit log
+            Optional<Vault> vaultOpt = vaultRepository.findById(id);
+            if (!vaultOpt.isPresent()) {
+                logger.warn("Vault not found with ID: {}", id);
+                throw new Exception("Vault not found");
+            }
+
+            Vault vault = vaultOpt.get();
+
+            // Verify user ownership
+            if (!vault.getUser().getId().equals(userId)) {
+                logger.warn("User {} attempted to delete vault {} they don't own", userId, id);
+
+                // Log unauthorized access attempt
+                try {
+                    auditLogService.logUserAction(userId, ActionType.VAULT_DELETE, OperationType.DELETE,
+                            LogLevel.WARNING, id, null, ActionStatus.FAILURE, "Access denied",
+                            "Attempted unauthorized vault deletion");
+                } catch (Exception ex) {
+                    logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+                }
+
+                throw new SecurityException("Access denied");
+            }
+
+            // Get vault name for audit log
+            Vault decryptedVault = vaultServerEncryptionService.decryptServerData(vault);
+            String vaultName = decryptedVault.getName();
+
+            // Delete all credentials in this vault
+            int deletedCredentials = credentialRepository.deleteByVaultId(id);
+            logger.info("Deleted {} credentials from vault {} before vault deletion", deletedCredentials, id);
+
+            // Delete the vault
+            vaultRepository.deleteById(id);
+            logger.info("Vault deleted with ID: {}", id);
+
+            // Log successful deletion
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_DELETE, OperationType.DELETE, LogLevel.INFO, id,
+                        vaultName, ActionStatus.SUCCESS, null,
+                        "Vault deleted with " + deletedCredentials + " credentials");
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+        } catch (SecurityException e) {
+            // Security exception already logged and thrown above
+            throw e;
+        } catch (Exception e) {
+            // Log other failures
+            try {
+                auditLogService.logUserAction(userId, ActionType.VAULT_DELETE, OperationType.DELETE, LogLevel.ERROR, id,
+                        null, ActionStatus.FAILURE, e.getMessage(), "Error deleting vault");
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+            throw e;
         }
-
-        Vault vault = vaultOpt.get();
-
-        // Verify user ownership
-        if (!vault.getUser().getId().equals(userId)) {
-            logger.warn("User {} attempted to delete vault {} they don't own", userId, id);
-            throw new SecurityException("Access denied");
-        }
-
-        // First, delete all credentials in this vault
-        int deletedCredentials = credentialRepository.deleteByVaultId(id);
-        logger.info("Deleted {} credentials from vault {} before vault deletion", deletedCredentials, id);
-
-        // Then delete the vault itself
-        vaultRepository.deleteById(id);
-        logger.info("Vault deleted with ID: {}", id);
     }
 
     /**

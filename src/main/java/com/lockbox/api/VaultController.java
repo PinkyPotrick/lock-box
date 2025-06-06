@@ -20,6 +20,7 @@ import com.lockbox.dto.vault.VaultResponseDTO;
 import com.lockbox.service.vault.VaultService;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
+import com.lockbox.utils.AppConstants.AuditLogMessages;
 
 @RestController
 @RequestMapping("/api/vaults")
@@ -66,7 +67,7 @@ public class VaultController {
             return new ResponseEntityBuilder<VaultResponseDTO>().setData(vaultResponse)
                     .setMessage("Vault created successfully").setStatusCode(HttpStatus.CREATED.value()).build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to create vault");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_VAULT_CREATE);
         }
     }
 
@@ -79,7 +80,7 @@ public class VaultController {
             return new ResponseEntityBuilder<VaultResponseDTO>().setData(vaultResponse)
                     .setMessage("Vault updated successfully").build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to update vault");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_VAULT_UPDATE);
         }
     }
 
@@ -90,7 +91,7 @@ public class VaultController {
             vaultService.deleteVault(id, userId);
             return new ResponseEntityBuilder<Void>().setMessage("Vault deleted successfully").build();
         } catch (Exception e) {
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to delete vault");
+            return ResponseEntityBuilder.handleErrorDTO(e, AuditLogMessages.FAILED_VAULT_DELETE);
         }
     }
 }

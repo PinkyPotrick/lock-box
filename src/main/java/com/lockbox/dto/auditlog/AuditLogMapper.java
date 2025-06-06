@@ -4,6 +4,8 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import com.lockbox.model.AuditLog;
@@ -14,6 +16,8 @@ import com.lockbox.model.User;
  */
 @Component
 public class AuditLogMapper {
+
+    private final Logger logger = LoggerFactory.getLogger(AuditLogMapper.class);
 
     /**
      * Convert an {@link AuditLog} entity to an {@link AuditLogDTO}
@@ -31,6 +35,11 @@ public class AuditLogMapper {
         dto.setUserId(auditLog.getUser() != null ? auditLog.getUser().getId() : null);
         dto.setUsername(auditLog.getUser() != null ? auditLog.getUser().getUsername() : null);
         dto.setActionType(auditLog.getActionType());
+
+        // Add the missing fields
+        dto.setOperationType(auditLog.getOperationType());
+        dto.setLogLevel(auditLog.getLogLevel());
+
         dto.setResourceId(auditLog.getResourceId());
         dto.setResourceName(auditLog.getResourceName());
         dto.setClientInfo(auditLog.getClientInfo());
@@ -39,6 +48,10 @@ public class AuditLogMapper {
         dto.setFailureReason(auditLog.getFailureReason());
         dto.setAdditionalInfo(auditLog.getAdditionalInfo());
         dto.setTimestamp(auditLog.getTimestamp());
+
+        // Add debug logging
+        logger.debug("Mapping AuditLog to DTO - ID: {}, ActionType: {}, OperationType: {}, LogLevel: {}",
+                auditLog.getId(), auditLog.getActionType(), auditLog.getOperationType(), auditLog.getLogLevel());
 
         return dto;
     }
@@ -72,6 +85,11 @@ public class AuditLogMapper {
         AuditLog auditLog = new AuditLog();
         auditLog.setUser(user);
         auditLog.setActionType(dto.getActionType());
+
+        // Add the missing fields
+        auditLog.setOperationType(dto.getOperationType());
+        auditLog.setLogLevel(dto.getLogLevel());
+
         auditLog.setResourceId(dto.getResourceId());
         auditLog.setResourceName(dto.getResourceName());
         auditLog.setClientInfo(dto.getClientInfo());
@@ -80,6 +98,10 @@ public class AuditLogMapper {
         auditLog.setFailureReason(dto.getFailureReason());
         auditLog.setAdditionalInfo(dto.getAdditionalInfo());
         auditLog.setTimestamp(dto.getTimestamp() != null ? dto.getTimestamp() : LocalDateTime.now());
+
+        // Add debug logging
+        logger.debug("Mapping DTO to AuditLog - ActionType: {}, OperationType: {}, LogLevel: {}", dto.getActionType(),
+                dto.getOperationType(), dto.getLogLevel());
 
         return auditLog;
     }

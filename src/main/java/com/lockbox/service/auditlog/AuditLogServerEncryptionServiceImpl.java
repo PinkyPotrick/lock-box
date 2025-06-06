@@ -11,6 +11,7 @@ import com.lockbox.model.AuditLog;
 import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.encryption.GenericEncryptionService;
 import com.lockbox.service.encryption.RSAKeyPairService;
+import com.lockbox.utils.AppConstants.EncryptionMessages;
 import com.lockbox.utils.EncryptionUtils;
 
 /**
@@ -66,19 +67,19 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
 
             // Encrypt sensitive fields only
             if (auditLog.getResourceId() != null) {
-                logger.debug("Encrypting audit log resource ID with AES-CBC");
+                logger.debug(EncryptionMessages.ENCRYPTING_RESOURCE_ID);
                 encryptedAuditLog.setResourceId(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getResourceId(), aesKey));
             }
 
             if (auditLog.getResourceName() != null) {
-                logger.debug("Encrypting audit log resource name with AES-CBC");
+                logger.debug(EncryptionMessages.ENCRYPTING_RESOURCE_NAME);
                 encryptedAuditLog.setResourceName(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getResourceName(), aesKey));
             }
 
             if (auditLog.getAdditionalInfo() != null) {
-                logger.debug("Encrypting audit log additional info with AES-CBC");
+                logger.debug(EncryptionMessages.ENCRYPTING_ADDITIONAL_INFO);
                 encryptedAuditLog.setAdditionalInfo(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getAdditionalInfo(), aesKey));
             }
@@ -88,7 +89,7 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
 
             return encryptedAuditLog;
         } catch (Exception e) {
-            logger.error("Error encrypting audit log data: {}", e.getMessage(), e);
+            logger.error(EncryptionMessages.ENCRYPTION_ERROR, e.getMessage(), e);
             throw new Exception("Error encrypting audit log data", e);
         }
     }
@@ -108,7 +109,7 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
             String userPrivateKey = sessionKeyStore.getUserPrivateKey();
 
             if (userAesKey == null || userPrivateKey == null) {
-                throw new SecurityException("User keys not found in session");
+                throw new SecurityException(EncryptionMessages.USER_KEYS_NOT_FOUND);
             }
 
             AuditLog decryptedAuditLog = new AuditLog();
@@ -131,26 +132,26 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
 
             // Decrypt sensitive fields only
             if (auditLog.getResourceId() != null) {
-                logger.debug("Decrypting audit log resource ID with AES-CBC");
+                logger.debug(EncryptionMessages.DECRYPTING_RESOURCE_ID);
                 decryptedAuditLog.setResourceId(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getResourceId(), auditLogAesKey));
             }
 
             if (auditLog.getResourceName() != null) {
-                logger.debug("Decrypting audit log resource name with AES-CBC");
+                logger.debug(EncryptionMessages.DECRYPTING_RESOURCE_NAME);
                 decryptedAuditLog.setResourceName(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getResourceName(), auditLogAesKey));
             }
 
             if (auditLog.getAdditionalInfo() != null) {
-                logger.debug("Decrypting audit log additional info with AES-CBC");
+                logger.debug(EncryptionMessages.DECRYPTING_ADDITIONAL_INFO);
                 decryptedAuditLog.setAdditionalInfo(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getAdditionalInfo(), auditLogAesKey));
             }
 
             return decryptedAuditLog;
         } catch (Exception e) {
-            logger.error("Error decrypting audit log data: {}", e.getMessage(), e);
+            logger.error(EncryptionMessages.DECRYPTION_ERROR, e.getMessage(), e);
             throw new Exception("Error decrypting audit log data", e);
         }
     }

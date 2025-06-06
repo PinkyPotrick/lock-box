@@ -7,9 +7,14 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.service.SessionKeyStoreService;
+import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.loginhistory.LoginHistoryService;
 import com.lockbox.service.token.TokenBlacklistService;
+import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.RequestUtils;
 import com.lockbox.utils.SecurityUtils;
 
@@ -34,6 +39,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     @Autowired
     private SecurityUtils securityUtils;
 
+    @Autowired
+    private AuditLogService auditLogService;
+
     private final Logger logger = LoggerFactory.getLogger(AuthenticationServiceImpl.class);
 
     @Override
@@ -42,12 +50,20 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             // Extract token using SecurityUtils - completely request-independent
             String token = securityUtils.getCurrentToken();
 
-            // Add the token to blacklist to prevent reuse
-            tokenBlacklistService.blacklistToken(token);
-
             // Get user info
             String userId = securityUtils.getCurrentUserId();
             logger.info("User logged out: {}", userId);
+
+            // Add audit logging for logout
+            try {
+                auditLogService.logUserAction(userId, ActionType.USER_LOGOUT, OperationType.READ, LogLevel.INFO, null,
+                        "Authentication System", ActionStatus.SUCCESS, null, "User logged out");
+            } catch (Exception e) {
+                logger.error("Failed to create audit log for logout: {}", e.getMessage());
+            }
+
+            // Add the token to blacklist to prevent reuse
+            tokenBlacklistService.blacklistToken(token);
 
             // Clear encryption keys from session
             sessionKeyStore.clearUserKeys();
@@ -80,6 +96,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         // Record successful login
         loginHistoryService.recordSuccessfulLogin(userId, ipAddress, userAgent);
+
+        // Add audit logging
+        try {
+            auditLogService.logUserAction(userId, ActionType.USER_LOGIN, OperationType.READ, LogLevel.INFO, null,
+                    "Authentication System", ActionStatus.SUCCESS, null, "User login successful from IP: " + ipAddress);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for login: {}", e.getMessage());
+            // Don't rethrow - authentication still succeeded
+        }
     }
 
     /**
@@ -97,5 +122,15 @@ public class AuthenticationServiceImpl implements AuthenticationService {
 
         // Record failed login
         loginHistoryService.recordFailedLogin(userId, ipAddress, userAgent, reason);
+
+        // Add audit logging
+        try {
+            auditLogService.logUserAction(userId, ActionType.LOGIN_FAILED, OperationType.READ, LogLevel.WARNING, null,
+                    "Authentication System", ActionStatus.FAILURE, reason,
+                    "Failed login attempt from IP: " + ipAddress);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for failed login: {}", e.getMessage());
+            // Don't rethrow - the failed authentication is already recorded
+        }
     }
 }

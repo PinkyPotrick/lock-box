@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 import com.lockbox.dto.auditlog.AuditLogDTO;
 import com.lockbox.exception.ValidationException;
-import com.lockbox.model.AuditLog.LogLevel;
-import com.lockbox.model.AuditLog.OperationType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.FieldNames;
 import com.lockbox.utils.AppConstants.MaxLengths;
@@ -36,12 +36,8 @@ public class AuditLogValidator extends BaseValidator {
      */
     public void validateAuditLogDTO(AuditLogDTO auditLogDTO) throws ValidationException {
         validateNotNull(auditLogDTO, FieldNames.AUDIT_LOG_DATA);
-        validateRequired(auditLogDTO.getActionType(), FieldNames.ACTION_TYPE, "Action type is required");
+        validateNotNull(auditLogDTO.getActionType(), FieldNames.ACTION_TYPE, "Action type is required");
         validateRequired(auditLogDTO.getActionStatus(), FieldNames.ACTION_STATUS, "Action status is required");
-
-        if (hasContent(auditLogDTO.getActionType())) {
-            validateMaxLength(auditLogDTO.getActionType(), MaxLengths.ACTION_TYPE, FieldNames.ACTION_TYPE);
-        }
 
         if (hasContent(auditLogDTO.getResourceId())) {
             validateMaxLength(auditLogDTO.getResourceId(), MaxLengths.RESOURCE_ID, FieldNames.RESOURCE_ID);

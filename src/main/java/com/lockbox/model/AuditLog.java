@@ -14,27 +14,20 @@ import jakarta.persistence.Table;
 @Table(name = "audit_logs")
 public class AuditLog extends BaseEntity {
 
-    public enum OperationType {
-        READ, WRITE, UPDATE, DELETE
-    }
-
-    public enum LogLevel {
-        DEBUG, INFO, WARNING, ERROR, CRITICAL
-    }
-
     @ManyToOne
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @Column(nullable = false, length = 50)
-    private String actionType;
-
-    @Column(name = "operation_type")
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
+    private ActionType actionType;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private OperationType operationType;
 
-    @Column(name = "log_level")
     @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 50)
     private LogLevel logLevel;
 
     // These fields should be encrypted
@@ -74,11 +67,11 @@ public class AuditLog extends BaseEntity {
         this.user = user;
     }
 
-    public String getActionType() {
+    public ActionType getActionType() {
         return actionType;
     }
 
-    public void setActionType(String actionType) {
+    public void setActionType(ActionType actionType) {
         this.actionType = actionType;
     }
 

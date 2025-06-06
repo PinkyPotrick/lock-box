@@ -1,13 +1,14 @@
 package com.lockbox.dto.auditlog;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
-import com.lockbox.model.AuditLog.LogLevel;
-import com.lockbox.model.AuditLog.OperationType;
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 
 public class AuditLogRequestDTO {
 
     private String userId;
-    private String actionType;
+    private ActionType actionType;
     private OperationType operationType;
     private LogLevel logLevel;
     private String actionStatus;
@@ -30,11 +31,11 @@ public class AuditLogRequestDTO {
         this.userId = userId;
     }
 
-    public String getActionType() {
+    public ActionType getActionType() {
         return actionType;
     }
 
-    public void setActionType(String actionType) {
+    public void setActionType(ActionType actionType) {
         this.actionType = actionType;
     }
 

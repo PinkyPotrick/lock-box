@@ -3,6 +3,8 @@ package com.lockbox.service.dashboard;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,14 +14,20 @@ import com.lockbox.dto.loginhistory.LoginHistoryDTO;
 import com.lockbox.dto.loginhistory.LoginHistoryListDTO;
 import com.lockbox.dto.loginhistory.LoginHistoryListResponseDTO;
 import com.lockbox.dto.loginhistory.LoginHistoryMapper;
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
 import com.lockbox.model.LoginHistory;
+import com.lockbox.model.OperationType;
 import com.lockbox.repository.CredentialRepository;
 import com.lockbox.repository.DomainRepository;
 import com.lockbox.repository.LoginHistoryRepository;
 import com.lockbox.repository.VaultRepository;
+import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.loginhistory.LoginHistoryClientEncryptionService;
 import com.lockbox.service.loginhistory.LoginHistoryServerEncryptionService;
 import com.lockbox.service.loginhistory.LoginHistoryService;
+import com.lockbox.utils.AppConstants.ActionStatus;
+import com.lockbox.utils.AppConstants.LogMessages;
 
 /**
  * Implementation of the {@link DashboardService} interface. Provides methods for retrieving and processing dashboard
@@ -27,6 +35,8 @@ import com.lockbox.service.loginhistory.LoginHistoryService;
  */
 @Service
 public class DashboardServiceImpl implements DashboardService {
+
+    private final Logger logger = LoggerFactory.getLogger(DashboardServiceImpl.class);
 
     @Autowired
     private VaultRepository vaultRepository;
@@ -55,6 +65,9 @@ public class DashboardServiceImpl implements DashboardService {
     @Autowired
     private DashboardClientEncryptionService dashboardClientEncryptionService;
 
+    @Autowired
+    private AuditLogService auditLogService;
+
     /**
      * Gets dashboard overview data for a user.
      * 
@@ -64,23 +77,42 @@ public class DashboardServiceImpl implements DashboardService {
      */
     @Override
     public DashboardOverviewResponseDTO getDashboardOverview(String userId) throws Exception {
-        // Count vaults, domains, and credentials for this user
-        int vaultCount = vaultRepository.countByUserId(userId);
-        int domainCount = domainRepository.countByUserId(userId);
-        int credentialCount = credentialRepository.countByUserId(userId);
+        try {
+            // Count vaults, domains, and credentials for this user
+            int vaultCount = vaultRepository.countByUserId(userId);
+            int domainCount = domainRepository.countByUserId(userId);
+            int credentialCount = credentialRepository.countByUserId(userId);
 
-        // Get login success rate
-        double loginSuccessRate = loginHistoryService.getLoginSuccessRate(userId);
+            // Get login success rate
+            double loginSuccessRate = loginHistoryService.getLoginSuccessRate(userId);
 
-        // Create data transfer object
-        DashboardOverviewDTO overviewData = new DashboardOverviewDTO();
-        overviewData.setVaultCount(vaultCount);
-        overviewData.setDomainCount(domainCount);
-        overviewData.setCredentialCount(credentialCount);
-        overviewData.setLoginSuccessRate(loginSuccessRate);
+            // Create data transfer object
+            DashboardOverviewDTO overviewData = new DashboardOverviewDTO();
+            overviewData.setVaultCount(vaultCount);
+            overviewData.setDomainCount(domainCount);
+            overviewData.setCredentialCount(credentialCount);
+            overviewData.setLoginSuccessRate(loginSuccessRate);
 
-        // Encrypt and return data
-        return dashboardClientEncryptionService.encryptDashboardOverview(overviewData);
+            // Log dashboard view
+            try {
+                auditLogService.logUserAction(userId, ActionType.USER_LOGIN, OperationType.READ, LogLevel.INFO, null,
+                        "Dashboard", ActionStatus.SUCCESS, null, "User viewed dashboard overview");
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
+            // Encrypt and return data
+            return dashboardClientEncryptionService.encryptDashboardOverview(overviewData);
+        } catch (Exception e) {
+            // Log failure
+            try {
+                auditLogService.logUserAction(userId, ActionType.USER_LOGIN, OperationType.READ, LogLevel.ERROR, null,
+                        "Dashboard", ActionStatus.FAILURE, e.getMessage(), "Failed to retrieve dashboard overview");
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+            throw e;
+        }
     }
 
     /**

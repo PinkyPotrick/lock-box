@@ -3,15 +3,16 @@ package com.lockbox.dto.auditlog;
 import java.time.LocalDateTime;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
-import com.lockbox.model.AuditLog.LogLevel;
-import com.lockbox.model.AuditLog.OperationType;
+import com.lockbox.model.ActionType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 
 public class AuditLogResponseDTO {
 
     private String id;
     private String userId;
     private LocalDateTime timestamp;
-    private String actionType;
+    private ActionType actionType;
     private OperationType operationType;
     private LogLevel logLevel;
     private String actionStatus;
@@ -50,11 +51,11 @@ public class AuditLogResponseDTO {
         this.timestamp = timestamp;
     }
 
-    public String getActionType() {
+    public ActionType getActionType() {
         return actionType;
     }
 
-    public void setActionType(String actionType) {
+    public void setActionType(ActionType actionType) {
         this.actionType = actionType;
     }
 

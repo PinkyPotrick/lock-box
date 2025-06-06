@@ -20,9 +20,16 @@ import com.lockbox.dto.domain.DomainListResponseDTO;
 import com.lockbox.dto.domain.DomainMapper;
 import com.lockbox.dto.domain.DomainRequestDTO;
 import com.lockbox.dto.domain.DomainResponseDTO;
+import com.lockbox.model.ActionType;
 import com.lockbox.model.Domain;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.repository.CredentialRepository;
 import com.lockbox.repository.DomainRepository;
+import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.utils.AppConstants.ActionStatus;
+import com.lockbox.utils.AppConstants.AuditLogMessages;
+import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.validators.DomainValidator;
 
 /**
@@ -50,6 +57,9 @@ public class DomainServiceImpl implements DomainService {
 
     @Autowired
     private DomainMapper domainMapper;
+
+    @Autowired
+    private AuditLogService auditLogService;
 
     /**
      * Find all domains for the current user with optional pagination.
@@ -185,11 +195,29 @@ public class DomainServiceImpl implements DomainService {
             DomainDTO responseDTO = domainMapper.toDTO(decryptedDomain);
             responseDTO.setCredentialCount(0);
 
+            // Add audit logging before returning
+            try {
+                auditLogService.logUserAction(userId, ActionType.DOMAIN_CREATE, OperationType.WRITE, LogLevel.INFO,
+                        savedDomain.getId(), decryptedDomain.getName(), ActionStatus.SUCCESS, null,
+                        "New domain created: " + decryptedDomain.getUrl());
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
             // Encrypt for client response
             return domainClientEncryptionService.encryptDomainForClient(responseDTO);
         } catch (Exception e) {
-            logger.error("Error creating domain: {}", e.getMessage());
-            throw new Exception("Failed to create domain", e);
+            // Decrypt the request
+            DomainDTO domainDTO = domainClientEncryptionService.decryptDomainFromClient(requestDTO);
+
+            // Add audit logging for failure
+            try {
+                auditLogService.logUserAction(userId, ActionType.DOMAIN_CREATE, OperationType.WRITE, LogLevel.ERROR,
+                        null, domainDTO.getName(), ActionStatus.FAILURE, e.getMessage(), AuditLogMessages.FAILED_DOMAIN_CREATE);
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+            throw e;
         }
     }
 
@@ -248,11 +276,26 @@ public class DomainServiceImpl implements DomainService {
             int credentialCount = credentialRepository.countByDomainIdAndUserId(id, userId);
             responseDTO.setCredentialCount(credentialCount);
 
+            // Add audit logging before returning
+            try {
+                auditLogService.logUserAction(userId, ActionType.DOMAIN_UPDATE, OperationType.UPDATE, LogLevel.INFO, id,
+                        decryptedDomain.getName(), ActionStatus.SUCCESS, null,
+                        "Domain updated: " + decryptedDomain.getUrl());
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
+
             // Encrypt for client response
             return domainClientEncryptionService.encryptDomainForClient(responseDTO);
         } catch (Exception e) {
-            logger.error("Error updating domain {}: {}", id, e.getMessage());
-            throw new Exception("Failed to update domain", e);
+            // Add audit logging for failure
+            try {
+                auditLogService.logUserAction(userId, ActionType.DOMAIN_UPDATE, OperationType.UPDATE, LogLevel.ERROR,
+                        id, null, ActionStatus.FAILURE, e.getMessage(), AuditLogMessages.FAILED_DOMAIN_UPDATE);
+            } catch (Exception ex) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+            }
+            throw e;
         }
     }
 
@@ -275,26 +318,62 @@ public class DomainServiceImpl implements DomainService {
             }
 
             Domain domain = domainOpt.get();
+            String domainName = domain.getName(); // For audit log
 
             // Ensure the user has access to this domain
             if (!domain.getUserId().equals(userId)) {
                 logger.warn("User {} attempted to delete domain {} belonging to user {}", userId, id,
                         domain.getUserId());
+
+                // Log unauthorized access attempt
+                try {
+                    auditLogService.logUserAction(userId, ActionType.DOMAIN_DELETE, OperationType.DELETE,
+                            LogLevel.WARNING, id, null, ActionStatus.FAILURE, "Access denied",
+                            "Attempted unauthorized domain deletion");
+                } catch (Exception ex) {
+                    logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+                }
+
                 throw new RuntimeException("Access denied");
             }
 
             // Check if domain has credentials
             int credentialCount = credentialRepository.countByDomainIdAndUserId(id, userId);
             if (credentialCount > 0) {
+                // Log operation blocked due to constraints
+                try {
+                    auditLogService.logUserAction(userId, ActionType.DOMAIN_DELETE, OperationType.DELETE,
+                            LogLevel.WARNING, id, domainName, ActionStatus.FAILURE, "Domain has associated credentials",
+                            "Attempted to delete domain with " + credentialCount + " credentials");
+                } catch (Exception ex) {
+                    logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+                }
+
                 throw new RuntimeException("Cannot delete domain that has associated credentials");
             }
 
             // Delete the domain
             domainRepository.deleteById(id);
             logger.info("Domain deleted with ID: {}", id);
+
+            // Log successful deletion
+            try {
+                auditLogService.logUserAction(userId, ActionType.DOMAIN_DELETE, OperationType.DELETE, LogLevel.INFO, id,
+                        domainName, ActionStatus.SUCCESS, null, "Domain deleted successfully");
+            } catch (Exception e) {
+                logger.error(LogMessages.AUDIT_LOG_FAILED, e.getMessage());
+            }
         } catch (Exception e) {
-            logger.error("Error deleting domain {}: {}", id, e.getMessage());
-            throw new Exception("Failed to delete domain", e);
+            // Only log errors not already covered by specific cases above
+            if (!e.getMessage().contains("Cannot delete domain") && !e.getMessage().contains("Access denied")) {
+                try {
+                    auditLogService.logUserAction(userId, ActionType.DOMAIN_DELETE, OperationType.DELETE,
+                            LogLevel.ERROR, id, null, ActionStatus.FAILURE, e.getMessage(), "Error deleting domain");
+                } catch (Exception ex) {
+                    logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
+                }
+            }
+            throw e;
         }
     }
 

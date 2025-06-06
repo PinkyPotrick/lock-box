@@ -11,6 +11,7 @@ import com.lockbox.model.Vault;
 import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.encryption.GenericEncryptionService;
 import com.lockbox.service.encryption.RSAKeyPairService;
+import com.lockbox.utils.AppConstants.EncryptionMessages;
 import com.lockbox.utils.EncryptionUtils;
 
 /**
@@ -96,7 +97,7 @@ public class VaultServerEncryptionServiceImpl implements VaultServerEncryptionSe
             String userPrivateKey = sessionKeyStore.getUserPrivateKey();
 
             if (userAesKey == null || userPrivateKey == null) {
-                throw new SecurityException("User keys not found in session");
+                throw new SecurityException(EncryptionMessages.USER_KEYS_NOT_FOUND);
             }
 
             Vault decryptedVault = new Vault();

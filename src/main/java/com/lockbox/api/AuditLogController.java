@@ -11,6 +11,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.lockbox.dto.ResponseEntityDTO;
 import com.lockbox.dto.auditlog.AuditLogListResponseDTO;
 import com.lockbox.service.auditlog.AuditLogService;
+import com.lockbox.utils.AppConstants.Errors;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
@@ -57,8 +58,8 @@ public class AuditLogController {
             return new ResponseEntityBuilder<AuditLogListResponseDTO>().setData(response)
                     .setMessage("Audit logs retrieved successfully").build();
         } catch (Exception e) {
-            logger.error("Failed to fetch audit logs: {}", e.getMessage(), e);
-            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to fetch audit logs");
+            logger.error(Errors.FETCH_AUDIT_LOGS_FAILED + ": {}", e.getMessage(), e);
+            return ResponseEntityBuilder.handleErrorDTO(e, Errors.FETCH_AUDIT_LOGS_FAILED);
         }
     }
 }

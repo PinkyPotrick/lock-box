@@ -14,19 +14,27 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.context.request.RequestContextHolder;
+import org.springframework.web.context.request.ServletRequestAttributes;
 
 import com.lockbox.dto.auditlog.AuditLogDTO;
 import com.lockbox.dto.auditlog.AuditLogListResponseDTO;
 import com.lockbox.dto.auditlog.AuditLogMapper;
 import com.lockbox.dto.auditlog.AuditLogResponseDTO;
 import com.lockbox.exception.ValidationException;
+import com.lockbox.model.ActionType;
 import com.lockbox.model.AuditLog;
-import com.lockbox.model.AuditLog.LogLevel;
-import com.lockbox.model.AuditLog.OperationType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 import com.lockbox.model.User;
 import com.lockbox.repository.AuditLogRepository;
 import com.lockbox.repository.UserRepository;
+import com.lockbox.utils.AppConstants;
+import com.lockbox.utils.AppConstants.Errors;
+import com.lockbox.utils.RequestUtils;
 import com.lockbox.validators.AuditLogValidator;
+
+import jakarta.servlet.http.HttpServletRequest;
 
 /**
  * Implementation of the {@link AuditLogService} interface. Provides functionality for managing {@link AuditLog}
@@ -93,7 +101,7 @@ public class AuditLogServiceImpl implements AuditLogService {
             return auditLogClientEncryptionService.encryptAuditLogListForClient(auditLogDTOs);
         } catch (Exception e) {
             logger.error("Error fetching audit logs for user {}: {}", userId, e.getMessage());
-            throw new Exception("Failed to fetch audit logs", e);
+            throw new Exception(Errors.FETCH_AUDIT_LOGS_FAILED, e);
         }
     }
 
@@ -133,7 +141,7 @@ public class AuditLogServiceImpl implements AuditLogService {
         } catch (Exception e) {
             logger.error("Error fetching audit logs for user {} and action type {}: {}", userId, actionType,
                     e.getMessage());
-            throw new Exception("Failed to fetch audit logs", e);
+            throw new Exception(Errors.FETCH_AUDIT_LOGS_FAILED, e);
         }
     }
 
@@ -204,7 +212,7 @@ public class AuditLogServiceImpl implements AuditLogService {
             return auditLogClientEncryptionService.encryptAuditLogListForClient(auditLogDTOs);
         } catch (Exception e) {
             logger.error("Error fetching filtered audit logs for user {}: {}", userId, e.getMessage());
-            throw new Exception("Failed to fetch audit logs", e);
+            throw new Exception(Errors.FETCH_AUDIT_LOGS_FAILED, e);
         }
     }
 
@@ -223,10 +231,10 @@ public class AuditLogServiceImpl implements AuditLogService {
     public AuditLogListResponseDTO findAuditLogsByUserAndDateRange(String userId, LocalDateTime startDate,
             LocalDateTime endDate, Integer page, Integer size) throws Exception {
         try {
-            List<AuditLog> encryptedAuditLogs;
-
-            // Create pageable object
-            Pageable pageable = (page != null && size != null) ? PageRequest.of(page, size) : PageRequest.of(0, 100);
+            List<AuditLog> encryptedAuditLogs;            // Create pageable object
+            Pageable pageable = (page != null && size != null) ? 
+                    PageRequest.of(page, size) : 
+                    PageRequest.of(AppConstants.DEFAULT_PAGE_NUMBER, AppConstants.DEFAULT_PAGE_SIZE);
             Page<AuditLog> auditLogPage = auditLogRepository.findByUserIdAndTimestampBetween(userId, startDate, endDate,
                     pageable);
             encryptedAuditLogs = auditLogPage.getContent();
@@ -242,10 +250,9 @@ public class AuditLogServiceImpl implements AuditLogService {
             List<AuditLogDTO> auditLogDTOs = auditLogMapper.toDTOList(decryptedAuditLogs);
 
             // Encrypt for client response
-            return auditLogClientEncryptionService.encryptAuditLogListForClient(auditLogDTOs);
-        } catch (Exception e) {
+            return auditLogClientEncryptionService.encryptAuditLogListForClient(auditLogDTOs);        } catch (Exception e) {
             logger.error("Error fetching audit logs for user {} in date range: {}", userId, e.getMessage());
-            throw new Exception("Failed to fetch audit logs", e);
+            throw new Exception(AppConstants.Errors.FETCH_AUDIT_LOGS_FAILED, e);
         }
     }
 
@@ -262,12 +269,10 @@ public class AuditLogServiceImpl implements AuditLogService {
     public AuditLogResponseDTO createAuditLog(AuditLogDTO auditLogDTO, String userId) throws Exception {
         try {
             // Validate the audit log data
-            auditLogValidator.validateAuditLogDTO(auditLogDTO);
-
-            // Find the user
+            auditLogValidator.validateAuditLogDTO(auditLogDTO);            // Find the user
             Optional<User> userOpt = userRepository.findById(userId);
             if (!userOpt.isPresent()) {
-                throw new RuntimeException("User not found");
+                throw new RuntimeException(AppConstants.Errors.USER_NOT_FOUND);
             }
 
             // Create the audit log entity
@@ -289,11 +294,52 @@ public class AuditLogServiceImpl implements AuditLogService {
             AuditLogDTO responseDTO = auditLogMapper.toDTO(decryptedAuditLog);
 
             // Encrypt for client response
-            return auditLogClientEncryptionService.encryptAuditLogForClient(responseDTO);
-        } catch (Exception e) {
+            return auditLogClientEncryptionService.encryptAuditLogForClient(responseDTO);        } catch (Exception e) {
             logger.error("Error creating audit log: {}", e.getMessage());
-            throw new Exception("Failed to create audit log", e);
+            throw new Exception(AppConstants.Errors.CREATE_AUDIT_LOG_FAILED, e);
         }
+    }
+
+    /**
+     * Helper method to quickly create audit logs from other services
+     * 
+     * @param userId         - User ID performing the action
+     * @param actionType     - Type of action (e.g., "CREDENTIAL_VIEW", "PASSWORD_UPDATE")
+     * @param operationType  - Operation category (READ, WRITE, UPDATE, DELETE)
+     * @param logLevel       - Severity level of the log
+     * @param resourceId     - ID of the resource being accessed (can be null)
+     * @param resourceName   - Name of the resource being accessed (can be null)
+     * @param status         - Outcome status ("SUCCESS" or "FAILURE")
+     * @param failureReason  - Reason for failure (null if successful)
+     * @param additionalInfo - Any additional context information
+     * @return The created AuditLog response
+     */
+    @Override
+    public AuditLogResponseDTO logUserAction(String userId, ActionType actionType, OperationType operationType,
+            LogLevel logLevel, String resourceId, String resourceName, String status, String failureReason,
+            String additionalInfo) throws Exception {
+
+        AuditLogDTO logDTO = new AuditLogDTO();
+        logDTO.setActionType(actionType);
+        logDTO.setOperationType(operationType);
+        logDTO.setLogLevel(logLevel);
+        logDTO.setResourceId(resourceId);
+        logDTO.setResourceName(resourceName);
+        logDTO.setActionStatus(status);
+        logDTO.setFailureReason(failureReason);
+        logDTO.setAdditionalInfo(additionalInfo);
+
+        // Get the current request from RequestContextHolder
+        HttpServletRequest request = ((ServletRequestAttributes) RequestContextHolder.currentRequestAttributes())
+                .getRequest();
+        logDTO.setIpAddress(RequestUtils.getClientIpAddress(request));
+        logDTO.setClientInfo(request.getHeader("User-Agent"));
+        logDTO.setFailureReason(failureReason);
+        logDTO.setAdditionalInfo(additionalInfo);
+        logDTO.setIpAddress(RequestUtils.getClientIpAddress(request));
+        logDTO.setClientInfo(request.getHeader("User-Agent"));
+
+        return this.createAuditLog(logDTO, userId);
     }
 
     /**
@@ -302,22 +348,19 @@ public class AuditLogServiceImpl implements AuditLogService {
      * @param cutoffDate - Delete logs older than this date
      * @return Number of logs deleted
      * @throws Exception If deletion fails
-     */
-    @Override
+     */    @Override
     @Transactional
     public int deleteOldAuditLogs(LocalDateTime cutoffDate) throws Exception {
         try {
             logger.info("Deleting audit logs older than {}", cutoffDate);
             int deletedCount = auditLogRepository.deleteByTimestampBefore(cutoffDate);
-            logger.info("Successfully deleted {} audit logs", deletedCount);
+            logger.info(AppConstants.SchedulerMessages.CLEANUP_COMPLETE, deletedCount);
             return deletedCount;
         } catch (Exception e) {
-            logger.error("Error deleting old audit logs: {}", e.getMessage());
+            logger.error(AppConstants.SchedulerMessages.CLEANUP_ERROR, e.getMessage());
             throw new Exception("Failed to delete old audit logs", e);
         }
-    }
-
-    /**
+    }/**
      * Delete audit logs older than the default retention period (3 months).
      * 
      * @return Number of logs deleted
@@ -326,8 +369,10 @@ public class AuditLogServiceImpl implements AuditLogService {
     @Override
     @Transactional
     public int deleteOldAuditLogs() throws Exception {
-        // Default retention period: 3 months
-        LocalDateTime cutoffDate = LocalDateTime.now().minusMonths(3);
+        // Use the default retention period from constants
+        LocalDateTime cutoffDate = LocalDateTime.now().minus(
+            AppConstants.DEFAULT_AUDIT_LOG_RETENTION_MONTHS, 
+            AppConstants.AUDIT_LOG_RETENTION_UNIT);
         return deleteOldAuditLogs(cutoffDate);
     }
 
@@ -383,7 +428,7 @@ public class AuditLogServiceImpl implements AuditLogService {
             throw e; // Let the controller handle the validation exception
         } catch (Exception e) {
             logger.error("Error fetching filtered audit logs: {}", e.getMessage(), e);
-            throw new Exception("Failed to fetch audit logs", e);
+            throw new Exception(Errors.FETCH_AUDIT_LOGS_FAILED, e);
         }
     }
 }

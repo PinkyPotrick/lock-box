@@ -12,8 +12,8 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.lockbox.model.AuditLog;
-import com.lockbox.model.AuditLog.LogLevel;
-import com.lockbox.model.AuditLog.OperationType;
+import com.lockbox.model.LogLevel;
+import com.lockbox.model.OperationType;
 
 /**
  * Repository interface for {@link AuditLog} entities.

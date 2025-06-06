@@ -1,6 +1,7 @@
 package com.lockbox.utils;
 
 import java.math.BigInteger;
+import java.time.temporal.ChronoUnit;
 
 public class AppConstants {
 
@@ -21,9 +22,38 @@ public class AppConstants {
    public static final int RSA_2048 = 2048;
    public static final String AES_CBC_CIPHER_ALGORITHM = "AES/CBC/PKCS5Padding";
    public static final String AES_ECB_CIPHER_ALGORITHM = "AES/ECB/PKCS5Padding";
-   public static final String RSA_ECB_CIPHER_ALGORITHM = "RSA/ECB/PKCS1Padding";
-
+   public static final String RSA_ECB_CIPHER_ALGORITHM = "RSA/ECB/PKCS1Padding"; // Pagination and history constants
    public static final int LOGIN_HISTORY_LIMIT = 10;
+   public static final int DEFAULT_PAGE_SIZE = 100;
+   public static final int DEFAULT_PAGE_NUMBER = 0;
+
+   // Time constants
+   public static final int DEFAULT_AUDIT_LOG_RETENTION_MONTHS = 3;
+   public static final ChronoUnit AUDIT_LOG_RETENTION_UNIT = ChronoUnit.MONTHS; // Format patterns
+   public static final String CREDENTIAL_NAME_FORMAT = "%s%s";
+   public static final String CREDENTIAL_NAME_SEPARATOR = " - ";
+   public static final String DEFAULT_CREDENTIAL_NAME = "Credential";
+   public static final String ISO_DATE_TIME_FORMAT = "yyyy-MM-dd'T'HH:mm:ss";
+   // Boolean string constants
+   public static final String BOOLEAN_TRUE = String.valueOf(Boolean.TRUE);
+   public static final String BOOLEAN_FALSE = String.valueOf(Boolean.FALSE);
+
+   // Sort field names
+   public static class SortFields {
+      public static final String UPDATED_AT = "updatedAt";
+      public static final String CREATED_AT = "createdAt";
+      public static final String NAME = "name";
+      public static final String TIMESTAMP = "timestamp";
+   }
+
+   // Object type names for logging
+   public static class ObjectTypes {
+      public static final String CREDENTIAL = "Credential";
+      public static final String VAULT = "Vault";
+      public static final String DOMAIN = "Domain";
+      public static final String USER = "User";
+      public static final String AUDIT_LOG = "Audit log";
+   }
 
    // Entity type constants for validation
    public static class EntityTypes {
@@ -181,15 +211,101 @@ public class AppConstants {
       public static final String TOO_MANY_REQUESTS = "Too many requests. Please try again later.";
    }
 
+   // Status messages for audit log actions
+   public static class ActionStatus {
+      public static final String SUCCESS = "SUCCESS";
+      public static final String FAILURE = "FAILURE";
+   }
+
    // Error messages
    public static class Errors {
       public static final String PUBLIC_KEY_CANNOT_BE_EMPTY = "The public key cannot be empty";
       public static final String INVALID_CREDENTIALS = "Invalid credentials";
+      public static final String ACCESS_DENIED = "Access denied";
+      public static final String VAULT_NOT_FOUND = "Vault not found";
+      public static final String CREDENTIAL_NOT_FOUND = "Credential not found";
+      public static final String DOMAIN_NOT_FOUND = "Domain not found";
+      public static final String USER_NOT_FOUND = "User not found";
+      public static final String FETCH_VAULTS_FAILED = "Failed to fetch vaults";
+      public static final String FETCH_CREDENTIALS_FAILED = "Failed to fetch credentials";
+      public static final String FETCH_DOMAINS_FAILED = "Failed to fetch domains";
+      public static final String FETCH_AUDIT_LOGS_FAILED = "Failed to fetch audit logs";
+      public static final String CREATE_AUDIT_LOG_FAILED = "Failed to create audit log";
    }
 
    // User validation patterns
    public static class ValidationPatterns {
       public static final String USERNAME_PATTERN = "^[a-zA-Z0-9_]+$";
       public static final String EMAIL_PATTERN = "^[A-Za-z0-9+_.-]+@(.+)$";
+   }
+
+   // Audit log constants
+   public static class AuditLogMessages {
+      // Success messages
+      public static final String CREDENTIAL_VIEWED = "Credential viewed from vault: ";
+      public static final String CREDENTIAL_CREATED = "Credential created in vault: ";
+      public static final String CREDENTIAL_UPDATED = "Credential updated in vault: ";
+      public static final String CREDENTIAL_DELETED = "Credential deleted from vault: ";
+      public static final String VAULT_VIEWED = "Vault viewed";
+      public static final String VAULT_CREATED = "Vault created";
+      public static final String VAULT_UPDATED = "Vault updated";
+      public static final String VAULT_DELETED = "Vault deleted";
+      public static final String DOMAIN_VIEWED = "Domain viewed";
+      public static final String DOMAIN_CREATED = "Domain created";
+      public static final String DOMAIN_UPDATED = "Domain updated";
+      public static final String DOMAIN_DELETED = "Domain deleted";
+      public static final String USER_LOGGED_IN = "User logged in";
+      public static final String USER_LOGGED_OUT = "User logged out";
+      public static final String USER_REGISTERED = "User registered";
+      public static final String PASSWORD_CHANGED = "Password changed";
+      public static final String ADMIN_CLEANED_AUDIT_LOGS = "Admin deleted %d audit logs, retention: ";
+
+      // Failure messages
+      public static final String UNAUTHORIZED_ACCESS = "Attempted unauthorized access";
+      public static final String FAILED_CREDENTIAL_VIEW = "Failed to view credential in vault: ";
+      public static final String FAILED_CREDENTIAL_CREATE = "Failed to create credential in vault: ";
+      public static final String FAILED_CREDENTIAL_UPDATE = "Failed to update credential in vault: ";
+      public static final String FAILED_CREDENTIAL_DELETE = "Failed to delete credential from vault: ";
+      public static final String FAILED_VAULT_VIEW = "Failed to view vault";
+      public static final String FAILED_VAULT_CREATE = "Failed to create vault";
+      public static final String FAILED_VAULT_UPDATE = "Failed to update vault";
+      public static final String FAILED_VAULT_DELETE = "Failed to delete vault";
+      public static final String FAILED_DOMAIN_VIEW = "Failed to view domain";
+      public static final String FAILED_DOMAIN_CREATE = "Failed to create domain";
+      public static final String FAILED_DOMAIN_UPDATE = "Failed to update domain";
+      public static final String FAILED_DOMAIN_DELETE = "Failed to delete domain";
+      public static final String FAILED_LOGIN = "Failed login attempt";
+      public static final String FAILED_REGISTRATION = "Failed registration attempt";
+      public static final String FAILED_PASSWORD_CHANGE = "Failed password change attempt";
+      public static final String FAILED_CLEANUP = "Failed to clean up audit logs";
+   }
+
+   // Encryption log messages
+   public static class EncryptionMessages {
+      public static final String ENCRYPTING_RESOURCE_ID = "Encrypting audit log resource ID with AES-CBC";
+      public static final String ENCRYPTING_RESOURCE_NAME = "Encrypting audit log resource name with AES-CBC";
+      public static final String ENCRYPTING_ADDITIONAL_INFO = "Encrypting audit log additional info with AES-CBC";
+      public static final String DECRYPTING_RESOURCE_ID = "Decrypting audit log resource ID with AES-CBC";
+      public static final String DECRYPTING_RESOURCE_NAME = "Decrypting audit log resource name with AES-CBC";
+      public static final String DECRYPTING_ADDITIONAL_INFO = "Decrypting audit log additional info with AES-CBC";
+      public static final String ENCRYPTION_ERROR = "Error encrypting audit log data: {}";
+      public static final String DECRYPTION_ERROR = "Error decrypting audit log data: {}";
+      public static final String USER_KEYS_NOT_FOUND = "User keys not found in session";
+   }
+
+   // Logging messages
+   public static class LogMessages {
+      public static final String AUDIT_LOG_FAILED = "Failed to create audit log: {}";
+      public static final String USER_OWNERSHIP_WARNING = "User {} attempted to access {} {} belonging to user {}";
+      public static final String RESOURCE_NOT_FOUND = "{} not found with ID: {}";
+      public static final String RESOURCE_NOT_IN_PARENT = "{} {} does not belong to {} {}";
+      public static final String UNAUTHORIZED_ACCESS = "User {} attempted to access {} {} they don't own";
+   }
+
+   // Scheduler messages
+   public static class SchedulerMessages {
+      public static final String CLEANUP_START = "Starting scheduled audit log cleanup";
+      public static final String CLEANUP_COMPLETE = "Scheduled audit log cleanup completed, deleted {} logs";
+      public static final String CLEANUP_ERROR = "Error during scheduled audit log cleanup: {}";
    }
 }
