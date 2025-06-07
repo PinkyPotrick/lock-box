@@ -11,6 +11,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import com.lockbox.model.ActionType;
 import com.lockbox.model.AuditLog;
 import com.lockbox.model.LogLevel;
 import com.lockbox.model.OperationType;
@@ -167,4 +168,27 @@ public interface AuditLogRepository extends JpaRepository<AuditLog, String> {
     @Modifying
     @Query("DELETE FROM AuditLog a WHERE a.timestamp < :cutoffDate")
     int deleteByTimestampBefore(@Param("cutoffDate") LocalDateTime cutoffDate);
+
+    /**
+     * Count audit logs by user ID and action types after a specific timestamp
+     * 
+     * @param userId      - The user ID
+     * @param actionTypes - List of action types to count
+     * @param timestamp   - Count only logs after this timestamp
+     * @return Count of matching audit logs
+     */
+    int countByUserIdAndActionTypeInAndTimestampAfter(String userId, List<ActionType> actionTypes,
+            LocalDateTime timestamp);
+
+    /**
+     * Find recent login-related audit logs for a user
+     * 
+     * @param userId      - The user ID
+     * @param actionTypes - List of action types to find
+     * @param limit       - Maximum number of logs to return
+     * @return List of matching audit logs
+     */
+    @Query("SELECT a FROM AuditLog a WHERE a.user.id = :userId AND a.actionType IN :actionTypes ORDER BY a.timestamp DESC")
+    List<AuditLog> findRecentLoginLogs(@Param("userId") String userId,
+            @Param("actionTypes") List<ActionType> actionTypes, Pageable pageable);
 }

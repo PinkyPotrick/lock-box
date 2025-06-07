@@ -1,5 +1,8 @@
 package com.lockbox.service.authentication;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -43,9 +46,10 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private SecurityUtils securityUtils;
 
     @Autowired
-    private AuditLogService auditLogService;    @Autowired
+    private AuditLogService auditLogService;
+    @Autowired
     private NotificationCreationService notificationCreationService;
-    
+
     @Autowired
     private SecurityMonitoringService securityMonitoringService;
 
@@ -87,7 +91,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         } catch (Exception e) {
             logger.warn("Error during logout: {}", e.getMessage());
         }
-    }    /**
+    }
+
+    /**
      * Processes a successful authentication and records it in the login history.
      * 
      * @param userId The ID of the authenticated user
@@ -99,23 +105,26 @@ public class AuthenticationServiceImpl implements AuthenticationService {
         String ipAddress = RequestUtils.getClientIpAddress(request);
         String userAgent = request.getHeader("User-Agent");
 
-        // Record successful login
-        loginHistoryService.recordSuccessfulLogin(userId, ipAddress, userAgent);
+        try {
+            // Record the login in history
+            loginHistoryService.recordSuccessfulLogin(userId, ipAddress, userAgent);
 
-        // Add audit logging
-        try {
+            // Log the successful login
             auditLogService.logUserAction(userId, ActionType.USER_LOGIN, OperationType.READ, LogLevel.INFO, null,
-                    "Authentication System", ActionStatus.SUCCESS, null, "User login successful from IP: " + ipAddress);
-        } catch (Exception e) {
-            logger.error("Failed to create audit log for login: {}", e.getMessage());
-            // Don't rethrow - authentication still succeeded
-        }
-        
-        // Check if this is a login from a new device/location
-        try {
+                    "Authentication System", ActionStatus.SUCCESS, null,
+                    "User logged in successfully from IP: " + ipAddress);
+
+            // Security monitoring for new device/location login
             securityMonitoringService.monitorNewDeviceLogin(userId, ipAddress, userAgent);
+
+            // Check for suspicious activity
+            Map<String, Object> metadata = new HashMap<>();
+            metadata.put("loginTime", System.currentTimeMillis());
+            securityMonitoringService.monitorSuspiciousActivity(userId, ipAddress, userAgent, metadata);
+
         } catch (Exception e) {
-            logger.error("Failed during security monitoring for new device login: {}", e.getMessage());
+            logger.error("Error recording successful authentication: {}", e.getMessage());
+            throw e;
         }
     }
 
@@ -128,39 +137,32 @@ public class AuthenticationServiceImpl implements AuthenticationService {
      */
     @Override
     public void recordFailedAuthentication(String userId, String reason) {
-        // Get IP address and user agent
         String ipAddress = RequestUtils.getClientIpAddress(request);
         String userAgent = request.getHeader("User-Agent");
 
         try {
+            // Record the failed login
             loginHistoryService.recordFailedLogin(userId, ipAddress, userAgent, reason);
 
+            // Log the failed login
             auditLogService.logUserAction(userId, ActionType.LOGIN_FAILED, OperationType.READ, LogLevel.WARNING, null,
                     "Authentication System", ActionStatus.FAILURE, reason,
                     "Failed login attempt from IP: " + ipAddress);
+
+            // Security monitoring for failed login attempts
+            securityMonitoringService.monitorFailedLoginAttempts(userId, ipAddress);
+
+            // If account gets locked due to too many attempts
+            int recentFailedAttempts = loginHistoryService.countRecentFailedAttempts(userId);
+            if (recentFailedAttempts >= AppConstants.MAX_ATTEMPTS_BEFORE_LOCK) {
+                try {
+                    notificationCreationService.createAccountLockedNotification(userId);
+                } catch (Exception ex) {
+                    logger.error("Failed to create account locked notification: {}", ex.getMessage());
+                }
+            }
         } catch (Exception e) {
-            logger.error("Failed to create audit log for failed login: {}", e.getMessage());
-            // Don't rethrow - the failed authentication is already recorded
-        }
-
-        // If threshold reached (e.g., 5 attempts), create notification
-        int recentFailedAttempts = getRecentFailedAttempts(userId);
-        if (recentFailedAttempts >= 5) {
-            try {
-                notificationCreationService.createFailedLoginAttemptsNotification(userId, recentFailedAttempts,
-                        ipAddress);
-            } catch (Exception ex) {
-                logger.error("Failed to create login attempt notification: {}", ex.getMessage());
-            }
-        }
-
-        // If account gets locked due to too many attempts
-        if (recentFailedAttempts >= AppConstants.MAX_ATTEMPTS_BEFORE_LOCK) {
-            try {
-                notificationCreationService.createAccountLockedNotification(userId);
-            } catch (Exception ex) {
-                logger.error("Failed to create account locked notification: {}", ex.getMessage());
-            }
+            logger.error("Failed to record failed authentication: {}", e.getMessage());
         }
     }
 

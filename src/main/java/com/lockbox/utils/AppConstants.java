@@ -359,8 +359,8 @@ public class AppConstants {
 
    // Default scheduler intervals
    public static class SchedulerIntervals {
-      public static final String NOTIFICATION_CLEANUP_CRON = "0 0 3 * * ?"; // 3:00 AM every day
       public static final String AUDIT_LOG_CLEANUP_CRON = "0 0 2 * * 0"; // 2:00 AM every Sunday
+      public static final String NOTIFICATION_CLEANUP_CRON = "0 0 3 * * *"; // 3:00 AM every day
    }
 
    public static class NotificationExpiry {

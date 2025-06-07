@@ -27,6 +27,7 @@ import com.lockbox.model.OperationType;
 import com.lockbox.repository.CredentialRepository;
 import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.notification.NotificationCreationService;
+import com.lockbox.service.security.SecurityMonitoringService;
 import com.lockbox.service.vault.VaultService;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
@@ -64,9 +65,11 @@ public class CredentialServiceImpl implements CredentialService {
     @Autowired
     private AuditLogService auditLogService;
 
-    // Add NotificationCreationService as a dependency
     @Autowired
     private NotificationCreationService notificationCreationService;
+
+    @Autowired
+    private SecurityMonitoringService securityMonitoringService;
 
     /**
      * Find all credentials for a specific vault with optional pagination.
@@ -409,6 +412,14 @@ public class CredentialServiceImpl implements CredentialService {
                         vaultId);
             } catch (Exception e) {
                 logger.error("Failed to create credential update notification: {}", e.getMessage());
+            }
+
+            // Add to updateCredential method:
+            try {
+                securityMonitoringService.monitorCredentialChanges(userId);
+            } catch (Exception e) {
+                logger.error("Error monitoring credential changes: {}", e.getMessage());
+                // Don't fail the update if monitoring fails
             }
 
             return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
