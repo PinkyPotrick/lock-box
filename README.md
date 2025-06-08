@@ -39,4 +39,4 @@ Enum constraints for database tables are automatically generated during the buil
 To apply these constraints to your development database:
 
 1. Run `mvn compile` to generate the latest constraints
-2. Apply the generated SQL from `target/sql/update_enum_constraints.sql` to your database
+2. Apply the generated SQL from `/sql/update_enum_constraints.sql` to your database
