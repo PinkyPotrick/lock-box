@@ -2,6 +2,10 @@ package com.lockbox.model;
 
 import java.time.LocalDateTime;
 
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

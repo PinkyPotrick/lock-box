@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 
 import com.lockbox.dto.auditlog.AuditLogDTO;
 import com.lockbox.exception.ValidationException;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.FieldNames;
 import com.lockbox.utils.AppConstants.MaxLengths;

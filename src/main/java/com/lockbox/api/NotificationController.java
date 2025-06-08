@@ -5,7 +5,6 @@ import java.util.List;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -20,9 +19,9 @@ import com.lockbox.dto.notification.NotificationListResponseDTO;
 import com.lockbox.dto.notification.NotificationMarkReadRequestDTO;
 import com.lockbox.dto.notification.NotificationResponseDTO;
 import com.lockbox.dto.notification.NotificationUnreadCountResponseDTO;
-import com.lockbox.model.NotificationPriority;
-import com.lockbox.model.NotificationStatus;
-import com.lockbox.model.NotificationType;
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationStatus;
+import com.lockbox.model.enums.NotificationType;
 import com.lockbox.service.notification.NotificationService;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
@@ -85,7 +84,7 @@ public class NotificationController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntityDTO<NotificationResponseDTO> getNotificationById(@PathVariable String id) {
+    public ResponseEntityDTO<NotificationResponseDTO> getNotificationById(@PathVariable(name = "id") String id) {
         try {
             String userId = securityUtils.getCurrentUserId();
             NotificationResponseDTO response = notificationService.findNotificationById(id, userId);
@@ -134,19 +133,14 @@ public class NotificationController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<ResponseEntityDTO<Void>> deleteNotification(@PathVariable String id) {
+    public ResponseEntityDTO<Void> deleteNotification(@PathVariable(name = "id") String id) {
         try {
             String userId = securityUtils.getCurrentUserId();
             notificationService.deleteNotification(id, userId);
-
-            ResponseEntityDTO<Void> response = new ResponseEntityBuilder<Void>()
-                    .setMessage("Notification deleted successfully").build();
-
-            return ResponseEntity.ok(response);
+            return new ResponseEntityBuilder<Void>().setMessage("Notification deleted successfully").build();
         } catch (Exception e) {
             logger.error("Error deleting notification {}: {}", id, e.getMessage(), e);
-            return ResponseEntity.badRequest()
-                    .body(ResponseEntityBuilder.handleErrorDTO(e, "Failed to delete notification"));
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to delete notification");
         }
     }
 }

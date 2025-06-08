@@ -11,10 +11,10 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
-import com.lockbox.model.ActionType;
 import com.lockbox.model.AuditLog;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 
 /**
  * Repository interface for {@link AuditLog} entities.

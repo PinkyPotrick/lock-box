@@ -2,6 +2,11 @@ package com.lockbox.model;
 
 import java.time.LocalDateTime;
 
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationStatus;
+import com.lockbox.model.enums.NotificationType;
+import com.lockbox.model.enums.ResourceType;
+
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;

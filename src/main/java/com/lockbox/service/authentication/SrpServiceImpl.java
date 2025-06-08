@@ -22,10 +22,10 @@ import com.lockbox.dto.authentication.registration.UserRegistrationResponseDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsRequestDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsResponseDTO;
-import com.lockbox.model.ActionType;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
 import com.lockbox.model.User;
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 import com.lockbox.repository.UserRepository;
 import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.auditlog.AuditLogService;
@@ -37,10 +37,8 @@ import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.utils.EncryptionUtils;
-import com.lockbox.utils.RequestUtils;
 import com.lockbox.utils.SrpUtils;
 
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 @Service
@@ -65,9 +63,6 @@ public class SrpServiceImpl implements SrpService {
 
     @Autowired
     private HttpSession httpSession;
-
-    @Autowired
-    private HttpServletRequest request;
 
     @Autowired
     private SessionKeyStoreService sessionKeyStore;
@@ -275,20 +270,6 @@ public class SrpServiceImpl implements SrpService {
 
         // Record successful authentication
         authenticationService.recordSuccessfulAuthentication(decryptedUser.getId());
-
-        // After successful authentication and before returning
-        try {
-            // Get client IP address from request context or a request-scoped bean
-            String ipAddress = RequestUtils.getClientIpAddress(request);
-
-            // Create new login notification if it's a new device/location
-            if (authenticationService.isNewDeviceOrLocation(decryptedUser.getId(), ipAddress)) {
-                notificationCreationService.createNewLoginNotification(decryptedUser.getId(), ipAddress);
-            }
-        } catch (Exception ex) {
-            // Don't block authentication if notification fails
-            logger.error("Failed to create login notification: {}", ex.getMessage());
-        }
 
         // Create the response with the encrypted data
         UserLoginResponseDTO userLoginResponse = srpEncryptionService.encryptUserLoginResponseDTO(

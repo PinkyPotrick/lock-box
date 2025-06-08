@@ -3,10 +3,10 @@ package com.lockbox.dto.notification;
 import java.time.LocalDateTime;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
-import com.lockbox.model.NotificationPriority;
-import com.lockbox.model.NotificationStatus;
-import com.lockbox.model.NotificationType;
-import com.lockbox.model.ResourceType;
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationStatus;
+import com.lockbox.model.enums.NotificationType;
+import com.lockbox.model.enums.ResourceType;
 
 public class NotificationResponseDTO {
 

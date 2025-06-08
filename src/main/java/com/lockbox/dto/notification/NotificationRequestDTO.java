@@ -1,9 +1,9 @@
 package com.lockbox.dto.notification;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
-import com.lockbox.model.NotificationPriority;
-import com.lockbox.model.NotificationType;
-import com.lockbox.model.ResourceType;
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationType;
+import com.lockbox.model.enums.ResourceType;
 
 public class NotificationRequestDTO {
 

@@ -10,9 +10,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
-import com.lockbox.model.ActionType;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.loginhistory.LoginHistoryService;
@@ -101,7 +101,6 @@ public class AuthenticationServiceImpl implements AuthenticationService {
      */
     @Override
     public void recordSuccessfulAuthentication(String userId) throws Exception {
-        // Get IP address and user agent
         String ipAddress = RequestUtils.getClientIpAddress(request);
         String userAgent = request.getHeader("User-Agent");
 

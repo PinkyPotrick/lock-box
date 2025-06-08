@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.lockbox.dto.ResponseEntityDTO;
-import com.lockbox.model.ActionType;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.notification.NotificationService;
 import com.lockbox.utils.AppConstants;

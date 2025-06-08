@@ -7,8 +7,8 @@ import java.util.stream.Collectors;
 import org.springframework.stereotype.Component;
 
 import com.lockbox.model.Notification;
-import com.lockbox.model.NotificationStatus;
 import com.lockbox.model.User;
+import com.lockbox.model.enums.NotificationStatus;
 
 /**
  * Mapper class for converting between {@link Notification} entities and DTOs.

@@ -20,10 +20,10 @@ import com.lockbox.dto.credential.CredentialListResponseDTO;
 import com.lockbox.dto.credential.CredentialMapper;
 import com.lockbox.dto.credential.CredentialRequestDTO;
 import com.lockbox.dto.credential.CredentialResponseDTO;
-import com.lockbox.model.ActionType;
 import com.lockbox.model.Credential;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 import com.lockbox.repository.CredentialRepository;
 import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.notification.NotificationCreationService;
@@ -158,38 +158,25 @@ public class CredentialServiceImpl implements CredentialService {
                 throw new SecurityException("Access denied");
             }
 
-            // Decrypt credential
             Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(encryptedCredential);
-
-            // Convert to DTO
             CredentialDTO credentialDTO = credentialMapper.toDTO(decryptedCredential);
-
-            // Prepare a descriptive name for credential name
-            String domain = decryptedCredential.getDomainId() != null ? decryptedCredential.getDomainId() : "";
             String username = decryptedCredential.getUsername() != null ? decryptedCredential.getUsername() : "";
-            String credentialName = (domain.isEmpty() ? "" : domain + " - ")
-                    + (username.isEmpty() ? "Credential" : username);
 
-            // Add audit logging right before returning the response
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_VIEW, OperationType.READ, LogLevel.INFO, id,
-                        credentialName, ActionStatus.SUCCESS, null,
+                        username, ActionStatus.SUCCESS, null,
                         String.format(AppConstants.AuditLogMessages.CREDENTIAL_VIEWED, vaultId));
             } catch (Exception e) {
-                // Don't fail the credential view if logging fails
                 logger.error("Failed to create audit log: {}", e.getMessage());
             }
 
-            // Encrypt for client response
             return credentialClientEncryptionService.encryptCredentialForClient(credentialDTO);
         } catch (Exception e) {
-            // Add audit logging for failure
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_VIEW, OperationType.READ, LogLevel.WARNING,
                         id, null, ActionStatus.FAILURE, e.getMessage(),
                         AuditLogMessages.FAILED_CREDENTIAL_VIEW + vaultId);
             } catch (Exception ex) {
-                // Don't stop the original exception propagation if logging fails
                 logger.error("Failed to create audit log: {}", ex.getMessage());
             }
             throw e;
@@ -244,24 +231,14 @@ public class CredentialServiceImpl implements CredentialService {
             Credential encryptedCredential = credentialServerEncryptionService.encryptServerData(credential);
             Credential savedCredential = credentialRepository.save(encryptedCredential);
 
-            // Decrypt for response
             Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
-
-            // Convert to DTO and encrypt for client response
             CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
-
-            // Prepare a descriptive name for credential name
-            String domain = decryptedSavedCredential.getDomainId() != null ? decryptedSavedCredential.getDomainId()
-                    : "";
             String username = decryptedSavedCredential.getUsername() != null ? decryptedSavedCredential.getUsername()
                     : "";
-            String credentialName = (domain.isEmpty() ? "" : domain + " - ")
-                    + (username.isEmpty() ? "Credential" : username);
 
-            // Add audit logging before returning
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_CREATE, OperationType.WRITE, LogLevel.INFO,
-                        savedCredential.getId(), credentialName, ActionStatus.SUCCESS, null,
+                        savedCredential.getId(), username, ActionStatus.SUCCESS, null,
                         String.format(AuditLogMessages.CREDENTIAL_CREATED, vaultId));
             } catch (Exception e) {
                 logger.error("Failed to create audit log: {}", e.getMessage());
@@ -269,20 +246,13 @@ public class CredentialServiceImpl implements CredentialService {
 
             return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
         } catch (Exception e) {
-            // Decrypt the request
             CredentialDTO credentialDTO = credentialClientEncryptionService.decryptCredentialFromClient(requestDTO);
-
-            // Prepare a descriptive name for credential name
-            String domain = credentialDTO.getDomainId() != null ? credentialDTO.getDomainId() : "";
             String username = credentialDTO.getUsername() != null ? credentialDTO.getUsername() : "";
-            String credentialName = (domain.isEmpty() ? "" : domain + " - ")
-                    + (username.isEmpty() ? "Credential" : username);
 
-            // Add audit logging for failure
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_CREATE, OperationType.WRITE, LogLevel.ERROR,
-                        null, credentialName != null ? credentialName : "New Credential", ActionStatus.FAILURE,
-                        e.getMessage(), AuditLogMessages.FAILED_CREDENTIAL_CREATE + vaultId);
+                        null, username, ActionStatus.FAILURE, e.getMessage(),
+                        AuditLogMessages.FAILED_CREDENTIAL_CREATE + vaultId);
             } catch (Exception ex) {
                 logger.error("Failed to create audit log: {}", ex.getMessage());
             }
@@ -385,15 +355,12 @@ public class CredentialServiceImpl implements CredentialService {
             CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
 
             // Prepare a descriptive name for credential name
-            String domain = decryptedCredential.getDomainId() != null ? decryptedCredential.getDomainId() : "";
             String username = decryptedCredential.getUsername() != null ? decryptedCredential.getUsername() : "";
-            String credentialName = (domain.isEmpty() ? "" : domain + " - ")
-                    + (username.isEmpty() ? "Credential" : username);
 
             // Add audit logging before returning
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_UPDATE, OperationType.UPDATE, LogLevel.INFO,
-                        id, credentialName, ActionStatus.SUCCESS, null,
+                        id, username, ActionStatus.SUCCESS, null,
                         String.format(AuditLogMessages.CREDENTIAL_UPDATED, vaultId));
             } catch (Exception e) {
                 logger.error("Failed to create audit log: {}", e.getMessage());
@@ -408,7 +375,7 @@ public class CredentialServiceImpl implements CredentialService {
 
             // After successful update but before returning
             try {
-                notificationCreationService.createCredentialUpdatedNotification(userId, credentialName, vaultName, id,
+                notificationCreationService.createCredentialUpdatedNotification(userId, username, vaultName, id,
                         vaultId);
             } catch (Exception e) {
                 logger.error("Failed to create credential update notification: {}", e.getMessage());
@@ -470,14 +437,8 @@ public class CredentialServiceImpl implements CredentialService {
                 throw new SecurityException("Access denied");
             }
 
-            // Get name before decryption for audit log
             Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(credential);
-
-            // Prepare a descriptive name for credential name
-            String domain = decryptedCredential.getDomainId() != null ? decryptedCredential.getDomainId() : "";
             String username = decryptedCredential.getUsername() != null ? decryptedCredential.getUsername() : "";
-            String credentialName = (domain.isEmpty() ? "" : domain + " - ")
-                    + (username.isEmpty() ? "Credential" : username);
 
             // Delete credential
             credentialRepository.deleteById(id);
@@ -486,7 +447,7 @@ public class CredentialServiceImpl implements CredentialService {
             // Add audit logging after successful deletion
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_DELETE, OperationType.DELETE, LogLevel.INFO,
-                        id, credentialName, ActionStatus.SUCCESS, null,
+                        id, username, ActionStatus.SUCCESS, null,
                         String.format(AuditLogMessages.CREDENTIAL_DELETED, vaultId));
             } catch (Exception e) {
                 logger.error("Failed to create audit log: {}", e.getMessage());
@@ -501,7 +462,7 @@ public class CredentialServiceImpl implements CredentialService {
 
             // After credential is deleted but before returning
             try {
-                notificationCreationService.createCredentialDeletedNotification(userId, credentialName, vaultName);
+                notificationCreationService.createCredentialDeletedNotification(userId, username, vaultName);
             } catch (Exception e) {
                 logger.error("Failed to create credential deletion notification: {}", e.getMessage());
             }
@@ -566,25 +527,15 @@ public class CredentialServiceImpl implements CredentialService {
                     .encryptServerData(decryptedCredential);
             Credential savedCredential = credentialRepository.save(encryptedUpdatedCredential);
 
-            // Decrypt for response
             Credential decryptedSavedCredential = credentialServerEncryptionService.decryptServerData(savedCredential);
-
-            // Convert to DTO and encrypt for client response
             CredentialDTO savedDTO = credentialMapper.toDTO(decryptedSavedCredential);
-
-            // Prepare a descriptive name for credential name
-            String domain = decryptedSavedCredential.getDomainId() != null ? decryptedSavedCredential.getDomainId()
-                    : "";
             String username = decryptedSavedCredential.getUsername() != null ? decryptedSavedCredential.getUsername()
                     : "";
-            String credentialName = (domain.isEmpty() ? "" : domain + " - ")
-                    + (username.isEmpty() ? "Credential" : username);
 
-            // Add audit logging before returning
             try {
                 boolean isFavoriteNew = !String.valueOf(Boolean.TRUE).equals(decryptedCredential.getFavorite());
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_UPDATE, OperationType.UPDATE, LogLevel.INFO,
-                        id, credentialName, ActionStatus.SUCCESS, null,
+                        id, username, ActionStatus.SUCCESS, null,
                         "Credential favorite status changed to " + (isFavoriteNew ? "favorite" : "not favorite"));
             } catch (Exception e) {
                 logger.error("Failed to create audit log: {}", e.getMessage());
@@ -592,7 +543,6 @@ public class CredentialServiceImpl implements CredentialService {
 
             return credentialClientEncryptionService.encryptCredentialForClient(savedDTO);
         } catch (Exception e) {
-            // Add audit logging for failure
             try {
                 auditLogService.logUserAction(userId, ActionType.CREDENTIAL_UPDATE, OperationType.UPDATE,
                         LogLevel.ERROR, id, null, "FAILURE", e.getMessage(),

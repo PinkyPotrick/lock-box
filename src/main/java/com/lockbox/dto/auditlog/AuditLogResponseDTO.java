@@ -3,9 +3,9 @@ package com.lockbox.dto.auditlog;
 import java.time.LocalDateTime;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
-import com.lockbox.model.ActionType;
-import com.lockbox.model.LogLevel;
-import com.lockbox.model.OperationType;
+import com.lockbox.model.enums.ActionType;
+import com.lockbox.model.enums.LogLevel;
+import com.lockbox.model.enums.OperationType;
 
 public class AuditLogResponseDTO {
 

@@ -32,17 +32,8 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Stri
          * @param limit  - The maximum number of entries to return
          * @return Limited list of login history entries for the specified user
          */
-        @Query(value = "SELECT l FROM LoginHistory l WHERE l.userId = :userId ORDER BY l.loginTimestamp DESC")
+        @Query(value = "SELECT l FROM LoginHistory l WHERE l.userId = :userId ORDER BY l.loginTimestamp DESC LIMIT :limit")
         List<LoginHistory> findLatestByUserId(@Param("userId") String userId, @Param("limit") int limit);
-
-        /**
-         * Find login history entries by date and user ID.
-         * 
-         * @param date   - The date string in format "YYYY-MM-DD"
-         * @param userId - The user ID to filter by
-         * @return List of login history entries for the specified user and date
-         */
-        List<LoginHistory> findByDateAndUserIdOrderByLoginTimestampDesc(String date, String userId);
 
         /**
          * Find login history entries within a date range for a specific user.
@@ -73,18 +64,6 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Stri
         int countByUserIdAndSuccess(String userId, boolean success);
 
         /**
-         * Find login history entries by user ID, IP address, user agent, and status.
-         * 
-         * @param userId    - The user ID to filter by
-         * @param ipAddress - The IP address to filter by
-         * @param userAgent - The user agent string to filter by
-         * @param status    - The login status to filter by
-         * @return List of login history entries matching the criteria
-         */
-        List<LoginHistory> findByUserIdAndIpAddressAndUserAgentAndSuccess(String userId, String ipAddress,
-                        String userAgent, boolean success);
-
-        /**
          * Count the number of login history entries for a user with a specific status after a given timestamp.
          * 
          * @param userId    - The user ID to filter by
@@ -95,10 +74,25 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Stri
         int countByUserIdAndSuccessAndTimestampAfter(String userId, boolean success, LocalDateTime timestamp);
 
         /**
-         * Find login history entries by user ID ordered by timestamp in descending order.
+         * Find successful logins after a specified timestamp, ordered by timestamp descending Used for location change
+         * detection
          * 
-         * @param userId - The user ID to filter by
-         * @return List of login history entries for the specified user ordered by timestamp
+         * @param userId    - The user ID to filter by
+         * @param success   - Whether to find successful or failed logins
+         * @param timestamp - The timestamp to filter entries after
+         * @return List of login history entries matching the criteria, ordered by timestamp
          */
-        List<LoginHistory> findByUserIdOrderByTimestampDesc(String userId);
+        List<LoginHistory> findByUserIdAndSuccessAndTimestampAfterOrderByTimestampDesc(String userId, boolean success,
+                        LocalDateTime timestamp);
+
+        /**
+         * Find successful logins for a user after a specified timestamp
+         * 
+         * @param userId    - The user ID
+         * @param timestamp - Find logins after this timestamp
+         * @return List of successful login history entries
+         */
+        @Query("SELECT l FROM LoginHistory l WHERE l.userId = :userId AND l.success = true AND l.timestamp >= :timestamp")
+        List<LoginHistory> findSuccessfulLoginsByUserIdSince(@Param("userId") String userId,
+                        @Param("timestamp") LocalDateTime timestamp);
 }

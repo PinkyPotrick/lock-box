@@ -32,3 +32,11 @@ Other quality of life features:
 - *Audit Logs
 
 *Features that would be nice to have.
+
+## Database Schema Management
+
+Enum constraints for database tables are automatically generated during the build process.
+To apply these constraints to your development database:
+
+1. Run `mvn compile` to generate the latest constraints
+2. Apply the generated SQL from `target/sql/update_enum_constraints.sql` to your database

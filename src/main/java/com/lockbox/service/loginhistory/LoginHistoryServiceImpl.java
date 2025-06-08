@@ -11,6 +11,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.lockbox.model.LoginHistory;
 import com.lockbox.repository.LoginHistoryRepository;
+import com.lockbox.utils.AppConstants.SecurityMonitoring;
 
 /**
  * Implementation of the {@link LoginHistoryService} interface. Provides functionality for recording and managing login
@@ -152,12 +153,42 @@ public class LoginHistoryServiceImpl implements LoginHistoryService {
      */
     @Override
     public boolean isNewDeviceOrLocation(String userId, String ipAddress, String userAgent) {
-        // Look for previous successful logins from this IP and user agent combination
-        List<LoginHistory> previousLogins = loginHistoryRepository
-                .findByUserIdAndIpAddressAndUserAgentAndSuccess(userId, ipAddress, userAgent, true);
+        try {
+            // Get limited number of recent successful logins for this user
+            LocalDateTime lookbackTime = LocalDateTime.now().minusDays(SecurityMonitoring.LOOKBACK_DAYS);
+            List<LoginHistory> successfulLogins = loginHistoryRepository
+                    .findByUserIdAndSuccessAndTimestampAfterOrderByTimestampDesc(userId, true, lookbackTime);
 
-        // If no previous successful logins found, this is a new device/location
-        return previousLogins.isEmpty();
+            if (successfulLogins.isEmpty()) {
+                logger.info("New device/location for user {} (first login)", userId);
+                return true;
+            }
+
+            String currentDeviceSignature = ipAddress + "|" + userAgent;
+
+            for (LoginHistory login : successfulLogins) {
+                try {
+                    LoginHistory decryptedLogin = loginHistoryServerEncryptionService.decryptServerData(login);
+
+                    String historicalDeviceSignature = decryptedLogin.getIpAddress() + "|"
+                            + decryptedLogin.getUserAgent();
+
+                    if (currentDeviceSignature.equals(historicalDeviceSignature)) {
+                        logger.debug("Found existing device/location for user {}", userId);
+                        return false;
+                    }
+                } catch (Exception e) {
+                    logger.warn("Could not decrypt login history record {}: {}", login.getId(), e.getMessage());
+                }
+            }
+
+            logger.info("New device/location detected for user {}", userId);
+            return true;
+
+        } catch (Exception e) {
+            logger.error("Error checking for new device/location: {}", e.getMessage());
+            return false;
+        }
     }
 
     /**

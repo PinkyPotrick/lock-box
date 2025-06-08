@@ -12,9 +12,9 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import com.lockbox.model.Notification;
-import com.lockbox.model.NotificationPriority;
-import com.lockbox.model.NotificationStatus;
-import com.lockbox.model.NotificationType;
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationStatus;
+import com.lockbox.model.enums.NotificationType;
 
 /**
  * Repository interface for {@link Notification} entities.

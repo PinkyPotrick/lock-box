@@ -7,10 +7,10 @@ import org.springframework.stereotype.Service;
 
 import com.lockbox.dto.notification.NotificationDTO;
 import com.lockbox.dto.notification.NotificationResponseDTO;
-import com.lockbox.model.NotificationPriority;
-import com.lockbox.model.NotificationStatus;
-import com.lockbox.model.NotificationType;
-import com.lockbox.model.ResourceType;
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationStatus;
+import com.lockbox.model.enums.NotificationType;
+import com.lockbox.model.enums.ResourceType;
 import com.lockbox.utils.AppConstants.NotificationMessages;
 
 /**
@@ -176,13 +176,13 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
      * @throws Exception If creation fails
      */
     @Override
-    public NotificationResponseDTO createCredentialUpdatedNotification(String userId, String credentialName,
+    public NotificationResponseDTO createCredentialUpdatedNotification(String userId, String username,
             String vaultName, String credentialId, String vaultId) throws Exception {
 
         NotificationDTO dto = new NotificationDTO();
         dto.setType(NotificationType.CONTENT);
         dto.setTitle(NotificationMessages.CREDENTIAL_UPDATED_TITLE);
-        dto.setMessage(String.format(NotificationMessages.CREDENTIAL_UPDATED_MESSAGE, credentialName, vaultName));
+        dto.setMessage(String.format(NotificationMessages.CREDENTIAL_UPDATED_MESSAGE, username, vaultName));
         dto.setUserId(userId);
         dto.setPriority(NotificationPriority.LOW);
         dto.setStatus(NotificationStatus.UNREAD);
@@ -207,12 +207,12 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
      * @throws Exception If creation fails
      */
     @Override
-    public NotificationResponseDTO createCredentialDeletedNotification(String userId, String credentialName,
+    public NotificationResponseDTO createCredentialDeletedNotification(String userId, String username,
             String vaultName) throws Exception {
         NotificationDTO dto = new NotificationDTO();
         dto.setType(NotificationType.CONTENT);
         dto.setTitle(NotificationMessages.CREDENTIAL_DELETED_TITLE);
-        dto.setMessage(String.format(NotificationMessages.CREDENTIAL_DELETED_MESSAGE, credentialName, vaultName));
+        dto.setMessage(String.format(NotificationMessages.CREDENTIAL_DELETED_MESSAGE, username, vaultName));
         dto.setUserId(userId);
         dto.setPriority(NotificationPriority.LOW);
         dto.setStatus(NotificationStatus.UNREAD);
@@ -234,8 +234,8 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
      * @throws Exception If creation fails
      */
     @Override
-    public NotificationResponseDTO createSuspiciousActivityNotification(String userId, String ipAddress)
-            throws Exception {
+    public NotificationResponseDTO createSuspiciousActivityNotification(String userId, String ipAddress,
+            String metadata) throws Exception {
         NotificationDTO dto = new NotificationDTO();
         dto.setType(NotificationType.SECURITY_ALERT);
         dto.setTitle(NotificationMessages.SUSPICIOUS_ACTIVITY_TITLE);
@@ -247,6 +247,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setResourceId(userId);
         dto.setCreatedAt(LocalDateTime.now());
         dto.setSentViaEmail(true);
+        dto.setMetadata(metadata);
 
         // Create notification link to security settings
         dto.setActionLink("/settings/security");

@@ -6,9 +6,9 @@ import com.lockbox.dto.notification.NotificationDTO;
 import com.lockbox.dto.notification.NotificationListResponseDTO;
 import com.lockbox.dto.notification.NotificationResponseDTO;
 import com.lockbox.dto.notification.NotificationUnreadCountResponseDTO;
-import com.lockbox.model.NotificationPriority;
-import com.lockbox.model.NotificationStatus;
-import com.lockbox.model.NotificationType;
+import com.lockbox.model.enums.NotificationPriority;
+import com.lockbox.model.enums.NotificationStatus;
+import com.lockbox.model.enums.NotificationType;
 
 public interface NotificationService {
 

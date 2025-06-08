@@ -5,7 +5,7 @@ import org.springframework.stereotype.Component;
 import com.lockbox.dto.credential.CredentialDTO;
 import com.lockbox.dto.credential.CredentialRequestDTO;
 import com.lockbox.exception.ValidationException;
-import com.lockbox.model.CredentialCategory;
+import com.lockbox.model.enums.CredentialCategory;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.FieldNames;
 import com.lockbox.utils.AppConstants.MaxLengths;

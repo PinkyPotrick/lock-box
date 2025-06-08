@@ -127,3 +127,6 @@ $RECYCLE.BIN/
 
 # Secure properties
 /config/
+
+# Exclude SQL generated files directory
+sql/

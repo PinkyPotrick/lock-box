@@ -1,0 +1,39 @@
+{
+  "properties": [
+    {
+      "name": "geoip2.db.city.location",
+      "type": "java.lang.String",
+      "description": "A description for 'geoip2.db.city.location'"
+    },
+    {
+      "name": "geoip2.db.country.location",
+      "type": "java.lang.String",
+      "description": "A description for 'geoip2.db.country.location'"
+    },
+    {
+      "name": "key.private.path",
+      "type": "java.lang.String",
+      "description": "A description for 'key.private.path'"
+    },
+    {
+      "name": "key.public.path",
+      "type": "java.lang.String",
+      "description": "A description for 'key.public.path'"
+    },
+    {
+      "name": "key.private.path",
+      "type": "java.lang.String",
+      "description": "A description for 'key.private.path'"
+    },
+    {
+      "name": "security.ip.verbose-logging",
+      "type": "java.lang.String",
+      "description": "A description for 'security.ip.verbose-logging'"
+    },
+    {
+      "name": "security.ip.trusted-proxies",
+      "type": "java.lang.String",
+      "description": "A description for 'security.ip.trusted-proxies'"
+    }
+  ]
+}

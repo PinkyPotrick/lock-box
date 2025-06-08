@@ -13,20 +13,21 @@ public interface NotificationCreationService {
 
     NotificationResponseDTO createAccountLockedNotification(String userId) throws Exception;
 
-    NotificationResponseDTO createSuspiciousActivityNotification(String userId, String ipAddress) throws Exception;
+    NotificationResponseDTO createSuspiciousActivityNotification(String userId, String ipAddress, String metadata)
+            throws Exception;
 
     NotificationResponseDTO createVaultDeletedNotification(String userId, String vaultName, int credentialCount)
             throws Exception;
 
-    NotificationResponseDTO createCredentialUpdatedNotification(String userId, String credentialName, String vaultName,
+    NotificationResponseDTO createCredentialUpdatedNotification(String userId, String username, String vaultName,
             String credentialId, String vaultId) throws Exception;
 
-    NotificationResponseDTO createCredentialDeletedNotification(String userId, String credentialName, String vaultName)
+    NotificationResponseDTO createCredentialDeletedNotification(String userId, String username, String vaultName)
             throws Exception;
-            
+
     NotificationResponseDTO createFrequentChangesNotification(String userId) throws Exception;
-    
+
     NotificationResponseDTO createDataBreachNotification(String userId, String serviceName) throws Exception;
-    
+
     NotificationResponseDTO createRecoveryAttemptNotification(String userId) throws Exception;
 }

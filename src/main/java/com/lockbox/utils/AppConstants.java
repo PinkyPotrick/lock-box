@@ -47,6 +47,23 @@ public class AppConstants {
    public static final String BOOLEAN_TRUE = String.valueOf(Boolean.TRUE);
    public static final String BOOLEAN_FALSE = String.valueOf(Boolean.FALSE);
 
+   public static class SecurityMonitoring {
+      // Constants for failed login attempts
+      public static final int CREDENTIAL_CHANGES_THRESHOLD = 3;
+      public static final int CREDENTIAL_CHANGES_HOURS = 24;
+
+      // Constants for adaptive learning
+      public static final int MIN_LOGIN_HISTORY = 5; // Minimum logins needed before personalization
+      public static final int LOOKBACK_DAYS = 30; // How far back to analyze login patterns
+      public static final double UNUSUAL_THRESHOLD = 0.15; // If <15% of logins are at this hour, it's unusual
+      public static final int DEFAULT_MORNING_HOUR = 6; // Default earliest "normal" hour
+      public static final int DEFAULT_EVENING_HOUR = 22; // Default latest "normal" hour
+
+      // Constants for rapid location change detection
+      public static final double SUSPICIOUS_DISTANCE_KM = 500.0; // Distance threshold in kilometers
+      public static final int TIME_THRESHOLD_HOURS = 8; // Time threshold in hours
+   }
+
    // Sort field names
    public static class SortFields {
       public static final String UPDATED_AT = "updatedAt";
@@ -401,9 +418,9 @@ public class AppConstants {
       public static final String VAULT_DELETED_MESSAGE = "Your vault '%s' has been deleted along with %d credentials";
 
       public static final String CREDENTIAL_UPDATED_TITLE = "Credential updated";
-      public static final String CREDENTIAL_UPDATED_MESSAGE = "Your credential '%s' in vault '%s' has been updated";
+      public static final String CREDENTIAL_UPDATED_MESSAGE = "Your credential for user '%s' in vault '%s' has been updated";
 
       public static final String CREDENTIAL_DELETED_TITLE = "Credential deleted";
-      public static final String CREDENTIAL_DELETED_MESSAGE = "Your credential '%s' has been deleted from vault '%s'";
+      public static final String CREDENTIAL_DELETED_MESSAGE = "Your credential for user '%s' has been deleted from vault '%s'";
    }
 }
