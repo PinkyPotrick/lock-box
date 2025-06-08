@@ -95,4 +95,13 @@ public interface LoginHistoryRepository extends JpaRepository<LoginHistory, Stri
         @Query("SELECT l FROM LoginHistory l WHERE l.userId = :userId AND l.success = true AND l.timestamp >= :timestamp")
         List<LoginHistory> findSuccessfulLoginsByUserIdSince(@Param("userId") String userId,
                         @Param("timestamp") LocalDateTime timestamp);
+
+        /**
+         * Find login history entries after a specified timestamp for a user ordered by login timestamp in descending order.
+         * 
+         * @param timestamp - The timestamp to filter entries after
+         * @param userId - The user ID to filter by
+         * @return List of login history entries after the specified timestamp for the user
+         */
+        List<LoginHistory> findByLoginTimestampAfterAndUserIdOrderByLoginTimestampDesc(LocalDateTime timestamp, String userId);
 }

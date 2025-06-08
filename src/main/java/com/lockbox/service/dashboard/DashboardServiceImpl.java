@@ -1,5 +1,6 @@
 package com.lockbox.service.dashboard;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -116,22 +117,26 @@ public class DashboardServiceImpl implements DashboardService {
     }
 
     /**
-     * Gets login history data for a user.
+     * Gets login history data for a user filtered by number of days in the past.
      * 
      * @param userId - The ID of the user
-     * @param limit  - Maximum number of entries to return (0 for all)
+     * @param days   - Number of days in the past to retrieve login history for (7, 30, or 90)
      * @return Encrypted login history list response
      * @throws Exception If retrieval fails
      */
     @Override
-    public LoginHistoryListResponseDTO getLoginHistory(String userId, int limit) throws Exception {
-        // Get login history entries
-        List<LoginHistory> encryptedLoginHistories;
-        if (limit > 0) {
-            encryptedLoginHistories = loginHistoryRepository.findLatestByUserId(userId, limit);
-        } else {
-            encryptedLoginHistories = loginHistoryRepository.findByUserIdOrderByLoginTimestampDesc(userId);
+    public LoginHistoryListResponseDTO getLoginHistory(String userId, int days) throws Exception {
+        // Validate days parameter - only allow 7, 30, or 90; default to 30 if invalid
+        if (days != 7 && days != 30 && days != 90) {
+            days = 30;
         }
+
+        // Calculate the start date based on days parameter
+        LocalDateTime startDate = LocalDateTime.now().minusDays(days);
+
+        // Get login history entries within the date range
+        List<LoginHistory> encryptedLoginHistories = loginHistoryRepository
+                .findByLoginTimestampAfterAndUserIdOrderByLoginTimestampDesc(startDate, userId);
 
         // Decrypt entries for internal processing
         List<LoginHistory> decryptedLoginHistories = new ArrayList<>();

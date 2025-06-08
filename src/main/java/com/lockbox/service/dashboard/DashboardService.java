@@ -7,5 +7,5 @@ public interface DashboardService {
 
     DashboardOverviewResponseDTO getDashboardOverview(String userId) throws Exception;
 
-    LoginHistoryListResponseDTO getLoginHistory(String userId, int limit) throws Exception;
+    LoginHistoryListResponseDTO getLoginHistory(String userId, int days) throws Exception;
 }

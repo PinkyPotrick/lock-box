@@ -25,8 +25,12 @@ public class AppConstants {
    public static final int RSA_2048 = 2048;
    public static final String AES_CBC_CIPHER_ALGORITHM = "AES/CBC/PKCS5Padding";
    public static final String AES_ECB_CIPHER_ALGORITHM = "AES/ECB/PKCS5Padding";
-   public static final String RSA_ECB_CIPHER_ALGORITHM = "RSA/ECB/PKCS1Padding"; // Pagination and history constants
-   public static final int LOGIN_HISTORY_LIMIT = 10;
+   public static final String RSA_ECB_CIPHER_ALGORITHM = "RSA/ECB/PKCS1Padding";
+
+   // Pagination and history constants
+   public static final int LOGIN_HISTORY_DAYS_SHORT = 7;
+   public static final int LOGIN_HISTORY_DAYS_MEDIUM = 30;
+   public static final int LOGIN_HISTORY_DAYS_LONG = 90;
    public static final int DEFAULT_PAGE_SIZE = 100;
    public static final int DEFAULT_PAGE_NUMBER = 0;
 
