@@ -44,9 +44,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setResourceId(userId);
         dto.setCreatedAt(LocalDateTime.now());
         dto.setSentViaEmail(true);
-
-        // Create notification link to security settings
-        dto.setActionLink("/settings/security");
+        dto.setActionLink(null); // No specific action link for new login notifications;
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -74,9 +72,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setResourceId(userId);
         dto.setCreatedAt(LocalDateTime.now());
         dto.setSentViaEmail(true);
-
-        // Create notification link to security settings
-        dto.setActionLink("/settings/security/login-history");
+        dto.setActionLink(null); // No specific action link for failed login attempts
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -103,7 +99,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(true);
 
         // Create notification link to account settings
-        dto.setActionLink("/settings/account");
+        dto.setActionLink("/profile");
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -130,7 +126,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(true);
 
         // Create notification link to reset password page
-        dto.setActionLink("/reset-password");
+        dto.setActionLink("/profile");
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -176,8 +172,8 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
      * @throws Exception If creation fails
      */
     @Override
-    public NotificationResponseDTO createCredentialUpdatedNotification(String userId, String username,
-            String vaultName, String credentialId, String vaultId) throws Exception {
+    public NotificationResponseDTO createCredentialUpdatedNotification(String userId, String username, String vaultName,
+            String credentialId, String vaultId) throws Exception {
 
         NotificationDTO dto = new NotificationDTO();
         dto.setType(NotificationType.CONTENT);
@@ -192,7 +188,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(false);
 
         // Create notification link to the credential
-        dto.setActionLink("/vaults/" + vaultId + "/credentials/" + credentialId);
+        dto.setActionLink("/vaults/" + vaultId + "/credentials");
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -207,8 +203,8 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
      * @throws Exception If creation fails
      */
     @Override
-    public NotificationResponseDTO createCredentialDeletedNotification(String userId, String username,
-            String vaultName) throws Exception {
+    public NotificationResponseDTO createCredentialDeletedNotification(String userId, String username, String vaultName)
+            throws Exception {
         NotificationDTO dto = new NotificationDTO();
         dto.setType(NotificationType.CONTENT);
         dto.setTitle(NotificationMessages.CREDENTIAL_DELETED_TITLE);
@@ -221,7 +217,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(false);
 
         // Create notification link to the vault
-        dto.setActionLink("/vaults/" + vaultName);
+        dto.setActionLink("/vaults");
         return notificationService.createNotificationInternal(dto, userId);
     }
 
@@ -250,7 +246,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setMetadata(metadata);
 
         // Create notification link to security settings
-        dto.setActionLink("/settings/security");
+        dto.setActionLink("/profile");
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -277,7 +273,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(true);
 
         // Create notification link to security settings
-        dto.setActionLink("/settings/security/account");
+        dto.setActionLink("/profile");
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -305,7 +301,7 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(true);
 
         // Create notification link to passwords page
-        dto.setActionLink("/passwords?search=" + serviceName);
+        dto.setActionLink("/profile");
 
         return notificationService.createNotificationInternal(dto, userId);
     }
@@ -332,8 +328,77 @@ public class NotificationCreationServiceImpl implements NotificationCreationServ
         dto.setSentViaEmail(true);
 
         // Create notification link to security settings
-        dto.setActionLink("/settings/security");
+        dto.setActionLink("/profile");
 
         return notificationService.createNotificationInternal(dto, userId);
+    }
+
+    /**
+     * Create a notification for a password that will expire soon.
+     * 
+     * @param userId          - The user ID
+     * @param username        - The credential username
+     * @param vaultId         - The vault ID
+     * @param credentialId    - The credential ID
+     * @param isExpired       - Whether the password has already expired
+     * @param daysUntilExpiry - Days until the password expires
+     * @param metadata        - JSON string with additional metadata
+     * @return Created notification response
+     * @throws Exception If creation fails
+     */
+    @Override
+    public NotificationResponseDTO createPasswordExpiryNotification(String userId, String username, String vaultId,
+            String credentialId, boolean isExpired, int daysUntilExpiry, String metadata) throws Exception {
+
+        NotificationDTO dto = new NotificationDTO();
+        dto.setType(NotificationType.PASSWORD_EXPIRY);
+
+        if (isExpired) {
+            dto.setTitle(NotificationMessages.PASSWORD_EXPIRED_TITLE);
+            dto.setMessage(String.format(NotificationMessages.PASSWORD_EXPIRED_MESSAGE, username));
+            dto.setPriority(NotificationPriority.HIGH);
+        } else {
+            dto.setTitle(NotificationMessages.PASSWORD_EXPIRY_TITLE);
+            dto.setMessage(String.format(NotificationMessages.PASSWORD_EXPIRY_MESSAGE, username, daysUntilExpiry));
+            if (daysUntilExpiry <= 3) {
+                dto.setPriority(NotificationPriority.HIGH);
+            } else if (daysUntilExpiry <= 7) {
+                dto.setPriority(NotificationPriority.MEDIUM);
+            } else {
+                dto.setPriority(NotificationPriority.LOW);
+            }
+        }
+
+        dto.setUserId(userId);
+        dto.setStatus(NotificationStatus.UNREAD);
+        dto.setResourceType(ResourceType.CREDENTIAL);
+        dto.setResourceId(credentialId);
+        dto.setCreatedAt(LocalDateTime.now());
+        dto.setSentViaEmail(null);
+        dto.setMetadata(metadata);
+
+        // Create action link to the credential
+        dto.setActionLink("/vaults/" + vaultId + "/credentials");
+
+        return notificationService.createNotificationInternal(dto, userId);
+    }
+
+    /**
+     * Create a notification for a password that has already expired.
+     * 
+     * @param userId       - The user ID
+     * @param username     - The credential username
+     * @param vaultId      - The vault ID
+     * @param credentialId - The credential ID
+     * @param isExpired    - Whether the password has already expired
+     * @param metadata     - JSON string with additional metadata
+     * @return Created notification response
+     * @throws Exception If creation fails
+     */
+    @Override
+    public NotificationResponseDTO createPasswordExpiryNotification(String userId, String username, String vaultId,
+            String credentialId, boolean isExpired, String metadata) throws Exception {
+
+        return createPasswordExpiryNotification(userId, username, vaultId, credentialId, true, 0, metadata);
     }
 }

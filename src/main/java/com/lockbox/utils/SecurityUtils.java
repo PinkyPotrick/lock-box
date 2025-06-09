@@ -15,6 +15,9 @@ public class SecurityUtils {
     @Autowired
     private TokenService tokenService;
 
+    @Autowired
+    private AdminUtils adminUtils;
+
     /**
      * Get the current authenticated user's ID from the JWT token
      * 
@@ -88,5 +91,35 @@ public class SecurityUtils {
             throw new Exception("Request attributes not available");
         }
         return attributes.getRequest();
+    }
+
+    /**
+     * Check if current user is an admin and throw exception if not
+     * 
+     * @throws Exception
+     */
+    public void ensureAdmin() throws Exception {
+        String userId = getCurrentUserId();
+        String username = getCurrentUsername();
+
+        if (!adminUtils.isAdminById(userId) || !adminUtils.isAdmin(username)) {
+            throw new SecurityException("Admin privileges required for this operation");
+        }
+    }
+
+    /**
+     * Check if current user is an admin
+     * 
+     * @return true if user is an admin, false otherwise
+     */
+    public boolean isAdmin() {
+        try {
+            String userId = getCurrentUserId();
+            String username = getCurrentUsername();
+
+            return adminUtils.isAdminById(userId) && adminUtils.isAdmin(username);
+        } catch (Exception e) {
+            return false;
+        }
     }
 }

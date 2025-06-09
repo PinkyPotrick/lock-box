@@ -129,8 +129,7 @@ public class SecurityRateLimiterService {
         }
     }
 
-    // Clean up expired entries periodically
-    @Scheduled(fixedRate = 60000)
+    @Scheduled(fixedRate = 60000) // Run every minute
     public void cleanupExpiredEntries() {
         requestCounts.entrySet().removeIf(entry -> entry.getValue().isExpired());
     }

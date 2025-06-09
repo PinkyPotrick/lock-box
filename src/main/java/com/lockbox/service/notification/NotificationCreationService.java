@@ -30,4 +30,10 @@ public interface NotificationCreationService {
     NotificationResponseDTO createDataBreachNotification(String userId, String serviceName) throws Exception;
 
     NotificationResponseDTO createRecoveryAttemptNotification(String userId) throws Exception;
+
+    NotificationResponseDTO createPasswordExpiryNotification(String userId, String username, String vaultId,
+            String credentialId, boolean isExpired, int daysUntilExpiry, String metadata) throws Exception;
+
+    NotificationResponseDTO createPasswordExpiryNotification(String userId, String username, String vaultId,
+            String credentialId, boolean isExpired, String metadata) throws Exception;
 }

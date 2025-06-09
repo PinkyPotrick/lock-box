@@ -426,6 +426,28 @@ public class AppConstants {
 
       public static final String CREDENTIAL_DELETED_TITLE = "Credential deleted";
       public static final String CREDENTIAL_DELETED_MESSAGE = "Your credential for user '%s' has been deleted from vault '%s'";
+
+      // Password expiry notifications
+      public static final String PASSWORD_EXPIRY_TITLE = "Password Update Recommended";
+      public static final String PASSWORD_EXPIRY_MESSAGE = "Your password for '%s' is expiring in %d days. Consider updating it soon.";
+
+      public static final String PASSWORD_EXPIRED_TITLE = "Password Update Required";
+      public static final String PASSWORD_EXPIRED_MESSAGE = "Your password for '%s' has expired. Please update it as soon as possible.";
+   }
+
+   public static class PasswordExpiry {
+      public static final int DEFAULT_PASSWORD_EXPIRY_DAYS = 90; // 3 months
+
+      // Notification thresholds before expiration (in days)
+      public static final int NOTIFICATION_THRESHOLD_FIRST = 14;
+      public static final int NOTIFICATION_THRESHOLD_SECOND = 7;
+      public static final int NOTIFICATION_THRESHOLD_THIRD = 3;
+      public static final int NOTIFICATION_THRESHOLD_FOURTH = 2;
+      public static final int NOTIFICATION_THRESHOLD_FIFTH = 1;
+      public static final int NOTIFICATION_THRESHOLD_EXPIRED = 0;
+
+      // Track already sent notifications in metadata
+      public static final String METADATA_KEY_NOTIFICATIONS_SENT = "expiryNotificationsSent";
    }
 
    // Adding a new section for token-related constants
