@@ -44,7 +44,7 @@ public class PasswordExpiryServiceImpl implements PasswordExpiryService {
      * Scheduled task that runs daily to check for passwords nearing expiration and sends appropriate notifications.
      */
     @Scheduled(cron = "0 0 0 * * ?") // Run at midnight every day
-    @Transactional(readOnly = true)
+    @Transactional
     @Override
     public int checkPasswordExpirations() {
         logger.info("Running scheduled password expiration check");

@@ -8,10 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.lockbox.model.Credential;
-import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.encryption.GenericEncryptionService;
 import com.lockbox.service.encryption.RSAKeyPairService;
-import com.lockbox.utils.AppConstants.EncryptionMessages;
 import com.lockbox.utils.EncryptionUtils;
 
 /**
@@ -23,9 +21,6 @@ import com.lockbox.utils.EncryptionUtils;
 public class CredentialServerEncryptionServiceImpl implements CredentialServerEncryptionService {
 
     private final Logger logger = LoggerFactory.getLogger(CredentialServerEncryptionServiceImpl.class);
-
-    @Autowired
-    private SessionKeyStoreService sessionKeyStore;
 
     @Autowired
     private GenericEncryptionService genericEncryptionService;
@@ -43,12 +38,6 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
     @Override
     public Credential encryptServerData(Credential credential) throws Exception {
         try {
-            // Get the user's public key from session
-            String userPublicKeyPem = sessionKeyStore.getUserPublicKey();
-            if (userPublicKeyPem == null) {
-                throw new SecurityException("User public key not found in session");
-            }
-
             Credential encryptedCredential = new Credential();
 
             // Copy non-encrypted fields
@@ -122,14 +111,6 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
     @Override
     public Credential decryptServerData(Credential credential) throws Exception {
         try {
-            // Get user's keys from session
-            String userAesKey = sessionKeyStore.getUserAesKey();
-            String userPrivateKey = sessionKeyStore.getUserPrivateKey();
-
-            if (userAesKey == null || userPrivateKey == null) {
-                throw new SecurityException(EncryptionMessages.USER_KEYS_NOT_FOUND);
-            }
-
             Credential decryptedCredential = new Credential();
 
             // Decrypt the credential AES key used to encrypt sensitive fields

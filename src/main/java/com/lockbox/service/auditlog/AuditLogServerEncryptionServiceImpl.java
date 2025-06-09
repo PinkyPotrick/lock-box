@@ -8,7 +8,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.lockbox.model.AuditLog;
-import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.encryption.GenericEncryptionService;
 import com.lockbox.service.encryption.RSAKeyPairService;
 import com.lockbox.utils.AppConstants.EncryptionMessages;
@@ -22,9 +21,6 @@ import com.lockbox.utils.EncryptionUtils;
 public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryptionService {
 
     private final Logger logger = LoggerFactory.getLogger(AuditLogServerEncryptionServiceImpl.class);
-
-    @Autowired
-    private SessionKeyStoreService sessionKeyStore;
 
     @Autowired
     private GenericEncryptionService genericEncryptionService;
@@ -42,12 +38,6 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
     @Override
     public AuditLog encryptServerData(AuditLog auditLog) throws Exception {
         try {
-            // Get the user's public key from session
-            String userPublicKeyPem = sessionKeyStore.getUserPublicKey();
-            if (userPublicKeyPem == null) {
-                throw new SecurityException("User public key not found in session");
-            }
-
             AuditLog encryptedAuditLog = new AuditLog();
 
             // Copy non-encrypted fields
@@ -104,14 +94,6 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
     @Override
     public AuditLog decryptServerData(AuditLog auditLog) throws Exception {
         try {
-            // Get user's keys from session
-            String userAesKey = sessionKeyStore.getUserAesKey();
-            String userPrivateKey = sessionKeyStore.getUserPrivateKey();
-
-            if (userAesKey == null || userPrivateKey == null) {
-                throw new SecurityException(EncryptionMessages.USER_KEYS_NOT_FOUND);
-            }
-
             AuditLog decryptedAuditLog = new AuditLog();
 
             // Decrypt the audit log AES key used to encrypt sensitive fields

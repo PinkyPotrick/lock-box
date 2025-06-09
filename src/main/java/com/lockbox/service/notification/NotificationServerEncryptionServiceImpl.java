@@ -8,10 +8,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import com.lockbox.model.Notification;
-import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.encryption.GenericEncryptionService;
 import com.lockbox.service.encryption.RSAKeyPairService;
-import com.lockbox.utils.AppConstants.EncryptionMessages;
 import com.lockbox.utils.EncryptionUtils;
 
 /**
@@ -23,9 +21,6 @@ import com.lockbox.utils.EncryptionUtils;
 public class NotificationServerEncryptionServiceImpl implements NotificationServerEncryptionService {
 
     private final Logger logger = LoggerFactory.getLogger(NotificationServerEncryptionServiceImpl.class);
-
-    @Autowired
-    private SessionKeyStoreService sessionKeyStore;
 
     @Autowired
     private GenericEncryptionService genericEncryptionService;
@@ -43,12 +38,6 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
     @Override
     public Notification encryptServerData(Notification notification) throws Exception {
         try {
-            // Get the user's public key from session
-            String userPublicKeyPem = sessionKeyStore.getUserPublicKey();
-            if (userPublicKeyPem == null) {
-                throw new SecurityException("User public key not found in session");
-            }
-
             Notification encryptedNotification = new Notification();
 
             // Copy non-encrypted fields
@@ -119,14 +108,6 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
     @Override
     public Notification decryptServerData(Notification notification) throws Exception {
         try {
-            // Get user's keys from session
-            String userAesKey = sessionKeyStore.getUserAesKey();
-            String userPrivateKey = sessionKeyStore.getUserPrivateKey();
-
-            if (userAesKey == null || userPrivateKey == null) {
-                throw new SecurityException(EncryptionMessages.USER_KEYS_NOT_FOUND);
-            }
-
             Notification decryptedNotification = new Notification();
 
             // Decrypt the notification AES key used to encrypt sensitive fields
