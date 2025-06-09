@@ -10,6 +10,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import com.lockbox.utils.AppConstants.TokenMessages;
+
 @Service
 public class TokenBlacklistServiceImpl implements TokenBlacklistService {
 
@@ -27,12 +29,12 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
             // Get token expiration time
             Date expiry = tokenService.getExpirationDateFromToken(token);
             blacklistedTokens.put(token, expiry);
-            logger.debug("Token blacklisted until: {}", expiry);
+            logger.debug(TokenMessages.TOKEN_BLACKLISTED, expiry);
         } catch (Exception e) {
             // If we can't parse the token, blacklist it anyway with a default expiry
             Date defaultExpiry = new Date(System.currentTimeMillis() + 3600000); // 1 hour
             blacklistedTokens.put(token, defaultExpiry);
-            logger.warn("Could not extract expiration time from token, using default expiry");
+            logger.warn(TokenMessages.TOKEN_EXPIRY_EXTRACTION_ERROR);
         }
     }
 
@@ -47,6 +49,7 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
         Date now = new Date();
         int count = 0;
 
+        logger.debug(TokenMessages.TOKEN_PURGE_START);
         for (Map.Entry<String, Date> entry : blacklistedTokens.entrySet()) {
             if (entry.getValue().before(now)) {
                 blacklistedTokens.remove(entry.getKey());
@@ -55,7 +58,7 @@ public class TokenBlacklistServiceImpl implements TokenBlacklistService {
         }
 
         if (count > 0) {
-            logger.debug("Purged {} expired tokens from blacklist", count);
+            logger.debug(TokenMessages.TOKEN_PURGE_COMPLETE, count);
         }
     }
 }

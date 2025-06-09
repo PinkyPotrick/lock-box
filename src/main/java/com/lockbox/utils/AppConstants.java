@@ -427,4 +427,12 @@ public class AppConstants {
       public static final String CREDENTIAL_DELETED_TITLE = "Credential deleted";
       public static final String CREDENTIAL_DELETED_MESSAGE = "Your credential for user '%s' has been deleted from vault '%s'";
    }
+
+   // Adding a new section for token-related constants
+   public static class TokenMessages {
+      public static final String TOKEN_BLACKLISTED = "Token blacklisted until: {}";
+      public static final String TOKEN_EXPIRY_EXTRACTION_ERROR = "Could not extract expiration time from token, using default expiry";
+      public static final String TOKEN_PURGE_START = "Purging expired tokens from blacklist...";
+      public static final String TOKEN_PURGE_COMPLETE = "Purged {} expired tokens from blacklist";
+   }
 }
