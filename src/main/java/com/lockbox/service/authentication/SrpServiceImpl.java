@@ -31,6 +31,7 @@ import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.notification.NotificationCreationService;
 import com.lockbox.service.token.TokenService;
+import com.lockbox.service.totp.TemporarySessionService;
 import com.lockbox.service.user.UserServerEncryptionServiceImpl;
 import com.lockbox.service.user.UserService;
 import com.lockbox.utils.AppConstants;
@@ -59,6 +60,9 @@ public class SrpServiceImpl implements SrpService {
     private UserServerEncryptionServiceImpl userServerEncryptionService;
 
     @Autowired
+    private TemporarySessionService temporarySessionService;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -73,7 +77,6 @@ public class SrpServiceImpl implements SrpService {
     @Autowired
     private AuditLogService auditLogService;
 
-    // Add NotificationCreationService as a dependency
     @Autowired
     private NotificationCreationService notificationCreationService;
 
@@ -170,9 +173,20 @@ public class SrpServiceImpl implements SrpService {
         httpSession.setAttribute(AppConstants.HttpSessionAttributes.CLIENT_PUBLIC_KEY,
                 srpParamsDTO.getClientPublicKey());
 
+        // Check if TOTP is enabled and store in session
+        boolean totpEnabled = decryptedUser.isTotpEnabled();
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.REQUIRES_TOTP, totpEnabled);
+        httpSession.setAttribute(AppConstants.HttpSessionAttributes.TOTP_VERIFIED, false);
+
+        // If TOTP is enabled, create a temporary session ID for TOTP verification
+        String temporarySessionId = null;
+        if (totpEnabled) {
+            temporarySessionId = temporarySessionService.createTemporarySession(decryptedUser.getId());
+        }
+
         // Create the response with the encrypted data
         SrpParamsResponseDTO srpParamsResponse = srpEncryptionService.encryptSrpParamsResponseDTO(serverPublicValueB,
-                decryptedUser.getSalt());
+                decryptedUser.getSalt(), totpEnabled, temporarySessionId);
         logger.info("SRP handshake completed for user: {}", srpParamsDTO.getDerivedUsername());
         return srpParamsResponse;
     }
@@ -254,6 +268,15 @@ public class SrpServiceImpl implements SrpService {
                 logger.error(LogMessages.AUDIT_LOG_FAILED, ex.getMessage());
             }
             throw new RuntimeException(AppConstants.AuthenticationErrors.INVALID_PROOF);
+        }
+
+        // Check if TOTP was required and verified
+        Boolean requiresTotp = (Boolean) httpSession.getAttribute(AppConstants.HttpSessionAttributes.REQUIRES_TOTP);
+        Boolean totpVerified = (Boolean) httpSession.getAttribute(AppConstants.HttpSessionAttributes.TOTP_VERIFIED);
+
+        if (Boolean.TRUE.equals(requiresTotp) && !Boolean.TRUE.equals(totpVerified)) {
+            logger.warn("TOTP verification required but not completed for user: {}", decryptedUser.getId());
+            throw new Exception(AppConstants.AuthenticationErrors.TOTP_NOT_VERIFIED);
         }
 
         // Compute server proof and generate session token

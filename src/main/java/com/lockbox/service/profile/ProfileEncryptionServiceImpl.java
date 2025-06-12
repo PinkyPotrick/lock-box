@@ -36,6 +36,7 @@ public class ProfileEncryptionServiceImpl implements ProfileEncryptionService {
 
         encryptedUserProfileDTO.setEncryptedUserProfile(encryptedDataAesCbcMapper.toDto(encryptedUserProfile));
         encryptedUserProfileDTO.setHelperAesKey(encryptedUserProfile.getAesKeyBase64());
+        encryptedUserProfileDTO.setTotpEnabled(profileData.isTotpEnabled());
 
         return encryptedUserProfileDTO;
     }

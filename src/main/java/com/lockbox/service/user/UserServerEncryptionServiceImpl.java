@@ -42,6 +42,7 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 		// Copy non-encrypted fields
 		encryptedUser.setId(user.getId());
 		encryptedUser.setUsername(user.getUsername());
+		encryptedUser.setTotpEnabled(user.isTotpEnabled());
 
 		// Encrypt sensitive fields
 		encryptedUser
@@ -54,6 +55,9 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 				genericEncryptionService.encryptDTOWithRSA(user.getCreatedAt(), String.class, userPublicKeyPem));
 		encryptedUser.setPublicKey(genericEncryptionService.encryptStringWithAESCBC(user.getPublicKey(), aesKey));
 		encryptedUser.setPrivateKey(genericEncryptionService.encryptStringWithAESCBC(user.getPrivateKey(), aesKey));
+		if (user.getTotpSecret() != null) {
+			encryptedUser.setTotpSecret(genericEncryptionService.encryptStringWithAESCBC(user.getTotpSecret(), aesKey));
+		}
 		encryptedUser.setAesKey(
 				rsaKeyPairService.encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
 
@@ -79,6 +83,7 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 		// Copy non-encrypted fields
 		decryptedUser.setId(user.getId());
 		decryptedUser.setUsername(user.getUsername());
+		decryptedUser.setTotpEnabled(user.isTotpEnabled());
 
 		// Decrypt sensitive fields
 		decryptedUser.setEmail(
@@ -91,6 +96,9 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 				genericEncryptionService.decryptDTOWithRSA(user.getCreatedAt(), String.class, decryptedUserPrivateKey));
 		decryptedUser.setPublicKey(genericEncryptionService.decryptStringWithAESCBC(user.getPublicKey(), aesKey));
 		decryptedUser.setPrivateKey(genericEncryptionService.decryptStringWithAESCBC(user.getPrivateKey(), aesKey));
+		if (user.getTotpSecret() != null) {
+			decryptedUser.setTotpSecret(genericEncryptionService.decryptStringWithAESCBC(user.getTotpSecret(), aesKey));
+		}
 		decryptedUser.setAesKey(aesKeyString);
 
 		return decryptedUser;

@@ -34,6 +34,16 @@
       "name": "security.ip.trusted-proxies",
       "type": "java.lang.String",
       "description": "A description for 'security.ip.trusted-proxies'"
+    },
+    {
+      "name": "app.totp.time-drift-tolerance",
+      "type": "java.lang.String",
+      "description": "A description for 'app.totp.time-drift-tolerance'"
+    },
+    {
+      "name": "app.totp.max-failed-attempts",
+      "type": "java.lang.String",
+      "description": "A description for 'app.totp.max-failed-attempts'"
     }
   ]
 }

@@ -18,9 +18,11 @@ import com.lockbox.dto.authentication.registration.UserRegistrationRequestDTO;
 import com.lockbox.dto.authentication.registration.UserRegistrationResponseDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsRequestDTO;
 import com.lockbox.dto.authentication.srp.SrpParamsResponseDTO;
+import com.lockbox.dto.totp.TotpAuthenticationRequestDTO;
 import com.lockbox.service.authentication.AuthenticationService;
 import com.lockbox.service.authentication.SrpService;
 import com.lockbox.service.encryption.RSAKeyPairService;
+import com.lockbox.service.totp.TotpAuthenticationService;
 import com.lockbox.utils.ResponseEntityBuilder;
 
 import jakarta.transaction.Transactional;
@@ -37,6 +39,9 @@ public class AuthController {
 
     @Autowired
     private AuthenticationService authenticationService;
+
+    @Autowired
+    private TotpAuthenticationService totpAuthenticationService;
 
     @GetMapping("/public-key")
     public ResponseEntityDTO<String> getPublicKey() {
@@ -74,7 +79,7 @@ public class AuthController {
         }
     }
 
-    // TEST USERS (PC): 
+    // TEST USERS (PC):
     // pfilip 1234
     // usermare 12345678
     // Abelien abelien#PASS1234 (abelien@mail.com)
@@ -104,6 +109,18 @@ public class AuthController {
                     .setMessage("Logout successful").build();
         } catch (Exception e) {
             return ResponseEntityBuilder.handleErrorDTO(e, "Logout failed");
+        }
+    }
+
+    @PostMapping("/verify-totp")
+    public ResponseEntityDTO<Boolean> verifyTotp(@RequestBody TotpAuthenticationRequestDTO requestDTO) {
+        try {
+            boolean success = totpAuthenticationService.verifyTotpOnly(requestDTO);
+
+            return new ResponseEntityBuilder<Boolean>().setData(success)
+                    .setMessage(success ? "TOTP verified successfully" : "Invalid TOTP code").build();
+        } catch (Exception e) {
+            return ResponseEntityBuilder.handleErrorDTO(e, "TOTP verification failed");
         }
     }
 }

@@ -140,16 +140,20 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
      * @throws Exception
      */
     @Override
-    public SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt)
-            throws Exception {
+    public SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt,
+            boolean requiresTotp, String temporaryTotpSessionId) throws Exception {
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         SrpParamsResponseDTO srpParamsResponse = new SrpParamsResponseDTO();
         EncryptedDataAesCbc encryptedServerPublicValueB = genericEncryptionService
                 .encryptDTOWithAESCBC(serverPublicValueB.toString(16), EncryptedDataAesCbc.class, aesKey);
+        EncryptedDataAesCbc encryptedTemporaryTotpSessionId = genericEncryptionService
+                .encryptDTOWithAESCBC(temporaryTotpSessionId, EncryptedDataAesCbc.class, aesKey);
         srpParamsResponse.setEncryptedServerPublicValueB(encryptedDataAesCbcMapper.toDto(encryptedServerPublicValueB));
+        srpParamsResponse.setEncryptedTotpSessionId(encryptedDataAesCbcMapper.toDto(encryptedTemporaryTotpSessionId));
         srpParamsResponse.setHelperSrpParamsAesKey(encryptedServerPublicValueB.getAesKeyBase64());
         srpParamsResponse.setSalt(salt);
+        srpParamsResponse.setRequiresTotp(requiresTotp);
 
         return srpParamsResponse;
     }

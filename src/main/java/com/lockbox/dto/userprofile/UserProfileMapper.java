@@ -13,6 +13,7 @@ public class UserProfileMapper {
         userDTO.setUsername(user.getUsername());
         userDTO.setEmail(user.getEmail());
         userDTO.setCreatedAt(user.getCreatedAt());
+        userDTO.setTotpEnabled(user.isTotpEnabled());
 
         return userDTO;
     }
@@ -26,6 +27,7 @@ public class UserProfileMapper {
         user.setUsername(userDTO.getUsername());
         user.setEmail(userDTO.getEmail());
         user.setCreatedAt(userDTO.getCreatedAt());
+        user.setTotpEnabled(userDTO.isTotpEnabled());
 
         return user;
     }

@@ -2,9 +2,6 @@ package com.lockbox.dto.authentication.login;
 
 import com.lockbox.dto.encryption.EncryptedDataAesCbcDTO;
 
-/**
- * The encrypted user login data sent to frontend.
- */
 public class UserLoginResponseDTO {
     private String encryptedServerProofM2;
 

@@ -28,7 +28,7 @@ public interface SrpClientEncryptionService {
 
     SrpParamsDTO decryptSrpParamsRequestDTO(SrpParamsRequestDTO encryprtedSrpParams) throws Exception;
 
-    SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt) throws Exception;
+    SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt, boolean requiresTotp, String temporaryTotpSessionId) throws Exception;
 
     UserLoginDTO decryptUserLoginRequestDTO(UserLoginRequestDTO encryptedUserLogin) throws Exception;
 

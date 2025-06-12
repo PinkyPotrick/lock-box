@@ -99,6 +99,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 uri.startsWith("/api/auth/register") || //
                 uri.startsWith("/api/auth/srp-params") || //
                 uri.startsWith("/api/auth/srp-authenticate") || //
+                uri.startsWith("/api/auth/verify-totp") || //
                 uri.equals("/api/health") || //
                 uri.startsWith("/api/docs") || //
                 uri.startsWith("/swagger-ui");

@@ -255,6 +255,12 @@ public class AppConstants {
       public static final String PASSWORD_SERVER_PRIVATE_VALUE_B = "passwordServerPrivateValueB";
       public static final String PASSWORD_DERIVED_USERNAME = "passwordDerivedUsername";
       public static final String PASSWORD_USER_ID = "passwordUserId";
+    
+      // TOTP authentication attributes
+      public static final String REQUIRES_TOTP = "requiresTotp";
+      public static final String TOTP_VERIFIED = "totpVerified";
+      public static final String TOTP_SESSION_ID = "totpSessionId";
+      public static final String TOTP_IN_PROGRESS = "totpInProgress";
    }
 
    // Authentication error messages
@@ -264,7 +270,12 @@ public class AppConstants {
       public static final String INVALID_CLIENT_VALUE_A = "Authentication failed: Invalid client value A.";
       public static final String INVALID_SESSION = "Session expired or invalid";
       public static final String INVALID_PROOF = "Proof verification failed. Authorization aborted!";
+      public static final String TOTP_NOT_VERIFIED = "TOTP verification required but not completed";
       public static final String TOO_MANY_REQUESTS = "Too many requests. Please try again later.";
+      public static final String TOTP_REQUIRED = "TOTP verification required";
+      public static final String TOTP_INVALID = "Invalid TOTP code";
+      public static final String TOTP_EXPIRED = "TOTP code expired";
+      public static final String TOO_MANY_FAILED_ATTEMPTS = "Too many failed attempts. Please try again later.";
    }
 
    // Status messages for audit log actions

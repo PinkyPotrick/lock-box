@@ -2,10 +2,9 @@ package com.lockbox.dto.userprofile;
 
 public class UserProfileDTO {
     private String username;
-
     private String email;
-
     private String createdAt;
+    private boolean totpEnabled;
 
     public String getUsername() {
         return username;
@@ -29,5 +28,13 @@ public class UserProfileDTO {
 
     public void setCreatedAt(String createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public boolean isTotpEnabled() {
+        return totpEnabled;
+    }
+
+    public void setTotpEnabled(boolean totpEnabled) {
+        this.totpEnabled = totpEnabled;
     }
 }

@@ -30,6 +30,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             "/api/auth/login", //
             "/api/auth/register", //
             "/api/auth/srp-init", //
+            "/api/auth/verify-totp", //
             "/api/users/password-change/init", //
             "/api/users/password-change/complete" //
     ));
@@ -76,7 +77,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
     /**
      * Determines whether rate limiting should be applied to the given URI.
      * 
-     * @param uri The request URI
+     * @param uri - The request URI
      * @return true if rate limiting should be applied, false otherwise
      */
     private boolean shouldApplyRateLimit(String uri) {

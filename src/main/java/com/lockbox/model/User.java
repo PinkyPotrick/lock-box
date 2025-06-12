@@ -32,6 +32,12 @@ public class User extends BaseEntity {
     @Column(nullable = false, length = 344)
     private String aesKey;
 
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean totpEnabled;
+
+    @Column(length = 1024)
+    private String totpSecret;
+
     public String getUsername() {
         return username;
     }
@@ -94,5 +100,21 @@ public class User extends BaseEntity {
 
     public void setAesKey(String aesKey) {
         this.aesKey = aesKey;
+    }
+
+    public boolean isTotpEnabled() {
+        return totpEnabled;
+    }
+
+    public void setTotpEnabled(boolean totpEnabled) {
+        this.totpEnabled = totpEnabled;
+    }
+
+    public String getTotpSecret() {
+        return totpSecret;
+    }
+
+    public void setTotpSecret(String totpSecret) {
+        this.totpSecret = totpSecret;
     }
 }
