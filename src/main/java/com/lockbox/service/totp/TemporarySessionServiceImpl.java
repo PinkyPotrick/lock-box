@@ -15,7 +15,7 @@ public class TemporarySessionServiceImpl implements TemporarySessionService {
 
     private static final Logger logger = LoggerFactory.getLogger(TemporarySessionServiceImpl.class);
 
-    private static final int SESSION_EXPIRATION_MINUTES = 2;
+    private static final int SESSION_EXPIRATION_MINUTES = 1;
 
     // Cache for temporary sessions with 2-minute expiration
     private final Cache<String, String> temporarySessions = CacheBuilder.newBuilder()
