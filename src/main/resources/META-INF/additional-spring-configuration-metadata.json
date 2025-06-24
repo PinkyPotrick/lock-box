@@ -44,6 +44,26 @@
       "name": "app.totp.max-failed-attempts",
       "type": "java.lang.String",
       "description": "A description for 'app.totp.max-failed-attempts'"
+    },
+    {
+      "name": "blockchain.feature.enabled",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.feature.enabled'"
+    },
+    {
+      "name": "blockchain.ethereum.url",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.ethereum.url'"
+    },
+    {
+      "name": "blockchain.contract.address",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.contract.address'"
+    },
+    {
+      "name": "blockchain.wallet.private-key",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.wallet.private-key'"
     }
   ]
 }

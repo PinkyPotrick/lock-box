@@ -31,4 +31,6 @@ public interface CredentialService {
     CredentialListResponseDTO findFavoriteCredentials(String userId) throws Exception;
 
     Optional<Credential> findById(String id) throws Exception;
+
+    boolean verifyCredentialIntegrity(String id, String vaultId, String userId) throws Exception;
 }

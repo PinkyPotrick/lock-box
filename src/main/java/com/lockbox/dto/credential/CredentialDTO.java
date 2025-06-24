@@ -18,6 +18,8 @@ public class CredentialDTO {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private LocalDateTime lastUsed;
+    private boolean deleted;
+    private LocalDateTime deletedAt;
 
     public CredentialDTO() {
         this.favoriteSpecified = false;
@@ -130,5 +132,21 @@ public class CredentialDTO {
 
     public void setLastUsed(LocalDateTime lastUsed) {
         this.lastUsed = lastUsed;
+    }
+
+    public boolean isDeleted() {
+        return deleted;
+    }
+
+    public void setDeleted(boolean deleted) {
+        this.deleted = deleted;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

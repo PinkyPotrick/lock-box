@@ -8,6 +8,7 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -15,6 +16,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.lockbox.blockchain.service.BlockchainCredentialVerifier;
 import com.lockbox.dto.credential.CredentialDTO;
 import com.lockbox.dto.credential.CredentialListResponseDTO;
 import com.lockbox.dto.credential.CredentialMapper;
@@ -70,6 +72,12 @@ public class CredentialServiceImpl implements CredentialService {
 
     @Autowired
     private SecurityMonitoringService securityMonitoringService;
+
+    @Autowired(required = false)
+    private BlockchainCredentialVerifier blockchainVerifier;
+
+    @Value("${blockchain.feature.enabled:false}")
+    private boolean blockchainFeatureEnabled;
 
     /**
      * Find all credentials for a specific vault with optional pagination.
@@ -196,6 +204,44 @@ public class CredentialServiceImpl implements CredentialService {
     @Transactional
     public CredentialResponseDTO createCredential(CredentialRequestDTO requestDTO, String vaultId, String userId)
             throws Exception {
+        // First complete the existing credential creation logic
+        CredentialResponseDTO responseDTO = createCredentialInternal(requestDTO, vaultId, userId);
+
+        // Then add blockchain integration if enabled
+        if (blockchainFeatureEnabled && blockchainVerifier != null) {
+            try {
+                // Find the saved credential and get its ID
+                Optional<Credential> savedCredentialOpt = credentialRepository.findById(responseDTO.getId());
+
+                if (savedCredentialOpt.isPresent()) {
+                    Credential savedCredential = savedCredentialOpt.get();
+                    Credential decryptedCredential = credentialServerEncryptionService
+                            .decryptServerData(savedCredential);
+                    CredentialDTO credentialDTO = credentialMapper.toDTO(decryptedCredential);
+
+                    // Compute hash and store on blockchain asynchronously
+                    String credentialHash = blockchainVerifier.computeCredentialHash(credentialDTO);
+                    blockchainVerifier.storeCredentialHash(responseDTO.getId(), credentialHash).thenAccept(txHash -> {
+                        logger.info("Credential hash stored on blockchain. TxHash: {}", txHash);
+                    }).exceptionally(ex -> {
+                        logger.error("Failed to store credential hash on blockchain: {}", ex.getMessage(), ex);
+                        return null;
+                    });
+                }
+            } catch (Exception e) {
+                // Log error but don't fail the credential creation
+                logger.error("Error while adding credential hash to blockchain: {}", e.getMessage(), e);
+            }
+        }
+
+        return responseDTO;
+    }
+
+    /**
+     * Internal method to handle credential creation without blockchain integration
+     */
+    private CredentialResponseDTO createCredentialInternal(CredentialRequestDTO requestDTO, String vaultId,
+            String userId) throws Exception {
         try {
             // Validate the request
             credentialValidator.validateCredentialRequest(requestDTO);
@@ -273,6 +319,44 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     @Transactional
     public CredentialResponseDTO updateCredential(String id, CredentialRequestDTO requestDTO, String vaultId,
+            String userId) throws Exception {
+        // First complete the existing credential update logic
+        CredentialResponseDTO responseDTO = updateCredentialInternal(id, requestDTO, vaultId, userId);
+
+        // Then add blockchain integration if enabled
+        if (blockchainFeatureEnabled && blockchainVerifier != null) {
+            try {
+                // Find the updated credential
+                Optional<Credential> updatedCredentialOpt = credentialRepository.findById(id);
+
+                if (updatedCredentialOpt.isPresent()) {
+                    Credential updatedCredential = updatedCredentialOpt.get();
+                    Credential decryptedCredential = credentialServerEncryptionService
+                            .decryptServerData(updatedCredential);
+                    CredentialDTO credentialDTO = credentialMapper.toDTO(decryptedCredential);
+
+                    // Compute hash and update on blockchain asynchronously
+                    String credentialHash = blockchainVerifier.computeCredentialHash(credentialDTO);
+                    blockchainVerifier.storeCredentialHash(id, credentialHash).thenAccept(txHash -> {
+                        logger.info("Credential hash updated on blockchain. TxHash: {}", txHash);
+                    }).exceptionally(ex -> {
+                        logger.error("Failed to update credential hash on blockchain: {}", ex.getMessage(), ex);
+                        return null;
+                    });
+                }
+            } catch (Exception e) {
+                // Log error but don't fail the credential update
+                logger.error("Error while updating credential hash on blockchain: {}", e.getMessage(), e);
+            }
+        }
+
+        return responseDTO;
+    }
+
+    /**
+     * Internal method to handle credential updates without blockchain integration
+     */
+    private CredentialResponseDTO updateCredentialInternal(String id, CredentialRequestDTO requestDTO, String vaultId,
             String userId) throws Exception {
         try {
             // Validate the request
@@ -415,6 +499,46 @@ public class CredentialServiceImpl implements CredentialService {
     @Transactional
     public void deleteCredential(String id, String vaultId, String userId) throws Exception {
         try {
+            // First perform the standard deletion process
+            deleteCredentialInternal(id, vaultId, userId);
+
+            // If blockchain is enabled, mark as deleted on blockchain
+            if (blockchainFeatureEnabled && blockchainVerifier != null) {
+                try {
+                    // Since the credential is already deleted from the database,
+                    // we need to create a basic DTO with deletion marker
+                    CredentialDTO dtoForBlockchain = new CredentialDTO();
+                    dtoForBlockchain.setId(id);
+                    dtoForBlockchain.setVaultId(vaultId);
+                    dtoForBlockchain.setUserId(userId);
+                    dtoForBlockchain.setDeleted(true);
+                    dtoForBlockchain.setDeletedAt(LocalDateTime.now());
+
+                    // Compute hash with deletion info and update on blockchain
+                    String deletionHash = blockchainVerifier.computeCredentialHash(dtoForBlockchain);
+                    blockchainVerifier.storeCredentialHash(id, deletionHash).thenAccept(txHash -> {
+                        logger.info("Credential marked as deleted on blockchain. TxHash: {}", txHash);
+                    }).exceptionally(ex -> {
+                        logger.error("Failed to mark credential as deleted on blockchain: {}", ex.getMessage(), ex);
+                        return null;
+                    });
+                } catch (Exception e) {
+                    logger.error("Error marking credential as deleted on blockchain: {}", e.getMessage(), e);
+                    // Continue with deletion even if blockchain update fails
+                }
+            }
+        } catch (Exception e) {
+            // The audit log is already handled in deleteCredentialInternal
+            throw e;
+        }
+    }
+
+    /**
+     * Internal method to handle credential deletion without blockchain integration. Returns the username of the deleted
+     * credential for use in blockchain recording.
+     */
+    private void deleteCredentialInternal(String id, String vaultId, String userId) throws Exception {
+        try {
             // Find credential
             Optional<Credential> credentialOpt = credentialRepository.findById(id);
             if (!credentialOpt.isPresent()) {
@@ -437,6 +561,7 @@ public class CredentialServiceImpl implements CredentialService {
                 throw new SecurityException("Access denied");
             }
 
+            // Get credential details before deletion for audit logs and blockchain
             Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(credential);
             String username = decryptedCredential.getUsername() != null ? decryptedCredential.getUsername() : "";
 
@@ -667,5 +792,150 @@ public class CredentialServiceImpl implements CredentialService {
     @Override
     public Optional<Credential> findById(String id) throws Exception {
         return credentialRepository.findById(id);
+    }
+
+    /**
+     * Verify the integrity of a credential using blockchain
+     * 
+     * @param id      - The credential ID
+     * @param vaultId - The vault ID
+     * @param userId  - The current user ID for authorization
+     * @return true if credential integrity is verified, false otherwise
+     * @throws Exception if verification fails
+     */
+    @Override
+    public boolean verifyCredentialIntegrity(String id, String vaultId, String userId) throws Exception {
+        if (!blockchainFeatureEnabled || blockchainVerifier == null) {
+            logger.info("Blockchain verification is disabled");
+            return true; // If blockchain is disabled, assume integrity is fine
+        }
+
+        try {
+            // Find credential
+            Optional<Credential> credentialOpt = credentialRepository.findById(id);
+            if (!credentialOpt.isPresent()) {
+                logger.warn("Credential not found with ID: {}", id);
+                throw new Exception("Credential not found");
+            }
+
+            Credential credential = credentialOpt.get();
+
+            // Verify vault ownership
+            if (!credential.getVaultId().equals(vaultId)) {
+                logger.warn("Credential {} does not belong to vault {}", id, vaultId);
+                throw new Exception("Credential not found in specified vault");
+            }
+
+            // Verify user ownership
+            if (!credential.getUserId().equals(userId)) {
+                logger.warn("User {} attempted to access credential {} belonging to user {}", userId, id,
+                        credential.getUserId());
+                throw new SecurityException("Access denied");
+            }
+
+            // Decrypt credential for verification
+            Credential decryptedCredential = credentialServerEncryptionService.decryptServerData(credential);
+            CredentialDTO dto = credentialMapper.toDTO(decryptedCredential);
+
+            try {
+                String credentialHash = blockchainVerifier.computeCredentialHash(dto);
+
+                // First check if credential exists on blockchain
+                String storedHash = blockchainVerifier.getCredentialHash(id);
+
+                if (storedHash == null || storedHash.isEmpty()) {
+                    logger.info("Credential {} not found on blockchain. Recording it now.", id);
+
+                    // Store synchronously and wait for confirmation
+                    try {
+                        String txHash = blockchainVerifier.storeCredentialHashAndWait(id, credentialHash);
+                        logger.info("Credential hash stored and confirmed on blockchain. TxHash: {}", txHash);
+
+                        // Add retry mechanism with exponential backoff
+                        storedHash = retryBlockchainRead(id, 5, 1000);
+
+                        if (storedHash == null || storedHash.isEmpty()) {
+                            logger.error("Credential still not found on blockchain after recording and retries");
+                            return false;
+                        }
+                    } catch (Exception e) {
+                        logger.error("Error while adding credential hash to blockchain: {}", e.getMessage(), e);
+                        return false;
+                    }
+                }
+
+                // Now verify the hash matches
+                boolean hashMatches = credentialHash.equals(storedHash);
+
+                if (!hashMatches) {
+                    logger.warn("Credential {} hash mismatch. Possible data tampering.", id);
+
+                    try {
+                        auditLogService.logUserAction(userId, ActionType.CREDENTIAL_VERIFY, OperationType.READ,
+                                LogLevel.WARNING, id, null, ActionStatus.FAILURE, "Hash mismatch",
+                                "Credential integrity verification failed - hash mismatch");
+                    } catch (Exception e) {
+                        logger.error("Failed to create audit log: {}", e.getMessage());
+                    }
+                } else {
+                    try {
+                        auditLogService.logUserAction(userId, ActionType.CREDENTIAL_VERIFY, OperationType.READ,
+                                LogLevel.INFO, id, null, ActionStatus.SUCCESS, null,
+                                "Credential integrity verification successful");
+                    } catch (Exception e) {
+                        logger.error("Failed to create audit log: {}", e.getMessage());
+                    }
+                }
+
+                return hashMatches;
+
+            } catch (Exception e) {
+                logger.error("Error verifying credential integrity: {}", e.getMessage(), e);
+                return false;
+            }
+        } catch (Exception e) {
+            logger.error("Exception in credential integrity verification: {}", e.getMessage(), e);
+            throw e;
+        }
+    }
+
+    /**
+     * Helper method to retry reading a credential hash from blockchain with exponential backoff
+     * 
+     * @param credentialId   The credential ID
+     * @param maxRetries     Maximum number of retries
+     * @param initialDelayMs Initial delay in milliseconds
+     * @return The credential hash, or null if not found after retries
+     */
+    private String retryBlockchainRead(String credentialId, int maxRetries, long initialDelayMs) {
+        String storedHash = null;
+        long delay = initialDelayMs;
+
+        for (int attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                Thread.sleep(delay);
+
+                try {
+                    storedHash = blockchainVerifier.getCredentialHash(credentialId);
+
+                    if (storedHash != null && !storedHash.isEmpty()) {
+                        logger.info("Successfully read credential hash on retry attempt {} using direct call", attempt);
+                        return storedHash;
+                    }
+                } catch (Exception e) {
+                    logger.debug("Error on direct call: {}", e.getMessage());
+                }
+
+                logger.info("Credential hash still not found on blockchain, retry attempt {}/{}", attempt, maxRetries);
+
+                // Exponential backoff: double the delay for next retry
+                delay *= 1.5;
+
+            } catch (Exception e) {
+                logger.warn("Error during blockchain read retry: {}", e.getMessage());
+            }
+        }
+
+        return null;
     }
 }

@@ -130,4 +130,20 @@ public class CredentialController {
             return ResponseEntityBuilder.handleErrorDTO(e, "Failed to update last used timestamp");
         }
     }
+
+    @GetMapping("/{id}/verify")
+    public ResponseEntityDTO<Boolean> verifyCredentialIntegrity(@PathVariable("vaultId") String vaultId,
+            @PathVariable("id") String id) {
+        try {
+            String userId = securityUtils.getCurrentUserId();
+            boolean verified = credentialService.verifyCredentialIntegrity(id, vaultId, userId);
+
+            String message = verified ? "Credential integrity verified successfully"
+                    : "Credential integrity verification failed";
+
+            return new ResponseEntityBuilder<Boolean>().setData(verified).setMessage(message).build();
+        } catch (Exception e) {
+            return ResponseEntityBuilder.handleErrorDTO(e, "Failed to verify credential integrity");
+        }
+    }
 }
