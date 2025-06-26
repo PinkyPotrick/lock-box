@@ -32,7 +32,7 @@ public class SecurityRateLimiterService {
 
     private static final Logger logger = LoggerFactory.getLogger(SecurityRateLimiterService.class);
 
-    private static final int MAX_REQUESTS_PER_WINDOW = 6;
+    private static final int MAX_REQUESTS_PER_WINDOW = 7;
     private static final int RESET_WINDOW_MINUTES = 5;
     private static final int MIN_DELAY_MS = 300;
     private static final int MAX_ADDITIONAL_DELAY_MS = 200;

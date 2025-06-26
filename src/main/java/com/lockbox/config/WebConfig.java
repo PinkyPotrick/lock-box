@@ -7,6 +7,7 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.EnableWebMvc;
+import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 import org.springframework.web.servlet.resource.VersionResourceResolver;
@@ -14,6 +15,7 @@ import org.springframework.web.servlet.resource.VersionResourceResolver;
 import com.lockbox.security.filter.CustomIpFilter;
 import com.lockbox.security.filter.JwtAuthenticationFilter;
 import com.lockbox.security.filter.RateLimitingFilter;
+import com.lockbox.security.interceptor.TotpRequiredInterceptor;
 
 /**
  * Spring MVC configuration for CORS settings, static resources, and other web-related concerns.
@@ -33,6 +35,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Autowired
     private JwtAuthenticationFilter jwtAuthenticationFilter;
+
+    @Autowired
+    private TotpRequiredInterceptor totpRequiredInterceptor;
 
     @Bean
     public FilterRegistrationBean<CustomIpFilter> customIpFilterRegistration() {
@@ -69,6 +74,11 @@ public class WebConfig implements WebMvcConfigurer {
                 .addResourceLocations("/public/") //
                 .resourceChain(true) //
                 .addResolver(new VersionResourceResolver().addContentVersionStrategy("/**"));
+    }
+
+    @Override
+    public void addInterceptors(InterceptorRegistry registry) {
+        registry.addInterceptor(totpRequiredInterceptor);
     }
 
     @Override

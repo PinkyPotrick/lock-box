@@ -31,6 +31,7 @@ public class RateLimitingFilter extends OncePerRequestFilter {
             "/api/auth/register", //
             "/api/auth/srp-init", //
             "/api/auth/verify-totp", //
+            "/api/auth/verify-operation-totp", //
             "/api/users/password-change/init", //
             "/api/users/password-change/complete" //
     ));

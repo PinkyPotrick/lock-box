@@ -19,6 +19,7 @@ import com.lockbox.service.loginhistory.LoginHistoryService;
 import com.lockbox.service.notification.NotificationCreationService;
 import com.lockbox.service.security.SecurityMonitoringService;
 import com.lockbox.service.token.TokenBlacklistService;
+import com.lockbox.service.totp.TotpService;
 import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.RequestUtils;
@@ -43,10 +44,14 @@ public class AuthenticationServiceImpl implements AuthenticationService {
     private LoginHistoryService loginHistoryService;
 
     @Autowired
+    private TotpService totpService;
+
+    @Autowired
     private SecurityUtils securityUtils;
 
     @Autowired
     private AuditLogService auditLogService;
+
     @Autowired
     private NotificationCreationService notificationCreationService;
 
@@ -64,6 +69,9 @@ public class AuthenticationServiceImpl implements AuthenticationService {
             // Get user info
             String userId = securityUtils.getCurrentUserId();
             logger.info("User logged out: {}", userId);
+
+            // Reset TOTP failed attempts (using partial reset for security)
+            totpService.resetFailedAttempts(userId, false);
 
             // Add audit logging for logout
             try {

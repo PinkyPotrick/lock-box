@@ -37,12 +37,17 @@
     },
     {
       "name": "app.totp.time-drift-tolerance",
-      "type": "java.lang.String",
+      "type": "Integer",
       "description": "A description for 'app.totp.time-drift-tolerance'"
     },
     {
+      "name": "app.totp.operation-verification-minutes",
+      "type": "Integer",
+      "description": "A description for 'app.totp.operation-verification-minutes'"
+    },
+    {
       "name": "app.totp.max-failed-attempts",
-      "type": "java.lang.String",
+      "type": "Integer",
       "description": "A description for 'app.totp.max-failed-attempts'"
     },
     {

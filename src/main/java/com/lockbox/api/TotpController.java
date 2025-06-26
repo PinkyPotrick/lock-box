@@ -10,12 +10,16 @@ import com.lockbox.dto.ResponseEntityDTO;
 import com.lockbox.dto.totp.TotpSetupDTO;
 import com.lockbox.dto.totp.TotpVerifyRequestDTO;
 import com.lockbox.service.totp.TotpService;
+import com.lockbox.service.totp.TotpVerificationOperationService;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
 
 @RestController
 @RequestMapping("/api/users/2fa")
 public class TotpController {
+
+    @Autowired
+    private TotpVerificationOperationService totpOperationVerificationService;
 
     @Autowired
     private TotpService totpService;
@@ -59,6 +63,23 @@ public class TotpController {
                     .build();
         } catch (Exception e) {
             return ResponseEntityBuilder.handleErrorDTO(e, "Failed to disable TOTP");
+        }
+    }
+
+    @PostMapping("/verify-operation-totp")
+    public ResponseEntityDTO<Boolean> verifyOperationTotp(@RequestBody TotpVerifyRequestDTO requestDTO) {
+        try {
+            String userId = securityUtils.getCurrentUserId();
+            String operationName = requestDTO.getOperation() != null ? requestDTO.getOperation()
+                    : "Sensitive Operation";
+
+            boolean success = totpOperationVerificationService.verifyOperationTotp(userId, requestDTO.getCode(),
+                    operationName);
+
+            return new ResponseEntityBuilder<Boolean>().setData(success)
+                    .setMessage(success ? "TOTP verification successful" : "TOTP verification failed").build();
+        } catch (Exception e) {
+            return ResponseEntityBuilder.handleErrorDTO(e, "TOTP verification failed");
         }
     }
 }

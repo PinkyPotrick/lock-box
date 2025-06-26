@@ -18,6 +18,7 @@ import com.lockbox.dto.authentication.password.PasswordChangeInitRequestDTO;
 import com.lockbox.dto.authentication.password.PasswordChangeInitResponseDTO;
 import com.lockbox.dto.userprofile.UserProfileResponseDTO;
 import com.lockbox.model.User;
+import com.lockbox.security.annotation.RequireTotpVerification;
 import com.lockbox.service.authentication.SrpService;
 import com.lockbox.service.user.UserService;
 import com.lockbox.utils.ResponseEntityBuilder;
@@ -70,6 +71,7 @@ public class UserController {
     }
 
     @PostMapping("/password-change/init")
+    @RequireTotpVerification(operation = "CHANGE_PASSWORD")
     public ResponseEntityDTO<PasswordChangeInitResponseDTO> initiatePasswordChange(
             @RequestBody PasswordChangeInitRequestDTO passwordChangeInit) {
         try {
@@ -82,6 +84,7 @@ public class UserController {
     }
 
     @PostMapping("/password-change/complete")
+    @RequireTotpVerification(operation = "CHANGE_PASSWORD")
     public ResponseEntityDTO<PasswordChangeCompleteResponseDTO> completePasswordChange(
             @RequestBody PasswordChangeCompleteRequestDTO passwordChangeComplete) {
         try {

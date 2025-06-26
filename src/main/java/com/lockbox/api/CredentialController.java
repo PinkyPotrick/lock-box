@@ -17,6 +17,7 @@ import com.lockbox.dto.ResponseEntityDTO;
 import com.lockbox.dto.credential.CredentialListResponseDTO;
 import com.lockbox.dto.credential.CredentialRequestDTO;
 import com.lockbox.dto.credential.CredentialResponseDTO;
+import com.lockbox.security.annotation.RequireTotpVerification;
 import com.lockbox.service.credential.CredentialService;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
@@ -32,6 +33,7 @@ public class CredentialController {
     private SecurityUtils securityUtils;
 
     @GetMapping
+    @RequireTotpVerification(operation = "VIEW_CREDENTIAL")
     public ResponseEntityDTO<CredentialListResponseDTO> getAllCredentials(@PathVariable("vaultId") String vaultId,
             @RequestParam(name = "page", required = false) Integer page,
             @RequestParam(name = "size", required = false) Integer size) {
@@ -48,6 +50,7 @@ public class CredentialController {
     }
 
     @GetMapping("/{id}")
+    @RequireTotpVerification(operation = "VIEW_CREDENTIAL")
     public ResponseEntityDTO<CredentialResponseDTO> getCredentialById(@PathVariable("vaultId") String vaultId,
             @PathVariable("id") String id) {
         try {
@@ -77,6 +80,7 @@ public class CredentialController {
     }
 
     @PutMapping("/{id}")
+    @RequireTotpVerification(operation = "EDIT_CREDENTIAL")
     public ResponseEntityDTO<CredentialResponseDTO> updateCredential(@PathVariable("vaultId") String vaultId,
             @PathVariable("id") String id, @RequestBody CredentialRequestDTO requestDTO) {
         try {
@@ -91,6 +95,7 @@ public class CredentialController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireTotpVerification(operation = "DELETE_VAULT")
     public ResponseEntityDTO<Void> deleteCredential(@PathVariable("vaultId") String vaultId,
             @PathVariable("id") String id) {
         try {

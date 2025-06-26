@@ -261,6 +261,10 @@ public class AppConstants {
       public static final String TOTP_VERIFIED = "totpVerified";
       public static final String TOTP_SESSION_ID = "totpSessionId";
       public static final String TOTP_IN_PROGRESS = "totpInProgress";
+
+      // TOTP operation verification attributes
+      public static final String TOTP_OPERATION_VERIFIED = "totpOperationVerified";
+      public static final String TOTP_OPERATION_VERIFIED_TIMESTAMP = "totpOperationVerifiedTimestamp";
    }
 
    // Authentication error messages

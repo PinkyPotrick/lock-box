@@ -17,10 +17,11 @@ import com.lockbox.dto.ResponseEntityDTO;
 import com.lockbox.dto.vault.VaultListResponseDTO;
 import com.lockbox.dto.vault.VaultRequestDTO;
 import com.lockbox.dto.vault.VaultResponseDTO;
+import com.lockbox.security.annotation.RequireTotpVerification;
 import com.lockbox.service.vault.VaultService;
+import com.lockbox.utils.AppConstants.AuditLogMessages;
 import com.lockbox.utils.ResponseEntityBuilder;
 import com.lockbox.utils.SecurityUtils;
-import com.lockbox.utils.AppConstants.AuditLogMessages;
 
 @RestController
 @RequestMapping("/api/vaults")
@@ -85,6 +86,7 @@ public class VaultController {
     }
 
     @DeleteMapping("/{id}")
+    @RequireTotpVerification(operation = "DELETE_VAULT")
     public ResponseEntityDTO<Void> deleteVault(@PathVariable(name = "id") String id) {
         try {
             String userId = securityUtils.getCurrentUserId();

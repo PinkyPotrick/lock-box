@@ -51,10 +51,12 @@ public class TotpServiceImpl implements TotpService {
     private static final int SECRET_SIZE = 32;
     private static final int TOTP_PERIOD = 30;
     private static final int TOTP_DIGITS = 6;
+    // There is no need for a longer timeout as the session expires after 5 minutes
+    private static final int TOTP_TIMEOUT_MINUTES = 5;
 
     // Rate limiting - track failed attempts
     private final Cache<String, Integer> failedAttempts = CacheBuilder.newBuilder()
-            .expireAfterWrite(10, TimeUnit.MINUTES).build();
+            .expireAfterWrite(TOTP_TIMEOUT_MINUTES, TimeUnit.MINUTES).build();
 
     // Temporarily store TOTP secrets during setup
     private final ConcurrentHashMap<String, String> pendingSecrets = new ConcurrentHashMap<>();
@@ -62,7 +64,7 @@ public class TotpServiceImpl implements TotpService {
     @Value("${app.totp.time-drift-tolerance:1}")
     private int timeDriftTolerance;
 
-    @Value("${app.totp.max-failed-attempts:5}")
+    @Value("${app.totp.max-failed-attempts:3}")
     private int maxFailedAttempts;
 
     @Autowired
@@ -156,7 +158,7 @@ public class TotpServiceImpl implements TotpService {
      * Verify a TOTP code during setup
      * 
      * @param userId The user ID
-     * @param code The TOTP code to verify
+     * @param code   The TOTP code to verify
      * @return true if verification is successful, false otherwise
      * @throws Exception If an error occurs
      */
@@ -195,7 +197,8 @@ public class TotpServiceImpl implements TotpService {
             }
 
             // Encrypt the TOTP secret using the same approach as other sensitive user data
-            // String serverPublicKeyPem = rsaKeyPairService.getPublicKeyInPEM(rsaKeyPairService.getPublicKey()); // TODO is this needed?
+            // String serverPublicKeyPem = rsaKeyPairService.getPublicKeyInPEM(rsaKeyPairService.getPublicKey()); //
+            // TODO is this needed?
             // SecretKey aesKey = EncryptionUtils.generateAESKey(); // TODO is this needed?
             String userPublicKeyPem = decryptedUser.getPublicKey();
 
@@ -285,7 +288,7 @@ public class TotpServiceImpl implements TotpService {
      * Verify a TOTP code during authentication
      * 
      * @param userId The user ID
-     * @param code The TOTP code to verify
+     * @param code   The TOTP code to verify
      * @return true if verification is successful, false otherwise
      * @throws Exception If an error occurs
      */
@@ -363,6 +366,24 @@ public class TotpServiceImpl implements TotpService {
                     "TOTP verification failed: " + e.getMessage());
 
             throw new Exception("Failed to verify TOTP authentication: " + e.getMessage());
+        }
+    }
+
+    @Override
+    public void resetFailedAttempts(String userId, boolean completeReset) {
+        Integer attempts = failedAttempts.getIfPresent(userId);
+
+        if (attempts == null) {
+            return;
+        }
+
+        if (completeReset) {
+            failedAttempts.invalidate(userId);
+            logger.debug("Reset TOTP failed attempts for user: {}", userId);
+        } else {
+            int reducedAttempts = Math.max(1, attempts / 2);
+            failedAttempts.put(userId, reducedAttempts);
+            logger.debug("Reduced TOTP failed attempts for user {} from {} to {}", userId, attempts, reducedAttempts);
         }
     }
 

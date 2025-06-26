@@ -11,4 +11,6 @@ public interface TotpService {
     boolean disableTotp(String userId) throws Exception;
 
     boolean verifyTotpAuthentication(String userId, String code) throws Exception;
+    
+    void resetFailedAttempts(String userId, boolean completeReset);
 }
