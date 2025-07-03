@@ -61,6 +61,7 @@ public class UserValidator extends BaseValidator {
      */
     private void validateUsernameFormat(String username) throws ValidationException {
         validateRequired(username, FieldNames.USERNAME);
+        validateSecure(username, FieldNames.USERNAME);
 
         if (!Pattern.matches(ValidationPatterns.USERNAME_PATTERN, username)) {
             throwValidationException(ValidationErrors.INVALID_USERNAME_FORMAT);
@@ -75,6 +76,7 @@ public class UserValidator extends BaseValidator {
      */
     private void validateEmailFormat(String email) throws ValidationException {
         validateRequired(email, FieldNames.EMAIL);
+        validateSecure(email, FieldNames.EMAIL);
 
         if (!Pattern.matches(ValidationPatterns.EMAIL_PATTERN, email)) {
             throwValidationException(ValidationErrors.INVALID_EMAIL_FORMAT);
@@ -112,6 +114,7 @@ public class UserValidator extends BaseValidator {
      */
     private void validateSalt(String salt) throws ValidationException {
         validateRequired(salt, FieldNames.SALT, ValidationErrors.SALT_REQUIRED);
+        validateSecure(salt, FieldNames.SALT);
     }
 
     /**
@@ -122,5 +125,6 @@ public class UserValidator extends BaseValidator {
      */
     private void validateVerifier(String verifier) throws ValidationException {
         validateRequired(verifier, FieldNames.VERIFIER, ValidationErrors.VERIFIER_REQUIRED);
+        validateSecure(verifier, FieldNames.VERIFIER);
     }
 }

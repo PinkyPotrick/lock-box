@@ -23,7 +23,7 @@ import jakarta.servlet.http.HttpServletRequest;
  * 
  *  - How often legitimate users hit the rate limit
  *  - Distribution of attempts per session
- *  - If you see many users hitting limits, consider adjustin
+ *  - If you see many users hitting limits, consider adjusting
  * 
  *  2. Consider progressive rate limiting where repeated patterns of hitting the limit result in longer windows (10 min, then 30 min, etc.)
  */

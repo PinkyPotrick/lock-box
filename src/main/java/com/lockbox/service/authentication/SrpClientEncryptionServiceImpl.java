@@ -4,6 +4,8 @@ import java.math.BigInteger;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -35,6 +37,8 @@ import com.lockbox.utils.EncryptionUtils;
 @Service
 public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionService {
 
+    private final Logger logger = LoggerFactory.getLogger(SrpClientEncryptionServiceImpl.class);
+
     @Autowired
     private GenericEncryptionServiceImpl genericEncryptionService;
 
@@ -50,6 +54,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public UserRegistrationDTO decryptUserRegistrationRequestDTO(UserRegistrationRequestDTO encryptedUserRegistration)
             throws Exception {
+
+        long startTime = System.currentTimeMillis();
 
         String derivedUsername = genericEncryptionService
                 .decryptDTOWithRSA(encryptedUserRegistration.getEncryptedDerivedUsername(), String.class);
@@ -78,6 +84,9 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         userRegistrationDTO.setClientPrivateKey(clientPrivateKey);
         userRegistrationDTO.setDerivedKey(derivedKey);
 
+        long endTime = System.currentTimeMillis();
+        logger.info("User registration client request decryption process completed in {} ms", endTime - startTime);
+
         return userRegistrationDTO;
     }
 
@@ -91,12 +100,17 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
      */
     @Override
     public UserRegistrationResponseDTO encryptUserRegistrationResponseDTO(String sessionToken) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         UserRegistrationResponseDTO userRegistrationResponse = new UserRegistrationResponseDTO();
         EncryptedDataAesCbc encryptedSessionToken = EncryptionUtils.encryptWithAESCBC(sessionToken, aesKey);
         userRegistrationResponse.setEncryptedSessionToken(encryptedDataAesCbcMapper.toDto(encryptedSessionToken));
         userRegistrationResponse.setHelperAesKey(encryptedSessionToken.getAesKeyBase64());
+
+        long endTime = System.currentTimeMillis();
+        logger.info("User registration client response encryption process completed in {} ms", endTime - startTime);
 
         return userRegistrationResponse;
     }
@@ -111,6 +125,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
      */
     @Override
     public SrpParamsDTO decryptSrpParamsRequestDTO(SrpParamsRequestDTO encryptedSrpParams) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         String derivedUsername = genericEncryptionService
                 .decryptDTOWithRSA(encryptedSrpParams.getEncryptedDerivedUsername(), String.class);
         String clientPublicKey = genericEncryptionService.decryptDTOWithAESCBC(
@@ -127,6 +143,9 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         srpParamsDTO.setClientPublicValueA(clientPublicValueA);
         srpParamsDTO.setDerivedKey(derivedKey);
 
+        long endTime = System.currentTimeMillis();
+        logger.info("SRP parameters client request decryption process completed in {} ms", endTime - startTime);
+
         return srpParamsDTO;
     }
 
@@ -142,6 +161,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public SrpParamsResponseDTO encryptSrpParamsResponseDTO(BigInteger serverPublicValueB, String salt,
             boolean requiresTotp, String temporaryTotpSessionId) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         SrpParamsResponseDTO srpParamsResponse = new SrpParamsResponseDTO();
@@ -154,6 +175,9 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         srpParamsResponse.setHelperSrpParamsAesKey(encryptedServerPublicValueB.getAesKeyBase64());
         srpParamsResponse.setSalt(salt);
         srpParamsResponse.setRequiresTotp(requiresTotp);
+
+        long endTime = System.currentTimeMillis();
+        logger.info("SRP parameters client response encryption process completed in {} ms", endTime - startTime);
 
         return srpParamsResponse;
     }
@@ -168,11 +192,16 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
      */
     @Override
     public UserLoginDTO decryptUserLoginRequestDTO(UserLoginRequestDTO encryptedUserLogin) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         String clientProofM1 = genericEncryptionService
                 .decryptDTOWithRSA(encryptedUserLogin.getEncryptedClientProofM1(), String.class);
 
         UserLoginDTO userLoginDTO = new UserLoginDTO();
         userLoginDTO.setEclientProofM1(clientProofM1);
+
+        long endTime = System.currentTimeMillis();
+        logger.info("User login client request decryption process completed in {} ms", endTime - startTime);
 
         return userLoginDTO;
     }
@@ -192,6 +221,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public UserLoginResponseDTO encryptUserLoginResponseDTO(String userPublicKey, String userPrivateKey,
             String sessionToken, String serverProofM2, String clientPublicKey) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         UserLoginResponseDTO userLoginResponse = new UserLoginResponseDTO();
@@ -209,6 +240,9 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         userLoginResponse.setEncryptedServerProofM2(encryptedServerProofM2);
         userLoginResponse.setHelperAuthenticateAesKey(encryptedSessionToken.getAesKeyBase64());
 
+        long endTime = System.currentTimeMillis();
+        logger.info("User login client response encryption process completed in {} ms", endTime - startTime);
+
         return userLoginResponse;
     }
 
@@ -224,6 +258,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public PasswordChangeInitDTO decryptPasswordChangeInitRequestDTO(
             PasswordChangeInitRequestDTO passwordChangeInitRequest) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         String derivedUsername = genericEncryptionService
                 .decryptDTOWithRSA(passwordChangeInitRequest.getEncryptedDerivedUsername(), String.class);
         BigInteger clientPublicValueA = genericEncryptionService.decryptDTOWithAESCBC(
@@ -236,6 +272,10 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         passwordChangeInitDTO.setDerivedUsername(derivedUsername);
         passwordChangeInitDTO.setClientPublicValueA(clientPublicValueA);
         passwordChangeInitDTO.setDerivedKey(derivedKey);
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Password change initialization client request decryption process completed in {} ms",
+                endTime - startTime);
 
         return passwordChangeInitDTO;
     }
@@ -252,6 +292,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public PasswordChangeInitResponseDTO encryptPasswordChangeInitResponseDTO(BigInteger serverPublicValueB,
             String salt) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         PasswordChangeInitResponseDTO responseDTO = new PasswordChangeInitResponseDTO();
@@ -263,6 +305,10 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         responseDTO.setEncryptedServerPublicValueB(encryptedDataAesCbcMapper.toDto(encryptedServerPublicValueB));
         responseDTO.setHelperAesKey(encryptedServerPublicValueB.getAesKeyBase64());
         responseDTO.setSalt(salt); // Salt is sent in plaintext as in the SRP protocol
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Password change initialization client response encryption process completed in {} ms",
+                endTime - startTime);
 
         return responseDTO;
     }
@@ -277,6 +323,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public PasswordChangeCredentialsDTO decryptPasswordChangeCredentials(
             PasswordChangeCompleteRequestDTO passwordChangeCompleteRequest) throws Exception {
+
+        long startTime = System.currentTimeMillis();
 
         // Decrypt the client's proof M1
         String clientProofM1 = genericEncryptionService
@@ -306,6 +354,9 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
         credentials.setNewDerivedUsername(newDerivedUsername);
         credentials.setNewVerifier(newVerifier);
 
+        long endTime = System.currentTimeMillis();
+        logger.info("Password change client credentials decryption process completed in {} ms", endTime - startTime);
+
         return credentials;
     }
 
@@ -320,6 +371,8 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
     @Override
     public PasswordChangeCompleteResponseDTO encryptPasswordChangeCompleteResponseDTO(String serverProofM2,
             boolean success, User user) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         PasswordChangeCompleteResponseDTO responseDTO = new PasswordChangeCompleteResponseDTO();
         String userPublicKeyPem = user.getPublicKey();
 
@@ -329,6 +382,9 @@ public class SrpClientEncryptionServiceImpl implements SrpClientEncryptionServic
 
         responseDTO.setEncryptedServerProofM2(encryptedServerProofM2);
         responseDTO.setSuccess(success);
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Password change client complete response encryption process completed in {} ms", endTime - startTime);
 
         return responseDTO;
     }

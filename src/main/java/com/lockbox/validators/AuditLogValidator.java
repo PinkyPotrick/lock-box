@@ -38,29 +38,36 @@ public class AuditLogValidator extends BaseValidator {
         validateNotNull(auditLogDTO, FieldNames.AUDIT_LOG_DATA);
         validateNotNull(auditLogDTO.getActionType(), FieldNames.ACTION_TYPE, "Action type is required");
         validateRequired(auditLogDTO.getActionStatus(), FieldNames.ACTION_STATUS, "Action status is required");
+        validateSecure(auditLogDTO.getActionStatus(), FieldNames.ACTION_STATUS);
 
         if (hasContent(auditLogDTO.getResourceId())) {
             validateMaxLength(auditLogDTO.getResourceId(), MaxLengths.RESOURCE_ID, FieldNames.RESOURCE_ID);
+            validateSecure(auditLogDTO.getResourceId(), FieldNames.RESOURCE_ID);
         }
 
         if (hasContent(auditLogDTO.getResourceName())) {
             validateMaxLength(auditLogDTO.getResourceName(), MaxLengths.RESOURCE_NAME, FieldNames.RESOURCE_NAME);
+            validateSecure(auditLogDTO.getResourceName(), FieldNames.RESOURCE_NAME);
         }
 
         if (hasContent(auditLogDTO.getClientInfo())) {
             validateMaxLength(auditLogDTO.getClientInfo(), MaxLengths.CLIENT_INFO, FieldNames.CLIENT_INFO);
+            validateSecure(auditLogDTO.getClientInfo(), FieldNames.CLIENT_INFO);
         }
 
         if (hasContent(auditLogDTO.getIpAddress())) {
             validateMaxLength(auditLogDTO.getIpAddress(), MaxLengths.IP_ADDRESS, FieldNames.IP_ADDRESS);
+            validateSecure(auditLogDTO.getIpAddress(), FieldNames.IP_ADDRESS);
         }
 
         if (hasContent(auditLogDTO.getFailureReason())) {
             validateMaxLength(auditLogDTO.getFailureReason(), MaxLengths.FAILURE_REASON, FieldNames.FAILURE_REASON);
+            validateSecure(auditLogDTO.getFailureReason(), FieldNames.FAILURE_REASON);
         }
 
         if (hasContent(auditLogDTO.getAdditionalInfo())) {
             validateMaxLength(auditLogDTO.getAdditionalInfo(), MaxLengths.ADDITIONAL_INFO, FieldNames.ADDITIONAL_INFO);
+            validateSecure(auditLogDTO.getAdditionalInfo(), FieldNames.ADDITIONAL_INFO);
         }
     }
 

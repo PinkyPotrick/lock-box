@@ -2,12 +2,15 @@ package com.lockbox.service.user;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import com.lockbox.model.User;
 import com.lockbox.service.encryption.GenericEncryptionService;
 import com.lockbox.service.encryption.RSAKeyPairService;
+import com.lockbox.service.notification.NotificationServerEncryptionServiceImpl;
 import com.lockbox.utils.EncryptionUtils;
 
 /**
@@ -16,6 +19,8 @@ import com.lockbox.utils.EncryptionUtils;
  */
 @Component
 public class UserServerEncryptionServiceImpl implements UserServerEncryptionService {
+
+	private final Logger logger = LoggerFactory.getLogger(NotificationServerEncryptionServiceImpl.class);
 
 	@Autowired
 	private GenericEncryptionService genericEncryptionService;
@@ -34,6 +39,7 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 	 */
 	@Override
 	public User encryptServerData(User user) throws Exception {
+		long startTime = System.currentTimeMillis();
 		User encryptedUser = new User();
 		String serverPublicKeyPem = rsaKeyPairService.getPublicKeyInPEM(rsaKeyPairService.getPublicKey());
 		SecretKey aesKey = EncryptionUtils.generateAESKey();
@@ -61,6 +67,9 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 		encryptedUser.setAesKey(
 				rsaKeyPairService.encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
 
+		long duration = System.currentTimeMillis() - startTime;
+		logger.info("User server encryption process completed in {} ms", duration);
+
 		return encryptedUser;
 	}
 
@@ -75,6 +84,7 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 	 */
 	@Override
 	public User decryptServerData(User user) throws Exception {
+		long startTime = System.currentTimeMillis();
 		User decryptedUser = new User();
 		String aesKeyString = rsaKeyPairService.decryptRSAWithServerPrivateKey(user.getAesKey());
 		SecretKey aesKey = EncryptionUtils.getAESKeyFromString(aesKeyString);
@@ -100,6 +110,9 @@ public class UserServerEncryptionServiceImpl implements UserServerEncryptionServ
 			decryptedUser.setTotpSecret(genericEncryptionService.decryptStringWithAESCBC(user.getTotpSecret(), aesKey));
 		}
 		decryptedUser.setAesKey(aesKeyString);
+
+		long duration = System.currentTimeMillis() - startTime;
+		logger.info("User server decryption process completed in {} ms", duration);
 
 		return decryptedUser;
 	}

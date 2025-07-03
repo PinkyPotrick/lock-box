@@ -38,6 +38,7 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
     @Override
     public Notification encryptServerData(Notification notification) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Notification encryptedNotification = new Notification();
 
             // Copy non-encrypted fields
@@ -57,31 +58,26 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
 
             // Encrypt sensitive fields
             if (notification.getTitle() != null) {
-                logger.debug("Encrypting notification title with AES-CBC");
                 encryptedNotification
                         .setTitle(genericEncryptionService.encryptStringWithAESCBC(notification.getTitle(), aesKey));
             }
 
             if (notification.getMessage() != null) {
-                logger.debug("Encrypting notification message with AES-CBC");
                 encryptedNotification.setMessage(
                         genericEncryptionService.encryptStringWithAESCBC(notification.getMessage(), aesKey));
             }
 
             if (notification.getResourceId() != null) {
-                logger.debug("Encrypting resource ID with AES-CBC");
                 encryptedNotification.setResourceId(
                         genericEncryptionService.encryptStringWithAESCBC(notification.getResourceId(), aesKey));
             }
 
             if (notification.getActionLink() != null) {
-                logger.debug("Encrypting action link with AES-CBC");
                 encryptedNotification.setActionLink(
                         genericEncryptionService.encryptStringWithAESCBC(notification.getActionLink(), aesKey));
             }
 
             if (notification.getMetadata() != null) {
-                logger.debug("Encrypting metadata with AES-CBC");
                 encryptedNotification.setMetadata(
                         genericEncryptionService.encryptStringWithAESCBC(notification.getMetadata(), aesKey));
             }
@@ -89,6 +85,9 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
             // Encrypt the AES key with RSA
             encryptedNotification.setAesKey(rsaKeyPairService
                     .encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Notification server encryption process completed in {} ms", duration);
 
             return encryptedNotification;
         } catch (Exception e) {
@@ -108,6 +107,7 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
     @Override
     public Notification decryptServerData(Notification notification) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Notification decryptedNotification = new Notification();
 
             // Decrypt the notification AES key used to encrypt sensitive fields
@@ -127,34 +127,32 @@ public class NotificationServerEncryptionServiceImpl implements NotificationServ
 
             // Decrypt sensitive fields
             if (notification.getTitle() != null) {
-                logger.debug("Decrypting notification title with AES-CBC");
                 decryptedNotification.setTitle(
                         genericEncryptionService.decryptStringWithAESCBC(notification.getTitle(), notificationAesKey));
             }
 
             if (notification.getMessage() != null) {
-                logger.debug("Decrypting notification message with AES-CBC");
                 decryptedNotification.setMessage(genericEncryptionService
                         .decryptStringWithAESCBC(notification.getMessage(), notificationAesKey));
             }
 
             if (notification.getResourceId() != null) {
-                logger.debug("Decrypting resource ID with AES-CBC");
                 decryptedNotification.setResourceId(genericEncryptionService
                         .decryptStringWithAESCBC(notification.getResourceId(), notificationAesKey));
             }
 
             if (notification.getActionLink() != null) {
-                logger.debug("Decrypting action link with AES-CBC");
                 decryptedNotification.setActionLink(genericEncryptionService
                         .decryptStringWithAESCBC(notification.getActionLink(), notificationAesKey));
             }
 
             if (notification.getMetadata() != null) {
-                logger.debug("Decrypting metadata with AES-CBC");
                 decryptedNotification.setMetadata(genericEncryptionService
                         .decryptStringWithAESCBC(notification.getMetadata(), notificationAesKey));
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Notification server decryption process completed in {} ms", duration);
 
             return decryptedNotification;
         } catch (Exception e) {

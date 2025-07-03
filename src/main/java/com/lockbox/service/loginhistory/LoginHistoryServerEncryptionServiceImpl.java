@@ -2,6 +2,8 @@ package com.lockbox.service.loginhistory;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +19,8 @@ import com.lockbox.utils.EncryptionUtils;
  */
 @Component
 public class LoginHistoryServerEncryptionServiceImpl implements LoginHistoryServerEncryptionService {
+
+    private final Logger logger = LoggerFactory.getLogger(LoginHistoryServerEncryptionServiceImpl.class);
 
     @Autowired
     private GenericEncryptionService genericEncryptionService;
@@ -35,6 +39,7 @@ public class LoginHistoryServerEncryptionServiceImpl implements LoginHistoryServ
     @Override
     public LoginHistory encryptServerData(LoginHistory loginHistory) throws Exception {
         // Generate an AES key for encryption
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         String aesKeyString = EncryptionUtils.getAESKeyString(aesKey);
 
@@ -65,6 +70,9 @@ public class LoginHistoryServerEncryptionServiceImpl implements LoginHistoryServ
         // Store encrypted AES key
         encryptedLoginHistory.setAesKey(rsaKeyPairService.encryptRSAWithPublicKey(aesKeyString, serverPublicKeyPem));
 
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info("Login history server encryption process completed in {} ms", duration);
+
         return encryptedLoginHistory;
     }
 
@@ -78,6 +86,7 @@ public class LoginHistoryServerEncryptionServiceImpl implements LoginHistoryServ
      */
     @Override
     public LoginHistory decryptServerData(LoginHistory loginHistory) throws Exception {
+        long startTime = System.currentTimeMillis();
         LoginHistory decryptedLoginHistory = new LoginHistory();
 
         // Decrypt the AES key with server's private key
@@ -105,6 +114,9 @@ public class LoginHistoryServerEncryptionServiceImpl implements LoginHistoryServ
 
         // Store the decrypted AES key
         decryptedLoginHistory.setAesKey(aesKeyString);
+
+        long duration = System.currentTimeMillis() - startTime;
+        logger.info("Login history server decryption process completed in {} ms", duration);
 
         return decryptedLoginHistory;
     }

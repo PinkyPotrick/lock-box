@@ -197,9 +197,6 @@ public class TotpServiceImpl implements TotpService {
             }
 
             // Encrypt the TOTP secret using the same approach as other sensitive user data
-            // String serverPublicKeyPem = rsaKeyPairService.getPublicKeyInPEM(rsaKeyPairService.getPublicKey()); //
-            // TODO is this needed?
-            // SecretKey aesKey = EncryptionUtils.generateAESKey(); // TODO is this needed?
             String userPublicKeyPem = decryptedUser.getPublicKey();
 
             // Encrypt the TOTP secret with RSA using the user's public key

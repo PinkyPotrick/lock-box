@@ -27,6 +27,7 @@ import com.lockbox.model.enums.ActionType;
 import com.lockbox.model.enums.LogLevel;
 import com.lockbox.model.enums.OperationType;
 import com.lockbox.repository.UserRepository;
+import com.lockbox.security.filter.JwtAuthenticationFilter;
 import com.lockbox.service.SessionKeyStoreService;
 import com.lockbox.service.auditlog.AuditLogService;
 import com.lockbox.service.notification.NotificationCreationService;
@@ -38,8 +39,10 @@ import com.lockbox.utils.AppConstants;
 import com.lockbox.utils.AppConstants.ActionStatus;
 import com.lockbox.utils.AppConstants.LogMessages;
 import com.lockbox.utils.EncryptionUtils;
+import com.lockbox.utils.RequestUtils;
 import com.lockbox.utils.SrpUtils;
 
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 
 @Service
@@ -80,6 +83,9 @@ public class SrpServiceImpl implements SrpService {
     @Autowired
     private NotificationCreationService notificationCreationService;
 
+    @Autowired
+    private HttpServletRequest httpServletRequest;
+
     /**
      * Registers a new user by decrypting the received registration data, creating the user, and generating a session
      * token.
@@ -105,6 +111,11 @@ public class SrpServiceImpl implements SrpService {
         String decryptedUsername = EncryptionUtils.decryptUsername(userRegistrationDTO.getDerivedUsername(),
                 userRegistrationDTO.getDerivedKey());
         String sessionToken = tokenService.generateToken(user, decryptedUsername);
+
+        // Bind the session token to the user's IP address
+        String clientIp = RequestUtils.getClientIpAddressEnhanced(httpServletRequest);
+        JwtAuthenticationFilter.bindTokenToIp(sessionToken, clientIp);
+        logger.info("Token bound to registration IP: {} for user: {}", clientIp, user.getId());
 
         // Store the keys in session after successful registration
         sessionKeyStore.storeUserKeys(user.getPublicKey(), user.getPrivateKey(), user.getAesKey());
@@ -283,6 +294,11 @@ public class SrpServiceImpl implements SrpService {
         String serverProofM2 = srpUtils.computeM2(clientPublicValueA, serverProofM1, sessionKeyK);
         String decryptedUsername = EncryptionUtils.decryptUsername(derivedUsername, derivedKey);
         String sessionToken = tokenService.generateToken(decryptedUser, decryptedUsername);
+
+        // Bind the session token to the user's IP address
+        String clientIp = RequestUtils.getClientIpAddressEnhanced(httpServletRequest);
+        JwtAuthenticationFilter.bindTokenToIp(sessionToken, clientIp);
+        logger.info("Token bound to login IP: {} for user: {}", clientIp, decryptedUser.getId());
 
         // Clear session attributes after successful authentication
         httpSession.invalidate();

@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,8 @@ import com.lockbox.utils.EncryptionUtils;
 @Service
 public class DomainClientEncryptionServiceImpl implements DomainClientEncryptionService {
 
+    private final Logger logger = LoggerFactory.getLogger(DomainClientEncryptionServiceImpl.class);
+
     @Autowired
     private GenericEncryptionService genericEncryptionService;
 
@@ -41,6 +45,7 @@ public class DomainClientEncryptionServiceImpl implements DomainClientEncryption
         }
 
         // Generate a helper AES key
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         DomainResponseDTO responseDTO = new DomainResponseDTO();
@@ -82,6 +87,9 @@ public class DomainClientEncryptionServiceImpl implements DomainClientEncryption
 
         responseDTO.setHelperAesKey(encryptedName.getAesKeyBase64());
 
+        long endTime = System.currentTimeMillis();
+        logger.info("Domain client encryption process completed in {} ms", endTime - startTime);
+
         return responseDTO;
     }
 
@@ -98,10 +106,14 @@ public class DomainClientEncryptionServiceImpl implements DomainClientEncryption
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         List<DomainResponseDTO> encryptedDomains = new ArrayList<>();
         for (DomainDTO domainDTO : domainDTOs) {
             encryptedDomains.add(encryptDomainForClient(domainDTO));
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Domain list client encryption process completed in {} ms", endTime - startTime);
 
         return new DomainListResponseDTO(encryptedDomains, domainDTOs.size());
     }
@@ -115,6 +127,7 @@ public class DomainClientEncryptionServiceImpl implements DomainClientEncryption
      */
     @Override
     public DomainDTO decryptDomainFromClient(DomainRequestDTO requestDTO) throws Exception {
+        long startTime = System.currentTimeMillis();
         if (requestDTO == null || requestDTO.getEncryptedName() == null || requestDTO.getHelperAesKey() == null) {
             return null;
         }
@@ -151,6 +164,9 @@ public class DomainClientEncryptionServiceImpl implements DomainClientEncryption
         if (requestDTO.getLogo() != null) {
             domainDTO.setLogo(requestDTO.getLogo());
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Domain client decryption process completed in {} ms", endTime - startTime);
 
         return domainDTO;
     }

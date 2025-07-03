@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,8 @@ import com.lockbox.utils.EncryptionUtils;
 @Service
 public class LoginHistoryClientEncryptionServiceImpl implements LoginHistoryClientEncryptionService {
 
+    private final Logger logger = LoggerFactory.getLogger(LoginHistoryClientEncryptionServiceImpl.class);
+
     @Autowired
     private GenericEncryptionService genericEncryptionService;
 
@@ -41,6 +45,7 @@ public class LoginHistoryClientEncryptionServiceImpl implements LoginHistoryClie
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         LoginHistoryResponseDTO responseDTO = new LoginHistoryResponseDTO();
@@ -50,6 +55,9 @@ public class LoginHistoryClientEncryptionServiceImpl implements LoginHistoryClie
 
         responseDTO.setEncryptedLoginHistory(encryptedDataAesCbcMapper.toDto(encryptedLoginHistory));
         responseDTO.setHelperAesKey(encryptedLoginHistory.getAesKeyBase64());
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Login history client response encryption process completed in {} ms", endTime - startTime);
 
         return responseDTO;
     }
@@ -68,11 +76,15 @@ public class LoginHistoryClientEncryptionServiceImpl implements LoginHistoryClie
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         LoginHistoryListResponseDTO responseDTO = new LoginHistoryListResponseDTO();
         responseDTO.setTotalCount(listDTO.getTotalCount());
         responseDTO.setSuccessCount(listDTO.getSuccessCount());
         responseDTO.setFailureCount(listDTO.getFailureCount());
         responseDTO.setLoginHistories(encryptLoginHistoryListItemsForClient(listDTO.getLoginHistories()));
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Login history client list encryption process completed in {} ms", endTime - startTime);
 
         return responseDTO;
     }
@@ -91,10 +103,14 @@ public class LoginHistoryClientEncryptionServiceImpl implements LoginHistoryClie
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         List<LoginHistoryResponseDTO> encryptedList = new ArrayList<>();
         for (LoginHistoryDTO dto : loginHistoryDTOs) {
             encryptedList.add(encryptLoginHistoryForClient(dto));
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Login history client list items encryption process completed in {} ms", endTime - startTime);
 
         return encryptedList;
     }

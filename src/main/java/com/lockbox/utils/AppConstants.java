@@ -354,12 +354,6 @@ public class AppConstants {
 
    // Encryption log messages
    public static class EncryptionMessages {
-      public static final String ENCRYPTING_RESOURCE_ID = "Encrypting audit log resource ID with AES-CBC";
-      public static final String ENCRYPTING_RESOURCE_NAME = "Encrypting audit log resource name with AES-CBC";
-      public static final String ENCRYPTING_ADDITIONAL_INFO = "Encrypting audit log additional info with AES-CBC";
-      public static final String DECRYPTING_RESOURCE_ID = "Decrypting audit log resource ID with AES-CBC";
-      public static final String DECRYPTING_RESOURCE_NAME = "Decrypting audit log resource name with AES-CBC";
-      public static final String DECRYPTING_ADDITIONAL_INFO = "Decrypting audit log additional info with AES-CBC";
       public static final String ENCRYPTION_ERROR = "Error encrypting audit log data: {}";
       public static final String DECRYPTION_ERROR = "Error decrypting audit log data: {}";
       public static final String USER_KEYS_NOT_FOUND = "User keys not found in session";

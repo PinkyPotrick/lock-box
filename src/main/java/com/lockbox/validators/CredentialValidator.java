@@ -46,21 +46,30 @@ public class CredentialValidator extends BaseValidator {
 
         validateRequired(credentialDTO.getUsername(), FieldNames.USERNAME, ValidationErrors.USERNAME_REQUIRED);
         validateMaxLength(credentialDTO.getUsername(), MaxLengths.USERNAME, FieldNames.USERNAME);
+        validateSecure(credentialDTO.getUsername(), FieldNames.USERNAME);
 
         validateRequired(credentialDTO.getPassword(), FieldNames.PASSWORD, ValidationErrors.PASSWORD_REQUIRED);
         validateMaxLength(credentialDTO.getPassword(), MaxLengths.PASSWORD, FieldNames.PASSWORD);
+        validateSecure(credentialDTO.getPassword(), FieldNames.PASSWORD);
 
         validateMaxLength(credentialDTO.getEmail(), MaxLengths.EMAIL, FieldNames.EMAIL);
+        validateSecure(credentialDTO.getEmail(), FieldNames.EMAIL);
+
         validateMaxLength(credentialDTO.getNotes(), MaxLengths.NOTES, FieldNames.NOTES);
+        validateSecure(credentialDTO.getNotes(), FieldNames.NOTES);
 
         // Validate category if provided
         if (hasContent(credentialDTO.getCategory())) {
             validateCredentialCategory(credentialDTO.getCategory());
             validateMaxLength(credentialDTO.getCategory(), MaxLengths.CATEGORY, FieldNames.CATEGORY);
+            validateSecure(credentialDTO.getCategory(), FieldNames.CATEGORY);
         }
 
         validateId(credentialDTO.getDomainId(), FieldNames.DOMAIN_ID);
+        validateSecure(credentialDTO.getDomainId(), FieldNames.DOMAIN_ID);
+
         validateId(credentialDTO.getVaultId(), FieldNames.VAULT_ID);
+        validateSecure(credentialDTO.getVaultId(), FieldNames.VAULT_ID);
     }
 
     /**

@@ -38,6 +38,7 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
     @Override
     public Credential encryptServerData(Credential credential) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Credential encryptedCredential = new Credential();
 
             // Copy non-encrypted fields
@@ -55,37 +56,31 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
 
             // Encrypt sensitive fields using AES-CBC
             if (credential.getUsername() != null) {
-                logger.debug("Encrypting credential username with AES-CBC");
                 encryptedCredential.setUsername(
                         genericEncryptionService.encryptStringWithAESCBC(credential.getUsername(), aesKey));
             }
 
             if (credential.getPassword() != null) {
-                logger.debug("Encrypting credential password with AES-CBC");
                 encryptedCredential.setPassword(
                         genericEncryptionService.encryptStringWithAESCBC(credential.getPassword(), aesKey));
             }
 
             if (credential.getEmail() != null) {
-                logger.debug("Encrypting credential email with AES-CBC");
                 encryptedCredential
                         .setEmail(genericEncryptionService.encryptStringWithAESCBC(credential.getEmail(), aesKey));
             }
 
             if (credential.getNotes() != null) {
-                logger.debug("Encrypting credential notes with AES-CBC");
                 encryptedCredential
                         .setNotes(genericEncryptionService.encryptStringWithAESCBC(credential.getNotes(), aesKey));
             }
 
             if (credential.getCategory() != null) {
-                logger.debug("Encrypting credential category with AES-CBC");
                 encryptedCredential.setCategory(
                         genericEncryptionService.encryptStringWithAESCBC(credential.getCategory(), aesKey));
             }
 
             if (credential.getFavorite() != null) {
-                logger.debug("Encrypting credential favorite with AES-CBC");
                 encryptedCredential.setFavorite(
                         genericEncryptionService.encryptStringWithAESCBC(credential.getFavorite(), aesKey));
             }
@@ -93,6 +88,9 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
             // Encrypt the AES key with RSA and store it
             encryptedCredential.setAesKey(rsaKeyPairService
                     .encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Credential server encryption process completed in {} ms", duration);
 
             return encryptedCredential;
         } catch (Exception e) {
@@ -111,6 +109,7 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
     @Override
     public Credential decryptServerData(Credential credential) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Credential decryptedCredential = new Credential();
 
             // Decrypt the credential AES key used to encrypt sensitive fields
@@ -128,40 +127,37 @@ public class CredentialServerEncryptionServiceImpl implements CredentialServerEn
 
             // Decrypt sensitive fields using AES-CBC
             if (credential.getUsername() != null) {
-                logger.debug("Decrypting credential username with AES-CBC");
                 decryptedCredential.setUsername(
                         genericEncryptionService.decryptStringWithAESCBC(credential.getUsername(), credentialAesKey));
             }
 
             if (credential.getPassword() != null) {
-                logger.debug("Decrypting credential password with AES-CBC");
                 decryptedCredential.setPassword(
                         genericEncryptionService.decryptStringWithAESCBC(credential.getPassword(), credentialAesKey));
             }
 
             if (credential.getEmail() != null) {
-                logger.debug("Decrypting credential email with AES-CBC");
                 decryptedCredential.setEmail(
                         genericEncryptionService.decryptStringWithAESCBC(credential.getEmail(), credentialAesKey));
             }
 
             if (credential.getNotes() != null) {
-                logger.debug("Decrypting credential notes with AES-CBC");
                 decryptedCredential.setNotes(
                         genericEncryptionService.decryptStringWithAESCBC(credential.getNotes(), credentialAesKey));
             }
 
             if (credential.getCategory() != null) {
-                logger.debug("Decrypting credential category with AES-CBC");
                 decryptedCredential.setCategory(
                         genericEncryptionService.decryptStringWithAESCBC(credential.getCategory(), credentialAesKey));
             }
 
             if (credential.getFavorite() != null) {
-                logger.debug("Decrypting credential favorite with AES-CBC");
                 decryptedCredential.setFavorite(
                         genericEncryptionService.decryptStringWithAESCBC(credential.getFavorite(), credentialAesKey));
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Credential server decryption process completed in {} ms", duration);
 
             return decryptedCredential;
         } catch (Exception e) {

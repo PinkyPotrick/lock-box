@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -25,6 +27,8 @@ import com.lockbox.utils.EncryptionUtils;
 @Service
 public class CredentialClientEncryptionServiceImpl implements CredentialClientEncryptionService {
 
+    private final Logger logger = LoggerFactory.getLogger(CredentialClientEncryptionServiceImpl.class);
+
     @Autowired
     private GenericEncryptionService genericEncryptionService;
 
@@ -42,6 +46,7 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
         }
 
         // Generate a helper AES key
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         CredentialResponseDTO responseDTO = new CredentialResponseDTO();
@@ -108,6 +113,9 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
         // Set the helper AES key
         responseDTO.setHelperAesKey(encryptedUsername.getAesKeyBase64());
 
+        long endTime = System.currentTimeMillis();
+        logger.info("Credential response client encryption process completed in {} ms", endTime - startTime);
+
         return responseDTO;
     }
 
@@ -115,40 +123,44 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
      * Encrypts a list of credential DTOs for client response with vault name.
      * 
      * @param credentialDTOs - The list of credential data to encrypt
-     * @param vaultName - The vault name to encrypt
+     * @param vaultName      - The vault name to encrypt
      * @return {@link CredentialListResponseDTO} containing encrypted credentials ready for transmission
      * @throws Exception If encryption fails
      */
     @Override
-    public CredentialListResponseDTO encryptCredentialListForClient(List<CredentialDTO> credentialDTOs, String vaultName) 
-            throws Exception {
+    public CredentialListResponseDTO encryptCredentialListForClient(List<CredentialDTO> credentialDTOs,
+            String vaultName) throws Exception {
         if (credentialDTOs == null) {
             return null;
         }
 
         // Generate a helper AES key for vault name encryption
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         String aesKeyBase64 = EncryptionUtils.getAESKeyString(aesKey);
-        
+
         List<CredentialResponseDTO> encryptedCredentials = new ArrayList<>();
         for (CredentialDTO credentialDTO : credentialDTOs) {
             encryptedCredentials.add(encryptCredentialForClient(credentialDTO));
         }
-        
+
         // Encrypt the vault name
         EncryptedDataAesCbcDTO encryptedVaultName = null;
         if (vaultName != null) {
             encryptedVaultName = encryptVaultName(vaultName, aesKeyBase64);
         }
-        
-        return new CredentialListResponseDTO(encryptedCredentials, credentialDTOs.size(), 
-                encryptedVaultName, aesKeyBase64);
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Credential list client response encryption process completed in {} ms", endTime - startTime);
+
+        return new CredentialListResponseDTO(encryptedCredentials, credentialDTOs.size(), encryptedVaultName,
+                aesKeyBase64);
     }
-    
+
     /**
      * Encrypts a vault name for client response.
      * 
-     * @param vaultName - The vault name to encrypt
+     * @param vaultName    - The vault name to encrypt
      * @param aesKeyBase64 - The AES key to use for encryption (base64 encoded)
      * @return {@link EncryptedDataAesCbcDTO} containing encrypted vault name
      * @throws Exception If encryption fails
@@ -158,13 +170,17 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
         if (vaultName == null) {
             return null;
         }
-        
+
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.getAESKeyFromString(aesKeyBase64);
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
-        
-        EncryptedDataAesCbc encryptedVaultNameData = genericEncryptionService
-                .encryptDTOWithAESCBC(vaultName, EncryptedDataAesCbc.class, aesKey);
-                
+
+        EncryptedDataAesCbc encryptedVaultNameData = genericEncryptionService.encryptDTOWithAESCBC(vaultName,
+                EncryptedDataAesCbc.class, aesKey);
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Vault name client encryption process completed in {} ms", endTime - startTime);
+
         return encryptedDataAesCbcMapper.toDto(encryptedVaultNameData);
     }
 
@@ -177,6 +193,8 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
      */
     @Override
     public CredentialDTO decryptCredentialFromClient(CredentialRequestDTO requestDTO) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         if (requestDTO == null || requestDTO.getEncryptedUsername() == null || requestDTO.getEncryptedPassword() == null
                 || requestDTO.getHelperAesKey() == null) {
             return null;
@@ -232,6 +250,9 @@ public class CredentialClientEncryptionServiceImpl implements CredentialClientEn
         if (requestDTO.getDomainId() != null) {
             credentialDTO.setDomainId(requestDTO.getDomainId());
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Credential client decryption process completed in {} ms", endTime - startTime);
 
         return credentialDTO;
     }

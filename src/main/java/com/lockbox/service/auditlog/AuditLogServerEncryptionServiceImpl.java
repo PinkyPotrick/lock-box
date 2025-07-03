@@ -38,6 +38,7 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
     @Override
     public AuditLog encryptServerData(AuditLog auditLog) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             AuditLog encryptedAuditLog = new AuditLog();
 
             // Copy non-encrypted fields
@@ -57,25 +58,25 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
 
             // Encrypt sensitive fields only
             if (auditLog.getResourceId() != null) {
-                logger.debug(EncryptionMessages.ENCRYPTING_RESOURCE_ID);
                 encryptedAuditLog.setResourceId(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getResourceId(), aesKey));
             }
 
             if (auditLog.getResourceName() != null) {
-                logger.debug(EncryptionMessages.ENCRYPTING_RESOURCE_NAME);
                 encryptedAuditLog.setResourceName(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getResourceName(), aesKey));
             }
 
             if (auditLog.getAdditionalInfo() != null) {
-                logger.debug(EncryptionMessages.ENCRYPTING_ADDITIONAL_INFO);
                 encryptedAuditLog.setAdditionalInfo(
                         genericEncryptionService.encryptStringWithAESCBC(auditLog.getAdditionalInfo(), aesKey));
             }
 
             encryptedAuditLog.setAesKey(rsaKeyPairService
                     .encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey), serverPublicKeyPem));
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Audit log server encryption process completed in {} ms", duration);
 
             return encryptedAuditLog;
         } catch (Exception e) {
@@ -94,6 +95,7 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
     @Override
     public AuditLog decryptServerData(AuditLog auditLog) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             AuditLog decryptedAuditLog = new AuditLog();
 
             // Decrypt the audit log AES key used to encrypt sensitive fields
@@ -114,22 +116,22 @@ public class AuditLogServerEncryptionServiceImpl implements AuditLogServerEncryp
 
             // Decrypt sensitive fields only
             if (auditLog.getResourceId() != null) {
-                logger.debug(EncryptionMessages.DECRYPTING_RESOURCE_ID);
                 decryptedAuditLog.setResourceId(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getResourceId(), auditLogAesKey));
             }
 
             if (auditLog.getResourceName() != null) {
-                logger.debug(EncryptionMessages.DECRYPTING_RESOURCE_NAME);
                 decryptedAuditLog.setResourceName(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getResourceName(), auditLogAesKey));
             }
 
             if (auditLog.getAdditionalInfo() != null) {
-                logger.debug(EncryptionMessages.DECRYPTING_ADDITIONAL_INFO);
                 decryptedAuditLog.setAdditionalInfo(
                         genericEncryptionService.decryptStringWithAESCBC(auditLog.getAdditionalInfo(), auditLogAesKey));
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Audit log server decryption process completed in {} ms", duration);
 
             return decryptedAuditLog;
         } catch (Exception e) {

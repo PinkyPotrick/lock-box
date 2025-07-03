@@ -37,6 +37,7 @@ public class DomainServerEncryptionServiceImpl implements DomainServerEncryption
     @Override
     public Domain encryptServerData(Domain domain) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Domain encryptedDomain = new Domain();
 
             // Copy non-encrypted fields
@@ -52,23 +53,23 @@ public class DomainServerEncryptionServiceImpl implements DomainServerEncryption
 
             // Encrypt sensitive fields
             if (domain.getName() != null) {
-                logger.debug("Encrypting domain name with AES-CBC");
                 encryptedDomain.setName(genericEncryptionService.encryptStringWithAESCBC(domain.getName(), aesKey));
             }
 
             if (domain.getUrl() != null) {
-                logger.debug("Encrypting domain URL with AES-CBC");
                 encryptedDomain.setUrl(genericEncryptionService.encryptStringWithAESCBC(domain.getUrl(), aesKey));
             }
 
             if (domain.getNotes() != null) {
-                logger.debug("Encrypting domain notes with AES-CBC");
                 encryptedDomain.setNotes(genericEncryptionService.encryptStringWithAESCBC(domain.getNotes(), aesKey));
             }
 
             // Encrypt the AES key with RSA
             encryptedDomain.setAesKey(rsaKeyPairService.encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey),
                     serverPublicKeyPem));
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Domain server encryption process completed in {} ms", duration);
 
             return encryptedDomain;
         } catch (Exception e) {
@@ -87,6 +88,7 @@ public class DomainServerEncryptionServiceImpl implements DomainServerEncryption
     @Override
     public Domain decryptServerData(Domain domain) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Domain decryptedDomain = new Domain();
 
             // Decrypt the domain AES key used to encrypt sensitive fields
@@ -102,21 +104,21 @@ public class DomainServerEncryptionServiceImpl implements DomainServerEncryption
 
             // Decrypt sensitive fields
             if (domain.getName() != null) {
-                logger.debug("Decrypting domain name with AES-CBC");
                 decryptedDomain
                         .setName(genericEncryptionService.decryptStringWithAESCBC(domain.getName(), domainAesKey));
             }
 
             if (domain.getUrl() != null) {
-                logger.debug("Decrypting domain URL with AES-CBC");
                 decryptedDomain.setUrl(genericEncryptionService.decryptStringWithAESCBC(domain.getUrl(), domainAesKey));
             }
 
             if (domain.getNotes() != null) {
-                logger.debug("Decrypting domain notes with AES-CBC");
                 decryptedDomain
                         .setNotes(genericEncryptionService.decryptStringWithAESCBC(domain.getNotes(), domainAesKey));
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Domain server decryption process completed in {} ms", duration);
 
             return decryptedDomain;
         } catch (Exception e) {

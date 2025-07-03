@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,8 @@ import com.lockbox.utils.EncryptionUtils;
 @Service
 public class NotificationClientEncryptionServiceImpl implements NotificationClientEncryptionService {
 
+    private final Logger logger = LoggerFactory.getLogger(NotificationClientEncryptionServiceImpl.class);
+
     @Autowired
     private GenericEncryptionService genericEncryptionService;
 
@@ -41,6 +45,7 @@ public class NotificationClientEncryptionServiceImpl implements NotificationClie
         }
 
         // Generate a helper AES key
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         NotificationResponseDTO responseDTO = new NotificationResponseDTO();
@@ -90,6 +95,9 @@ public class NotificationClientEncryptionServiceImpl implements NotificationClie
         // Set the helper AES key used for encryption
         responseDTO.setHelperAesKey(EncryptionUtils.getAESKeyString(aesKey));
 
+        long endTime = System.currentTimeMillis();
+        logger.info("Notification client response encryption process completed in {} ms", endTime - startTime);
+
         return responseDTO;
     }
 
@@ -107,11 +115,15 @@ public class NotificationClientEncryptionServiceImpl implements NotificationClie
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         List<NotificationResponseDTO> encryptedNotifications = new ArrayList<>();
 
         for (NotificationDTO notificationDTO : notificationDTOs) {
             encryptedNotifications.add(encryptNotificationForClient(notificationDTO));
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Notification client list encryption process completed in {} ms", endTime - startTime);
 
         return new NotificationListResponseDTO(encryptedNotifications, notificationDTOs.size());
     }
@@ -125,6 +137,8 @@ public class NotificationClientEncryptionServiceImpl implements NotificationClie
      */
     @Override
     public NotificationDTO decryptNotificationFromClient(NotificationRequestDTO requestDTO) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         if (requestDTO == null || requestDTO.getHelperAesKey() == null) {
             return null;
         }
@@ -163,6 +177,9 @@ public class NotificationClientEncryptionServiceImpl implements NotificationClie
             notificationDTO.setMetadata(genericEncryptionService.decryptDTOWithAESCBC(requestDTO.getEncryptedMetadata(),
                     String.class, requestDTO.getHelperAesKey()));
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Notification client decryption process completed in {} ms", endTime - startTime);
 
         return notificationDTO;
     }

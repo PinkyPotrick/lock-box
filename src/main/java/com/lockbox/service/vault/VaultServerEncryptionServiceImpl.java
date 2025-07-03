@@ -37,6 +37,7 @@ public class VaultServerEncryptionServiceImpl implements VaultServerEncryptionSe
     @Override
     public Vault encryptServerData(Vault vault) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Vault encryptedVault = new Vault();
 
             // Copy non-encrypted fields
@@ -51,18 +52,19 @@ public class VaultServerEncryptionServiceImpl implements VaultServerEncryptionSe
 
             // Encrypt sensitive fields
             if (vault.getName() != null) {
-                logger.debug("Encrypting vault name with AES-CBC");
                 encryptedVault.setName(genericEncryptionService.encryptStringWithAESCBC(vault.getName(), aesKey));
             }
 
             if (vault.getDescription() != null) {
-                logger.debug("Encrypting vault description with AES-CBC");
                 encryptedVault.setDescription(
                         genericEncryptionService.encryptStringWithAESCBC(vault.getDescription(), aesKey));
             }
 
             encryptedVault.setAesKey(rsaKeyPairService.encryptRSAWithPublicKey(EncryptionUtils.getAESKeyString(aesKey),
                     serverPublicKeyPem));
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Vault server encryption process completed in {} ms", duration);
 
             return encryptedVault;
         } catch (Exception e) {
@@ -81,6 +83,7 @@ public class VaultServerEncryptionServiceImpl implements VaultServerEncryptionSe
     @Override
     public Vault decryptServerData(Vault vault) throws Exception {
         try {
+            long startTime = System.currentTimeMillis();
             Vault decryptedVault = new Vault();
 
             // Decrypt the vault AES key used to encrypt name and description
@@ -96,15 +99,16 @@ public class VaultServerEncryptionServiceImpl implements VaultServerEncryptionSe
 
             // Decrypt sensitive fields
             if (vault.getName() != null) {
-                logger.debug("Decrypting vault name with AES-CBC");
                 decryptedVault.setName(genericEncryptionService.decryptStringWithAESCBC(vault.getName(), vaultAesKey));
             }
 
             if (vault.getDescription() != null) {
-                logger.debug("Decrypting vault description with AES-CBC");
                 decryptedVault.setDescription(
                         genericEncryptionService.decryptStringWithAESCBC(vault.getDescription(), vaultAesKey));
             }
+
+            long duration = System.currentTimeMillis() - startTime;
+            logger.info("Vault server decryption process completed in {} ms", duration);
 
             return decryptedVault;
         } catch (Exception e) {

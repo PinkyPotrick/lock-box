@@ -48,9 +48,11 @@ public class VaultValidator extends BaseValidator {
         validateNotNull(vaultDTO, FieldNames.VAULT_DATA);
         validateRequired(vaultDTO.getName(), FieldNames.NAME, ValidationErrors.VAULT_NAME_REQUIRED);
         validateMaxLength(vaultDTO.getName(), MaxLengths.NAME, FieldNames.NAME);
+        validateSecure(vaultDTO.getName(), FieldNames.NAME);
 
         if (hasContent(vaultDTO.getDescription())) {
             validateMaxLength(vaultDTO.getDescription(), MaxLengths.DESCRIPTION, FieldNames.DESCRIPTION);
+            validateSecure(vaultDTO.getDescription(), FieldNames.DESCRIPTION);
         }
     }
 

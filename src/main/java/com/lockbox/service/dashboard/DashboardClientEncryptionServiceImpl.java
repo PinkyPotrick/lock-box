@@ -2,6 +2,8 @@ package com.lockbox.service.dashboard;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -16,6 +18,8 @@ import com.lockbox.utils.EncryptionUtils;
 
 @Service
 public class DashboardClientEncryptionServiceImpl implements DashboardClientEncryptionService {
+
+    private final Logger logger = LoggerFactory.getLogger(DashboardClientEncryptionServiceImpl.class);
 
     @Autowired
     private GenericEncryptionServiceImpl genericEncryptionService;
@@ -33,6 +37,7 @@ public class DashboardClientEncryptionServiceImpl implements DashboardClientEncr
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         DashboardOverviewResponseDTO responseDTO = new DashboardOverviewResponseDTO();
@@ -42,6 +47,9 @@ public class DashboardClientEncryptionServiceImpl implements DashboardClientEncr
 
         responseDTO.setEncryptedOverview(encryptedDataAesCbcMapper.toDto(encryptedOverview));
         responseDTO.setHelperAesKey(encryptedOverview.getAesKeyBase64());
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Dashboard overview client response encryption process completed in {} ms", endTime - startTime);
 
         return responseDTO;
     }
@@ -59,6 +67,7 @@ public class DashboardClientEncryptionServiceImpl implements DashboardClientEncr
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         LoginHistoryResponseDTO responseDTO = new LoginHistoryResponseDTO();
@@ -68,6 +77,9 @@ public class DashboardClientEncryptionServiceImpl implements DashboardClientEncr
 
         responseDTO.setEncryptedLoginHistory(encryptedDataAesCbcMapper.toDto(encryptedData));
         responseDTO.setHelperAesKey(encryptedData.getAesKeyBase64());
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Login history client response encryption process completed in {} ms", endTime - startTime);
 
         return responseDTO;
     }

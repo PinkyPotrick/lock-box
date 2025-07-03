@@ -5,6 +5,8 @@ import java.util.List;
 
 import javax.crypto.SecretKey;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -24,6 +26,8 @@ import com.lockbox.utils.EncryptionUtils;
 @Service
 public class VaultClientEncryptionServiceImpl implements VaultClientEncryptionService {
 
+    private final Logger logger = LoggerFactory.getLogger(VaultClientEncryptionServiceImpl.class);
+
     @Autowired
     private GenericEncryptionService genericEncryptionService;
 
@@ -41,6 +45,7 @@ public class VaultClientEncryptionServiceImpl implements VaultClientEncryptionSe
         }
 
         // Generate a helper AES key
+        long startTime = System.currentTimeMillis();
         SecretKey aesKey = EncryptionUtils.generateAESKey();
         EncryptedDataAesCbcMapper encryptedDataAesCbcMapper = new EncryptedDataAesCbcMapper();
         VaultResponseDTO responseDTO = new VaultResponseDTO();
@@ -72,6 +77,9 @@ public class VaultClientEncryptionServiceImpl implements VaultClientEncryptionSe
 
         responseDTO.setHelperAesKey(encryptedName.getAesKeyBase64());
 
+        long endTime = System.currentTimeMillis();
+        logger.info("Vault client response encryption process completed in {} ms", endTime - startTime);
+
         return responseDTO;
     }
 
@@ -88,10 +96,14 @@ public class VaultClientEncryptionServiceImpl implements VaultClientEncryptionSe
             return null;
         }
 
+        long startTime = System.currentTimeMillis();
         List<VaultResponseDTO> encryptedVaults = new ArrayList<>();
         for (VaultDTO vaultDTO : vaultDTOs) {
             encryptedVaults.add(encryptVaultForClient(vaultDTO));
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Vault client list encryption process completed in {} ms", endTime - startTime);
 
         return new VaultListResponseDTO(encryptedVaults, vaultDTOs.size());
     }
@@ -105,6 +117,8 @@ public class VaultClientEncryptionServiceImpl implements VaultClientEncryptionSe
      */
     @Override
     public VaultDTO decryptVaultFromClient(VaultRequestDTO requestDTO) throws Exception {
+        long startTime = System.currentTimeMillis();
+
         if (requestDTO == null || requestDTO.getEncryptedName() == null || requestDTO.getHelperAesKey() == null) {
             return null;
         }
@@ -133,6 +147,9 @@ public class VaultClientEncryptionServiceImpl implements VaultClientEncryptionSe
         if (requestDTO.getIcon() != null) {
             vaultDTO.setIcon(requestDTO.getIcon());
         }
+
+        long endTime = System.currentTimeMillis();
+        logger.info("Vault client decryption process completed in {} ms", endTime - startTime);
 
         return vaultDTO;
     }

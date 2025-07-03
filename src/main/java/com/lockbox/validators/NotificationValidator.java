@@ -42,22 +42,27 @@ public class NotificationValidator extends BaseValidator {
 
         if (hasContent(notificationDTO.getTitle())) {
             validateMaxLength(notificationDTO.getTitle(), MaxLengths.TITLE, FieldNames.TITLE);
+            validateSecure(notificationDTO.getTitle(), FieldNames.TITLE);
         }
 
         if (hasContent(notificationDTO.getMessage())) {
             validateMaxLength(notificationDTO.getMessage(), MaxLengths.MESSAGE, FieldNames.MESSAGE);
+            validateSecure(notificationDTO.getMessage(), FieldNames.MESSAGE);
         }
 
         if (hasContent(notificationDTO.getResourceId())) {
             validateMaxLength(notificationDTO.getResourceId(), MaxLengths.RESOURCE_ID, FieldNames.RESOURCE_ID);
+            validateSecure(notificationDTO.getResourceId(), FieldNames.RESOURCE_ID);
         }
 
         if (hasContent(notificationDTO.getActionLink())) {
             validateMaxLength(notificationDTO.getActionLink(), MaxLengths.ACTION_LINK, FieldNames.ACTION_LINK);
+            validateSecure(notificationDTO.getActionLink(), FieldNames.ACTION_LINK);
         }
 
         if (hasContent(notificationDTO.getMetadata())) {
             validateMaxLength(notificationDTO.getMetadata(), MaxLengths.METADATA, FieldNames.METADATA);
+            validateSecure(notificationDTO.getMetadata(), FieldNames.METADATA);
         }
     }
 

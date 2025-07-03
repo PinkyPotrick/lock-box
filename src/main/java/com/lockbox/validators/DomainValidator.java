@@ -48,13 +48,16 @@ public class DomainValidator extends BaseValidator {
         validateNotNull(domainDTO, FieldNames.DOMAIN_DATA);
         validateRequired(domainDTO.getName(), FieldNames.NAME, ValidationErrors.DOMAIN_NAME_REQUIRED);
         validateMaxLength(domainDTO.getName(), MaxLengths.NAME, FieldNames.NAME);
+        validateSecure(domainDTO.getName(), FieldNames.NAME);
 
         if (hasContent(domainDTO.getUrl())) {
             validateMaxLength(domainDTO.getUrl(), MaxLengths.URL, FieldNames.URL);
+            validateSecure(domainDTO.getUrl(), FieldNames.URL);
         }
 
         if (hasContent(domainDTO.getNotes())) {
             validateMaxLength(domainDTO.getNotes(), MaxLengths.NOTES, FieldNames.NOTES);
+            validateSecure(domainDTO.getNotes(), FieldNames.NOTES);
         }
     }
 
