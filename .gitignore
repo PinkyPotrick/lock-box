@@ -124,3 +124,9 @@ $RECYCLE.BIN/
 *.iws
 *.iml
 *.ipr
+
+# Secure properties
+/config/
+
+# Exclude SQL generated files directory
+sql/

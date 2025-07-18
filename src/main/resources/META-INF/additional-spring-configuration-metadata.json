@@ -1,0 +1,74 @@
+{
+  "properties": [
+    {
+      "name": "geoip2.db.city.location",
+      "type": "java.lang.String",
+      "description": "A description for 'geoip2.db.city.location'"
+    },
+    {
+      "name": "geoip2.db.country.location",
+      "type": "java.lang.String",
+      "description": "A description for 'geoip2.db.country.location'"
+    },
+    {
+      "name": "key.private.path",
+      "type": "java.lang.String",
+      "description": "A description for 'key.private.path'"
+    },
+    {
+      "name": "key.public.path",
+      "type": "java.lang.String",
+      "description": "A description for 'key.public.path'"
+    },
+    {
+      "name": "key.private.path",
+      "type": "java.lang.String",
+      "description": "A description for 'key.private.path'"
+    },
+    {
+      "name": "security.ip.verbose-logging",
+      "type": "java.lang.String",
+      "description": "A description for 'security.ip.verbose-logging'"
+    },
+    {
+      "name": "security.ip.trusted-proxies",
+      "type": "java.lang.String",
+      "description": "A description for 'security.ip.trusted-proxies'"
+    },
+    {
+      "name": "app.totp.time-drift-tolerance",
+      "type": "Integer",
+      "description": "A description for 'app.totp.time-drift-tolerance'"
+    },
+    {
+      "name": "app.totp.operation-verification-minutes",
+      "type": "Integer",
+      "description": "A description for 'app.totp.operation-verification-minutes'"
+    },
+    {
+      "name": "app.totp.max-failed-attempts",
+      "type": "Integer",
+      "description": "A description for 'app.totp.max-failed-attempts'"
+    },
+    {
+      "name": "blockchain.feature.enabled",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.feature.enabled'"
+    },
+    {
+      "name": "blockchain.ethereum.url",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.ethereum.url'"
+    },
+    {
+      "name": "blockchain.contract.address",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.contract.address'"
+    },
+    {
+      "name": "blockchain.wallet.private-key",
+      "type": "java.lang.String",
+      "description": "A description for 'blockchain.wallet.private-key'"
+    }
+  ]
+}
